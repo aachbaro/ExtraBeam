@@ -8,7 +8,6 @@
     "build": "vite build",
     "preview": "vite preview",
     "tailwind-init": "tailwindcss init -p",
-
     "db:types": "supabase gen types typescript --project-id zoojscjpdakwxukkhele --schema public > src/types/database.ts",
     "db:backup": "powershell -Command \"supabase db dump -f ../supabase/migrations/$(Get-Date -Format yyyyMMdd_HHmmss)_backup.sql\"",
     "db:migrate": "powershell -Command \"supabase db diff --use-migra -f $(Get-Date -Format yyyyMMdd_HHmmss)_migration; supabase db push\"",
@@ -23,7 +22,7 @@
     "jsonwebtoken": "^9.0.2",
     "jspdf": "^3.0.3",
     "jspdf-autotable": "^5.0.2",
-    "pinia": "^2.2.6",
+    "pinia": "^2.3.1",
     "raw-body": "^3.0.1",
     "stripe": "^18.5.0",
     "vue": "^3.5.18",
