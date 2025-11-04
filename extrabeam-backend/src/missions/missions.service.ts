@@ -190,9 +190,17 @@ export class MissionsService {
   async createPublicMission(dto: MissionCreatePayload): Promise<MissionRow> {
     const admin = this.supabaseService.getAdminClient();
 
+    if (!dto.entrepriseRef)
+      throw new BadRequestException('Référence entreprise requise (slug ou id)');
+
+    const entreprise = await this.accessService.findEntreprise(dto.entrepriseRef);
+    if (!entreprise)
+      throw new NotFoundException('Entreprise introuvable');
+
     const missionData: MissionInsert = {
       ...this.buildMissionInsert(dto),
-      entreprise_id: dto.entreprise_id ?? null,
+      entreprise_id: entreprise.id,
+      client_id: null,
       status: 'proposed',
     };
 
@@ -204,8 +212,8 @@ export class MissionsService {
 
     if (error) throw new InternalServerErrorException(error.message);
 
-    if (dto.slots?.length && data.entreprise_id) {
-      const slots = this.normalizeSlots(dto.slots, data.id, data.entreprise_id);
+    if (dto.slots?.length) {
+      const slots = this.normalizeSlots(dto.slots, data.id, entreprise.id);
       const { error: slotsError } = await admin.from('slots').insert(slots);
       if (slotsError)
         throw new InternalServerErrorException(slotsError.message);
@@ -256,8 +264,22 @@ export class MissionsService {
     }
 
     if (role === 'client') {
+      if (!input.entrepriseRef) {
+        throw new BadRequestException(
+          'Référence entreprise requise pour création client',
+        );
+      }
+
+      const entreprise = await this.accessService.findEntreprise(
+        input.entrepriseRef,
+      );
+      if (!entreprise) {
+        throw new NotFoundException('Entreprise introuvable');
+      }
+
       const missionData: MissionInsert = {
         ...this.buildMissionInsert(input),
+        entreprise_id: entreprise.id,
         client_id: user.id,
         status: 'proposed',
       };
@@ -269,6 +291,12 @@ export class MissionsService {
         .single<MissionRow>();
 
       if (error) throw new InternalServerErrorException(error.message);
+      if (input.slots?.length) {
+        const slots = this.normalizeSlots(input.slots, data.id, entreprise.id);
+        const { error: slotsError } = await admin.from('slots').insert(slots);
+        if (slotsError)
+          throw new InternalServerErrorException(slotsError.message);
+      }
       return data;
     }
 
