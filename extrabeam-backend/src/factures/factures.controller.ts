@@ -23,7 +23,17 @@
 //
 // -------------------------------------------------------------
 
-import { Body, Controller, Get, Param, ParseIntPipe, Post, Put, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Post,
+  Put,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 
 import type { AuthUser } from '../common/auth/auth.types';
 import { User } from '../common/auth/decorators/user.decorator';
@@ -40,9 +50,14 @@ export class FacturesController {
   @Get()
   async listFactures(
     @Query('entrepriseRef') entrepriseRef: string,
+    @Query('mission_id') missionId: string | undefined,
     @User() user: AuthUser,
   ): Promise<{ factures: FactureWithRelations[] }> {
-    const factures = await this.facturesService.listFactures(entrepriseRef ?? '', user);
+    const factures = await this.facturesService.listFactures(
+      entrepriseRef ?? '',
+      user,
+      missionId ? Number(missionId) : undefined,
+    );
     return { factures };
   }
 

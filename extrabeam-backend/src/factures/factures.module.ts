@@ -17,7 +17,10 @@ import { FacturesController } from './factures.controller';
 import { FacturesService } from './factures.service';
 
 @Module({
-  imports: [forwardRef(() => PaymentsModule), forwardRef(() => NotificationsModule)],
+  imports: [
+    forwardRef(() => PaymentsModule),
+    forwardRef(() => NotificationsModule),
+  ],
   controllers: [FacturesController],
   providers: [FacturesService],
   exports: [FacturesService],

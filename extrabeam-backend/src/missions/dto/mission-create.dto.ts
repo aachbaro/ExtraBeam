@@ -22,12 +22,11 @@
 //
 // -------------------------------------------------------------
 
-import { Type } from 'class-transformer';
+import { Type, Expose } from 'class-transformer';
 import {
   IsArray,
   IsEnum,
   IsInt,
-  IsNumber,
   IsOptional,
   IsString,
   IsEmail,
@@ -74,6 +73,7 @@ export interface MissionCreatePayload extends MissionInsert {
 // -------------------------------------------------------------
 export class MissionCreateDto implements MissionCreatePayload {
   // 🔗 Référence entreprise (slug ou ID)
+  @Expose({ name: 'entreprise_ref' }) // ✅ mappe automatiquement
   @IsOptional()
   @IsString()
   entrepriseRef?: MissionCreatePayload['entrepriseRef'];

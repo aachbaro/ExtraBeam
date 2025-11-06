@@ -18,12 +18,16 @@
 //
 // -------------------------------------------------------------
 
-import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common'
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 
-import { AccessService } from '../common/auth/access.service'
-import { SupabaseService } from '../common/supabase/supabase.service'
-import type { AuthUser } from '../common/auth/auth.types'
-import type { Table } from '../types/aliases'
+import { AccessService } from '../common/auth/access.service';
+import { SupabaseService } from '../common/supabase/supabase.service';
+import type { AuthUser } from '../common/auth/auth.types';
+import type { Table } from '../types/aliases';
 
 // -------------------------------------------------------------
 // Typing reference summary
@@ -33,7 +37,7 @@ import type { Table } from '../types/aliases'
 // - EntrepriseOverview = { mode: 'owner' | 'public'; ... }
 // -------------------------------------------------------------
 
-export type EntrepriseRow = Table<'entreprise'>
+export type EntrepriseRow = Table<'entreprise'>;
 
 const PUBLIC_ENTREPRISE_COLUMNS: Array<keyof EntrepriseRow> = [
   'id',
@@ -50,46 +54,49 @@ const PUBLIC_ENTREPRISE_COLUMNS: Array<keyof EntrepriseRow> = [
   'taux_horaire',
   'devise',
   'created_at',
-]
+];
 
-export const MISSION_SELECT = '*, slots(*), client:client_id(*), entreprise:entreprise_id(*)'
+export const MISSION_SELECT =
+  '*, slots(*), client:client_id(*), entreprise:entreprise_id(*)';
 
 export type PublicEntreprise = Pick<
   EntrepriseRow,
   (typeof PUBLIC_ENTREPRISE_COLUMNS)[number]
->
+>;
 
 type MissionWithRelations = Table<'missions'> & {
-  slots: Table<'slots'>[]
-  client: Table<'profiles'> | null
-  entreprise: EntrepriseRow | null
-}
+  slots: Table<'slots'>[];
+  client: Table<'profiles'> | null;
+  entreprise: EntrepriseRow | null;
+};
 
 type SlotWithMission = Table<'slots'> & {
   missions?: {
-    status: string | null
-  } | null
-}
+    status: string | null;
+  } | null;
+};
 
-export type EntrepriseDetail = { entreprise: Partial<EntrepriseRow> }
+export type EntrepriseDetail = { entreprise: Partial<EntrepriseRow> };
 
 type EntrepriseOverviewOwner = {
-  mode: 'owner'
-  entreprise: EntrepriseRow
-  missions: MissionWithRelations[]
-  factures: Table<'factures'>[]
-  slots: Table<'slots'>[]
-  unavailabilities: Table<'unavailabilities'>[]
-}
+  mode: 'owner';
+  entreprise: EntrepriseRow;
+  missions: MissionWithRelations[];
+  factures: Table<'factures'>[];
+  slots: Table<'slots'>[];
+  unavailabilities: Table<'unavailabilities'>[];
+};
 
 type EntrepriseOverviewPublic = {
-  mode: 'public'
-  entreprise: PublicEntreprise
-  slots: SlotWithMission[]
-  unavailabilities: Table<'unavailabilities'>[]
-}
+  mode: 'public';
+  entreprise: PublicEntreprise;
+  slots: SlotWithMission[];
+  unavailabilities: Table<'unavailabilities'>[];
+};
 
-export type EntrepriseOverview = EntrepriseOverviewOwner | EntrepriseOverviewPublic
+export type EntrepriseOverview =
+  | EntrepriseOverviewOwner
+  | EntrepriseOverviewPublic;
 
 @Injectable()
 export class EntreprisesService {
@@ -106,79 +113,89 @@ export class EntreprisesService {
     const result = {} as Record<
       keyof PublicEntreprise,
       PublicEntreprise[keyof PublicEntreprise]
-    >
+    >;
 
     for (const key of PUBLIC_ENTREPRISE_COLUMNS) {
-      result[key] = (entreprise[key] ?? null) as PublicEntreprise[keyof PublicEntreprise]
+      result[key] = entreprise[key] ?? null;
     }
 
-    return result as PublicEntreprise
+    return result as PublicEntreprise;
   }
 
-  private handleSupabaseError(error: unknown, notFoundMessage = 'Entreprise non trouvée'): never {
+  private handleSupabaseError(
+    error: unknown,
+    notFoundMessage = 'Entreprise non trouvée',
+  ): never {
     const supabaseError =
       typeof error === 'object' && error !== null
         ? (error as {
-            code?: string
-            details?: unknown
-            message?: unknown
+            code?: string;
+            details?: unknown;
+            message?: unknown;
           })
-        : null
+        : null;
 
     if (
       supabaseError?.code === 'PGRST116' ||
       (typeof supabaseError?.details === 'string' &&
         supabaseError.details.includes('Results contain 0 rows'))
     ) {
-      throw new NotFoundException(notFoundMessage)
+      throw new NotFoundException(notFoundMessage);
     }
 
     if (typeof supabaseError?.message === 'string') {
       throw new InternalServerErrorException(
         `Supabase error (${supabaseError.code ?? 'unknown'}): ${supabaseError.message}`,
-      )
+      );
     }
 
-    throw new InternalServerErrorException('Erreur Supabase')
+    throw new InternalServerErrorException('Erreur Supabase');
   }
 
   private async fetchEntreprise(ref: string): Promise<EntrepriseRow> {
     try {
-      const entreprise = await this.accessService.findEntreprise(ref)
+      const entreprise = await this.accessService.findEntreprise(ref);
 
       if (!entreprise) {
-        throw new NotFoundException('Entreprise non trouvée')
+        throw new NotFoundException('Entreprise non trouvée');
       }
 
-      return entreprise as EntrepriseRow
+      return entreprise;
     } catch (error) {
       if (error instanceof NotFoundException) {
-        throw error
+        throw error;
       }
-      this.handleSupabaseError(error)
+      this.handleSupabaseError(error);
     }
   }
 
   async getPublicEntreprises(): Promise<{ entreprises: PublicEntreprise[] }> {
-    const client = this.supabaseService.getAdminClient()
+    const client = this.supabaseService.getAdminClient();
 
     const { data, error } = await client
       .from('entreprise')
       .select(
         'id, slug, nom, prenom, adresse_ligne1, adresse_ligne2, ville, code_postal, pays, email, telephone, taux_horaire, devise, created_at',
       )
-      .order('created_at', { ascending: false })
+      .order('created_at', { ascending: false });
 
     if (error) {
-      this.handleSupabaseError(error, 'Impossible de récupérer les entreprises')
+      this.handleSupabaseError(
+        error,
+        'Impossible de récupérer les entreprises',
+      );
     }
 
-    return { entreprises: (data ?? []) as PublicEntreprise[] }
+    return { entreprises: (data ?? []) as PublicEntreprise[] };
   }
 
-  async getEntreprise(ref: string, user: AuthUser | null): Promise<EntrepriseDetail> {
-    const entreprise = await this.fetchEntreprise(ref)
-    const canAccessSensitive = !!user && this.accessService.canAccessEntreprise(user, entreprise)
+  async getEntreprise(
+    ref: string,
+    user: AuthUser | null,
+  ): Promise<EntrepriseDetail> {
+    const entreprise = await this.fetchEntreprise(ref);
+    const canAccessSensitive =
+      !!user && this.accessService.canAccessEntreprise(user, entreprise);
 
     const baseData: Partial<EntrepriseRow> = {
       id: entreprise.id,
@@ -196,7 +213,7 @@ export class EntreprisesService {
       devise: entreprise.devise,
       created_at: entreprise.created_at,
       stripe_account_id: entreprise.stripe_account_id,
-    }
+    };
 
     if (canAccessSensitive) {
       Object.assign(baseData, {
@@ -209,17 +226,21 @@ export class EntreprisesService {
         conditions_paiement: entreprise.conditions_paiement,
         penalites_retard: entreprise.penalites_retard,
         updated_at: entreprise.updated_at,
-      })
+      });
     }
 
-    return { entreprise: baseData }
+    return { entreprise: baseData };
   }
 
-  async getEntrepriseOverview(ref: string, user: AuthUser | null): Promise<EntrepriseOverview> {
-    const entreprise = await this.fetchEntreprise(ref)
-    const canAccessSensitive = !!user && this.accessService.canAccessEntreprise(user, entreprise)
+  async getEntrepriseOverview(
+    ref: string,
+    user: AuthUser | null,
+  ): Promise<EntrepriseOverview> {
+    const entreprise = await this.fetchEntreprise(ref);
+    const canAccessSensitive =
+      !!user && this.accessService.canAccessEntreprise(user, entreprise);
 
-    const client = this.supabaseService.getAdminClient()
+    const client = this.supabaseService.getAdminClient();
 
     if (canAccessSensitive) {
       const [missions, factures, slots, unavailabilities] = await Promise.all([
@@ -242,22 +263,31 @@ export class EntreprisesService {
           .from('unavailabilities')
           .select('*')
           .eq('entreprise_id', entreprise.id),
-      ])
+      ]);
 
       if (missions.error) {
-        this.handleSupabaseError(missions.error, 'Impossible de récupérer les missions')
+        this.handleSupabaseError(
+          missions.error,
+          'Impossible de récupérer les missions',
+        );
       }
       if (factures.error) {
-        this.handleSupabaseError(factures.error, 'Impossible de récupérer les factures')
+        this.handleSupabaseError(
+          factures.error,
+          'Impossible de récupérer les factures',
+        );
       }
       if (slots.error) {
-        this.handleSupabaseError(slots.error, 'Impossible de récupérer les slots')
+        this.handleSupabaseError(
+          slots.error,
+          'Impossible de récupérer les slots',
+        );
       }
       if (unavailabilities.error) {
         this.handleSupabaseError(
           unavailabilities.error,
           'Impossible de récupérer les indisponibilités',
-        )
+        );
       }
 
       return {
@@ -266,8 +296,9 @@ export class EntreprisesService {
         missions: (missions.data as MissionWithRelations[]) ?? [],
         factures: (factures.data as Table<'factures'>[]) ?? [],
         slots: (slots.data as Table<'slots'>[]) ?? [],
-        unavailabilities: (unavailabilities.data as Table<'unavailabilities'>[]) ?? [],
-      }
+        unavailabilities:
+          (unavailabilities.data as Table<'unavailabilities'>[]) ?? [],
+      };
     }
 
     const [slots, unavailabilities] = await Promise.all([
@@ -279,32 +310,38 @@ export class EntreprisesService {
         .from('unavailabilities')
         .select('*')
         .eq('entreprise_id', entreprise.id),
-    ])
+    ]);
 
     if (slots.error) {
-      this.handleSupabaseError(slots.error, 'Impossible de récupérer les slots')
+      this.handleSupabaseError(
+        slots.error,
+        'Impossible de récupérer les slots',
+      );
     }
     if (unavailabilities.error) {
       this.handleSupabaseError(
         unavailabilities.error,
         'Impossible de récupérer les indisponibilités',
-      )
+      );
     }
 
-    const publicSlots = ((slots.data as SlotWithMission[]) ?? []).filter((slot) => {
-      if (!slot.mission_id) {
-        return true
-      }
+    const publicSlots = ((slots.data as SlotWithMission[]) ?? []).filter(
+      (slot) => {
+        if (!slot.mission_id) {
+          return true;
+        }
 
-      const status = slot.missions?.status ?? ''
-      return ['validated', 'paid', 'completed'].includes(status)
-    })
+        const status = slot.missions?.status ?? '';
+        return ['validated', 'paid', 'completed'].includes(status);
+      },
+    );
 
     return {
       mode: 'public' as const,
       entreprise: this.mapToPublicEntreprise(entreprise),
       slots: publicSlots,
-      unavailabilities: (unavailabilities.data as Table<'unavailabilities'>[]) ?? [],
-    }
+      unavailabilities:
+        (unavailabilities.data as Table<'unavailabilities'>[]) ?? [],
+    };
   }
 }
