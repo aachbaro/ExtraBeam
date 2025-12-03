@@ -16,14 +16,15 @@
 //
 // -------------------------------------------------------------
 
-import { Module } from '@nestjs/common';
-
+import { Module, forwardRef } from '@nestjs/common';
 import { UnavailabilitiesController } from './unavailabilities.controller';
 import { UnavailabilitiesService } from './unavailabilities.service';
+import { SupabaseService } from '../../common/supabase/supabase.service';
+import { AccessService } from '../../common/auth/access.service';
 
 @Module({
   controllers: [UnavailabilitiesController],
-  providers: [UnavailabilitiesService],
+  providers: [UnavailabilitiesService, SupabaseService, AccessService],
   exports: [UnavailabilitiesService],
 })
 export class UnavailabilitiesModule {}
