@@ -13,7 +13,7 @@
         <template v-else>
           <CvProfile
             :profile="profile"
-            :entreprise="entreprise"
+            :entreprise="entrepriseCv"
             :is-owner="isOwner"
             @updated="refresh"
           />
@@ -51,9 +51,11 @@ import CvProfile from "./CvProfile.vue";
 import CvSkills from "./CvSkills.vue";
 import CvExperiences from "./CvExperiences.vue";
 import CvEducation from "./CvEducation.vue";
+import type { CvEntreprise } from "@/services/cv";
 
 const props = defineProps<{
   entrepriseRef: string;
+  entreprise: CvEntreprise | null;
   isOwner: boolean;
 }>();
 
@@ -64,8 +66,12 @@ const loading = ref(false);
 const { entreprise, profile, skills, experiences, education, fetchCv } =
   useCv();
 
-const entrepriseSlug = computed(
-  () => entreprise.value?.slug ?? props.entrepriseRef
+const entrepriseCv = computed(
+  () => props.entreprise ?? entreprise.value
+);
+
+const entrepriseSlug = computed(() =>
+  entrepriseCv.value?.slug ?? props.entrepriseRef
 );
 
 type SectionKey = "skills" | "experiences" | "education";

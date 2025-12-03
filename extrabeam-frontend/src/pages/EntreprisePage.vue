@@ -17,7 +17,11 @@
   <div class="w-full flex flex-col items-center justify-center px-4 pb-5">
     <!-- Bloc CV -->
     <div v-if="entrepriseSlug" class="max-w-[1200px] w-full mb-6">
-      <CvCard :entreprise-ref="entrepriseSlug" :is-owner="isOwner" />
+      <CvCard
+        :entreprise="entreprise"
+        :entreprise-ref="entrepriseSlug"
+        :is-owner="isOwner"
+      />
     </div>
 
     <!-- Header infos entreprise -->
