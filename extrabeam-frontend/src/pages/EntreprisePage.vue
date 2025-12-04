@@ -24,6 +24,14 @@
       />
     </div>
 
+    <!-- Section Proposer mission (visiteurs uniquement) -->
+    <div
+      v-if="entreprise && !isOwner"
+      class="max-w-[1200px] w-full mb-6"
+    >
+      <PublicMissionCard :entrepriseSlug="entreprise.slug" @created="onMissionCreated" />
+    </div>
+
     <!-- Header infos entreprise -->
     <div class="max-w-[1200px] w-full mb-6 hidden">
       <div v-if="loading" class="text-gray-500 mt-2">Chargement...</div>
@@ -101,6 +109,7 @@ import EntrepriseInfos from "../components/EntrepriseInfos.vue";
 import FactureList from "../components/factures/FactureList.vue";
 import AddContactButton from "../components/AddContactButton.vue";
 import CvCard from "../components/cv/CvCard.vue";
+import PublicMissionCard from "../components/missions/PublicMissionCard.vue";
 
 const route = useRoute();
 const overview = ref<any>(null);
@@ -186,5 +195,9 @@ function onDeletedFacture(id: number) {
     };
   }
   console.log("🗑️ Facture supprimée", id);
+}
+
+function onMissionCreated(mission: any) {
+  console.log("📨 Mission envoyée :", mission);
 }
 </script>
