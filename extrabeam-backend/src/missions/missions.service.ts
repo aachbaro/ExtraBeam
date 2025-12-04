@@ -34,6 +34,7 @@ import {
 
 import { AccessService } from '../common/auth/access.service';
 import { SupabaseService } from '../common/supabase/supabase.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import type { AuthUser } from '../common/auth/auth.types';
 import type { Database } from '../types/database';
 import type {
@@ -82,6 +83,7 @@ export class MissionsService {
   constructor(
     private readonly supabaseService: SupabaseService,
     private readonly accessService: AccessService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   // -------------------------------------------------------------
@@ -184,6 +186,28 @@ export class MissionsService {
     };
   }
 
+  private async fetchMissionWithRelations(
+    id: number,
+  ): Promise<MissionWithRelations> {
+    const admin = this.supabaseService.getAdminClient();
+
+    const { data, error } = await admin
+      .from('missions')
+      .select(MISSION_SELECT)
+      .eq('id', id)
+      .maybeSingle<MissionWithRelations>();
+
+    if (error || !data)
+      throw new NotFoundException('Mission introuvable pour notification');
+
+    return {
+      ...data,
+      slots: data.slots ?? [],
+      entreprise: data.entreprise ?? null,
+      client: data.client ?? null,
+    };
+  }
+
   // -------------------------------------------------------------
   // 🌍 Création publique (visiteur non connecté)
   // -------------------------------------------------------------
@@ -218,6 +242,9 @@ export class MissionsService {
       if (slotsError)
         throw new InternalServerErrorException(slotsError.message);
     }
+
+    const missionWithRelations = await this.fetchMissionWithRelations(data.id);
+    await this.notificationsService.notifyMissionCreated(missionWithRelations);
 
     return data;
   }
@@ -259,7 +286,8 @@ export class MissionsService {
         if (slotsError)
           throw new InternalServerErrorException(slotsError.message);
       }
-
+      const missionWithRelations = await this.fetchMissionWithRelations(data.id);
+      await this.notificationsService.notifyMissionCreated(missionWithRelations);
       return data;
     }
 
@@ -297,6 +325,8 @@ export class MissionsService {
         if (slotsError)
           throw new InternalServerErrorException(slotsError.message);
       }
+      const missionWithRelations = await this.fetchMissionWithRelations(data.id);
+      await this.notificationsService.notifyMissionCreated(missionWithRelations);
       return data;
     }
 
@@ -521,6 +551,14 @@ export class MissionsService {
       .single<MissionRow>();
 
     if (error) throw new InternalServerErrorException(error.message);
+    const missionWithRelations = await this.fetchMissionWithRelations(id);
+
+    if (status === 'validated') {
+      await this.notificationsService.notifyMissionAccepted(
+        missionWithRelations,
+      );
+    }
+
     return data;
   }
 }

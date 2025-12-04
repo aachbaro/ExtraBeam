@@ -64,6 +64,7 @@ type FactureMailPayload = FactureDTO & {
 type MissionMailerPayload = MissionDTO & {
   client?: Table<'profiles'> | null;
   client_id?: string | null;
+  contact_email?: string | null;
 };
 
 // -------------------------------------------------------------
@@ -120,17 +121,36 @@ export class NotificationsService {
     };
   }
 
-  private toClientDTO(client: Table<'profiles'> | null): ClientDTO {
-    if (!client) return { id: null, name: null, email: null };
+  private toClientDTO(
+    client: Table<'profiles'> | null,
+    contactEmail?: string | null,
+    contactName?: string | null,
+  ): ClientDTO {
+    const contact = contactName?.trim();
+
+    if (!client)
+      return {
+        id: null,
+        name: contact && contact.length > 0 ? contact : null,
+        email: contactEmail ?? null,
+      };
 
     const first = client.first_name ?? '';
     const last = client.last_name ?? '';
     const fullName = `${first} ${last}`.trim();
 
+    const email = client.email ?? contactEmail ?? null;
+    const name =
+      fullName.length > 0
+        ? fullName
+        : contactName?.trim()?.length
+          ? contactName
+          : null;
+
     return {
       id: client.id ?? null,
-      name: fullName.length > 0 ? fullName : null,
-      email: client.email ?? null,
+      name,
+      email,
     };
   }
 
@@ -262,12 +282,17 @@ export class NotificationsService {
 
     const entrepriseDto = this.toEntrepriseDTO(entreprise);
     const missionDto = this.toMissionDTO(data);
-    const clientDto = this.toClientDTO(data.client ?? null);
+    const clientDto = this.toClientDTO(
+      data.client ?? null,
+      data.contact_email,
+      data.contact_name,
+    );
 
     const missionMailPayload: MissionMailerPayload = {
       ...missionDto,
       client_id: data.client_id ?? null,
       client: data.client ?? null,
+      contact_email: data.contact_email ?? null,
     };
 
     await this.mailerNotifications.missionStatusChangedToClient(
@@ -282,5 +307,56 @@ export class NotificationsService {
     );
 
     return { sent: true };
+  }
+
+  // -------------------------------------------------------------
+  // 🚀 Notifications Missions (création)
+  // -------------------------------------------------------------
+  async notifyMissionCreated(mission: MissionWithRelations): Promise<void> {
+    const entrepriseDto = this.toEntrepriseDTO(mission.entreprise ?? null);
+    const missionDto = this.toMissionDTO(mission);
+    const clientDto = this.toClientDTO(
+      mission.client ?? null,
+      mission.contact_email,
+      mission.contact_name,
+    );
+
+    if (mission.client_id) {
+      await this.mailerNotifications.missionCreatedByClient(
+        entrepriseDto,
+        missionDto,
+        clientDto,
+      );
+    } else {
+      await this.mailerNotifications.missionCreatedByVisitor(
+        entrepriseDto,
+        missionDto,
+      );
+    }
+
+    await this.mailerNotifications.missionAckToClient(
+      clientDto,
+      missionDto,
+      entrepriseDto,
+    );
+  }
+
+  // -------------------------------------------------------------
+  // ✅ Notifications Missions (acceptation)
+  // -------------------------------------------------------------
+  async notifyMissionAccepted(mission: MissionWithRelations): Promise<void> {
+    const entrepriseDto = this.toEntrepriseDTO(mission.entreprise ?? null);
+    const missionDto = this.toMissionDTO(mission);
+    const missionMailPayload: MissionMailerPayload = {
+      ...missionDto,
+      client_id: mission.client_id ?? null,
+      client: mission.client ?? null,
+      contact_email: mission.contact_email ?? null,
+    };
+
+    await this.mailerNotifications.missionStatusChangedToClient(
+      missionMailPayload,
+      entrepriseDto,
+    );
   }
 }
