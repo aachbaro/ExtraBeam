@@ -24,6 +24,28 @@
       />
     </div>
 
+    <!-- Section contact -->
+    <div
+      v-if="entreprise"
+      class="max-w-[1200px] w-full mb-4 border border-black rounded-lg p-4 space-y-3"
+    >
+      <button
+        class="w-full border border-black rounded-lg py-3 text-center text-lg font-medium hover:bg-gray-100"
+        :disabled="!entreprise.telephone"
+        @click="openPhone(entreprise.telephone)"
+      >
+        📞 Appeler {{ entreprise.telephone || "Téléphone indisponible" }}
+      </button>
+
+      <button
+        class="w-full border border-black rounded-lg py-3 text-center text-lg font-medium hover:bg-gray-100"
+        :disabled="!entreprise.email"
+        @click="openMail(entreprise.email)"
+      >
+        ✉️ Envoyer un email
+      </button>
+    </div>
+
     <!-- Section Proposer mission (visiteurs uniquement) -->
     <div
       v-if="entreprise && !isOwner"
@@ -199,5 +221,15 @@ function onDeletedFacture(id: number) {
 
 function onMissionCreated(mission: any) {
   console.log("📨 Mission envoyée :", mission);
+}
+
+function openPhone(phone: string) {
+  if (!phone) return;
+  window.location.href = `tel:${phone}`;
+}
+
+function openMail(email: string) {
+  if (!email) return;
+  window.location.href = `mailto:${email}`;
 }
 </script>
