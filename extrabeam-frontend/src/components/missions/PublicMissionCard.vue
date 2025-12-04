@@ -1,8 +1,13 @@
 <template>
-  <ExpandableCard v-model:expanded="expanded" class="p-4 hover:shadow-md w-full">
+  <ExpandableCard
+    v-model:expanded="expanded"
+    class="p-4 hover:shadow-md w-full"
+  >
     <template #header>
       <div class="flex items-center justify-between w-full">
-        <h3 class="text-lg font-semibold text-gray-900">📩 Proposer une mission</h3>
+        <h3 class="text-lg font-semibold text-gray-900">
+          📩 Proposer une mission
+        </h3>
       </div>
     </template>
 
@@ -15,7 +20,10 @@
         <input
           v-model="form.etablissement"
           type="text"
-          :class="['input', invalid && !form.etablissement ? 'border-red-500' : '']"
+          :class="[
+            'input',
+            invalid && !form.etablissement ? 'border-red-500' : '',
+          ]"
           placeholder="Nom de l’établissement"
         />
       </div>
@@ -25,7 +33,10 @@
         <label class="text-sm font-medium">Adresse</label>
         <input
           v-model="form.adresseLigne1"
-          :class="['input', invalid && !form.adresseLigne1 ? 'border-red-500' : '']"
+          :class="[
+            'input',
+            invalid && !form.adresseLigne1 ? 'border-red-500' : '',
+          ]"
           placeholder="Adresse ligne 1"
         />
         <input
@@ -38,7 +49,10 @@
       <div class="grid grid-cols-2 gap-3">
         <input
           v-model="form.codePostal"
-          :class="['input', invalid && !form.codePostal ? 'border-red-500' : '']"
+          :class="[
+            'input',
+            invalid && !form.codePostal ? 'border-red-500' : '',
+          ]"
           placeholder="Code postal"
         />
         <input
@@ -50,16 +64,28 @@
 
       <!-- Contact -->
       <div class="grid grid-cols-2 gap-3">
-        <input v-model="form.contactPhone" type="tel" class="input" placeholder="Téléphone" />
+        <input
+          v-model="form.contactPhone"
+          type="tel"
+          class="input"
+          placeholder="Téléphone"
+        />
         <input
           v-model="form.contactEmail"
           type="email"
-          :class="['input', invalid && !form.contactEmail ? 'border-red-500' : '']"
+          :class="[
+            'input',
+            invalid && !form.contactEmail ? 'border-red-500' : '',
+          ]"
           placeholder="Email"
         />
       </div>
 
-      <input v-model="form.contactName" class="input" placeholder="Nom du contact" />
+      <input
+        v-model="form.contactName"
+        class="input"
+        placeholder="Nom du contact"
+      />
 
       <!-- Instructions -->
       <textarea
@@ -77,7 +103,10 @@
           <input
             type="date"
             v-model="slot.startDate"
-            :class="['input', invalid && !slot.startDate ? 'border-red-500' : '']"
+            :class="[
+              'input',
+              invalid && !slot.startDate ? 'border-red-500' : '',
+            ]"
           />
           <input
             type="date"
@@ -87,7 +116,12 @@
         </div>
 
         <div class="grid grid-cols-2 gap-3">
-          <input type="time" v-model="slot.startTime" step="900" class="input" />
+          <input
+            type="time"
+            v-model="slot.startTime"
+            step="900"
+            class="input"
+          />
           <input type="time" v-model="slot.endTime" step="900" class="input" />
         </div>
       </div>
@@ -172,13 +206,31 @@ async function send() {
   pending.value = true;
   try {
     const payload = {
-      ...form.value,
+      etablissement: form.value.etablissement,
+
+      etablissement_adresse_ligne1: form.value.adresseLigne1,
+      etablissement_adresse_ligne2: form.value.adresseLigne2 || null,
+      etablissement_code_postal: form.value.codePostal,
+      etablissement_ville: form.value.ville,
+      etablissement_pays: form.value.pays,
+
+      contact_name: form.value.contactName,
+      contact_email: form.value.contactEmail,
+      contact_phone: form.value.contactPhone,
+
+      instructions: form.value.instructions || null,
       mode: "freelance",
-      entreprise_ref: props.entrepriseSlug,
+
+      entreprise_ref: props.entrepriseSlug, // ✔ transformé automatiquement → entrepriseRef par DTO
+
       slots: [
         {
-          start: new Date(`${slot.value.startDate}T${slot.value.startTime}`).toISOString(),
-          end: new Date(`${slot.value.endDate}T${slot.value.endTime}`).toISOString(),
+          start: new Date(
+            `${slot.value.startDate}T${slot.value.startTime}`
+          ).toISOString(),
+          end: new Date(
+            `${slot.value.endDate}T${slot.value.endTime}`
+          ).toISOString(),
           title: null,
         },
       ],
