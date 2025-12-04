@@ -18,6 +18,12 @@
 
 <template>
   <div class="max-w-5xl mx-auto p-6 space-y-12">
+
+    <section class="text-center space-y-6">
+      <h1 class="text-4xl font-bold text-gray-900">
+        Page en construction 🚧
+      </h1>
+    </section>
     <!-- Infos -->
     <section>
       <h2 class="text-xl font-bold mb-2">📋 Mes informations</h2>

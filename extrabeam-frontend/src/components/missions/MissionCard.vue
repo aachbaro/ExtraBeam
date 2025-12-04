@@ -24,20 +24,21 @@
       <div
         class="grid grid-cols-3 items-center w-full text-center sm:text-left"
       >
-        <!-- Gauche : nom de l'établissement -->
-        <h3 class="font-bold text-lg text-gray-900 truncate">
+        <!-- Bloc gauche : nom de l'établissement -->
+        <h3 class="font-bold text-lg text-gray-900 truncate sm:text-left">
           {{ mission.etablissement }}
         </h3>
 
-        <!-- Centre : date + heure du premier créneau -->
+        <!-- Bloc centre : premier créneau -->
         <p
           v-if="mission.slots?.length"
-          class="text-sm text-gray-600 text-center"
+          class="text-sm bg-gray-100 px-2 py-1 rounded-full inline-flex justify-center w-full sm:w-auto mx-auto sm:mx-0"
         >
           {{ formatDate(mission.slots?.[0]?.start) }}
         </p>
+        <p v-else></p>
 
-        <!-- Droite : statut -->
+        <!-- Bloc droite : statut -->
         <span
           class="inline-flex items-center justify-center px-2 py-1 text-xs rounded-full w-max sm:justify-self-end mx-auto sm:mx-0"
           :class="statusClasses[mission.status]"
