@@ -25,33 +25,30 @@
     </div>
 
     <!-- Section contact -->
-    <div
-      v-if="entreprise"
-      class="max-w-[1200px] w-full mb-4 border border-black rounded-lg p-4 space-y-3"
-    >
+    <div v-if="entreprise" class="max-w-[1200px] w-full mb-4 flex gap-3">
       <button
-        class="w-full border border-black rounded-lg py-3 text-center text-lg font-medium hover:bg-gray-100"
+        class="flex-1 border border-black rounded-lg py-3 text-center text-lg font-medium hover:bg-gray-100"
         :disabled="!entreprise.telephone"
         @click="openPhone(entreprise.telephone)"
       >
-        📞 Appeler {{ entreprise.telephone || "Téléphone indisponible" }}
+        📞 Appeler
       </button>
 
       <button
-        class="w-full border border-black rounded-lg py-3 text-center text-lg font-medium hover:bg-gray-100"
+        class="flex-1 border border-black rounded-lg py-3 text-center text-lg font-medium hover:bg-gray-100"
         :disabled="!entreprise.email"
         @click="openMail(entreprise.email)"
       >
-        ✉️ Envoyer un email
+        ✉️ Email
       </button>
     </div>
 
     <!-- Section Proposer mission (visiteurs uniquement) -->
-    <div
-      v-if="entreprise && !isOwner"
-      class="max-w-[1200px] w-full mb-6"
-    >
-      <PublicMissionCard :entrepriseSlug="entreprise.slug" @created="onMissionCreated" />
+    <div v-if="entreprise && !isOwner" class="max-w-[1200px] w-full mb-6">
+      <PublicMissionCard
+        :entrepriseSlug="entreprise.slug"
+        @created="onMissionCreated"
+      />
     </div>
 
     <!-- Header infos entreprise -->
