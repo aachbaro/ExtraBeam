@@ -157,6 +157,10 @@ export class FacturesService {
     missionId?: number,
   ): Promise<FactureWithRelations[]> {
     this.ensureUser(user);
+
+    if (user.role === 'client') {
+      return this.listFacturesForClient(user, missionId);
+    }
     this.assertEntrepriseRole(user);
 
     const entreprise = await this.loadEntrepriseForUser(user, entrepriseRef);
@@ -166,6 +170,27 @@ export class FacturesService {
       .from('factures')
       .select(FACTURE_SELECT)
       .eq('entreprise_id', entreprise.id)
+      .order('date_emission', { ascending: false });
+
+    if (missionId) query = query.eq('mission_id', missionId);
+
+    const { data, error } = await query.returns<FactureWithRelations[]>();
+
+    if (error) throw new InternalServerErrorException(error.message);
+    return data ?? [];
+  }
+
+  /** 🧾 Liste les factures visibles par un client (missions associées). */
+  private async listFacturesForClient(
+    user: AuthUser,
+    missionId?: number,
+  ): Promise<FactureWithRelations[]> {
+    const admin = this.supabaseService.getAdminClient();
+
+    let query = admin
+      .from('factures')
+      .select(FACTURE_SELECT)
+      .eq('mission.client_id', user.id)
       .order('date_emission', { ascending: false });
 
     if (missionId) query = query.eq('mission_id', missionId);
