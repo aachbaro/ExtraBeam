@@ -25,22 +25,29 @@
     </div>
 
     <!-- Section contact -->
-    <div v-if="entreprise" class="max-w-[1200px] w-full mb-4 flex gap-3">
-      <button
-        class="flex-1 border border-black rounded-lg py-3 text-center text-lg font-medium hover:bg-gray-100"
-        :disabled="!entreprise.telephone"
-        @click="openPhone(entreprise.telephone)"
-      >
-        📞 Appeler
-      </button>
+    <div v-if="entreprise" class="max-w-[1200px] w-full mb-4 flex flex-col gap-3">
+      <AddContactButton
+        v-if="user?.role === 'client' && !isOwner"
+        :entreprise-id="entreprise.id"
+      />
 
-      <button
-        class="flex-1 border border-black rounded-lg py-3 text-center text-lg font-medium hover:bg-gray-100"
-        :disabled="!entreprise.email"
-        @click="openMail(entreprise.email)"
-      >
-        ✉️ Email
-      </button>
+      <div class="flex gap-3">
+        <button
+          class="flex-1 border border-black rounded-lg py-3 text-center text-lg font-medium hover:bg-gray-100"
+          :disabled="!entreprise.telephone"
+          @click="openPhone(entreprise.telephone)"
+        >
+          📞 Appeler
+        </button>
+
+        <button
+          class="flex-1 border border-black rounded-lg py-3 text-center text-lg font-medium hover:bg-gray-100"
+          :disabled="!entreprise.email"
+          @click="openMail(entreprise.email)"
+        >
+          ✉️ Email
+        </button>
+      </div>
     </div>
 
     <!-- Section Proposer mission (visiteurs uniquement) -->

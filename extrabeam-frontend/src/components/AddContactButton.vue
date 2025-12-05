@@ -11,17 +11,18 @@
 --------------------------------------------------------------- -->
 
 <template>
-  <div>
+  <div class="w-full">
     <button
-      class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+      class="w-full border border-black rounded-lg py-3 text-center text-lg font-medium hover:bg-gray-100 disabled:bg-gray-100 disabled:text-gray-500 disabled:border-gray-300 disabled:cursor-not-allowed"
       :disabled="loading || alreadyAdded"
       @click="handleAdd"
     >
-      <span v-if="alreadyAdded">✅ Déjà dans vos contacts</span>
-      <span v-else-if="loading">⏳ Ajout...</span>
+      <span v-if="alreadyAdded">🤝 Déjà dans vos contacts</span>
+      <span v-else-if="loading">⏳ Ajout en cours...</span>
       <span v-else>➕ Ajouter à mes contacts</span>
     </button>
 
+    <p v-if="infoMessage" class="text-sm text-green-700 mt-2">{{ infoMessage }}</p>
     <p v-if="error" class="text-sm text-red-600 mt-2">{{ error }}</p>
   </div>
 </template>
@@ -39,10 +40,11 @@ const { user } = useAuth();
 
 const loading = ref(false);
 const alreadyAdded = ref(false);
+const infoMessage = ref("");
 const error = ref("");
 
 onMounted(async () => {
-  if (!user.value) return;
+  if (!user.value || user.value.role !== "client") return;
   try {
     const { contacts } = await listContacts();
 
@@ -50,6 +52,9 @@ onMounted(async () => {
     alreadyAdded.value = contacts.some(
       (c) => c.entreprise?.id === props.entrepriseId
     );
+    if (alreadyAdded.value) {
+      infoMessage.value = "Cette entreprise est déjà dans vos contacts.";
+    }
   } catch (err) {
     console.error("❌ Erreur chargement contacts:", err);
   }
@@ -66,8 +71,12 @@ async function handleAdd() {
 
   try {
     // ✅ idem, on ne passe que l’entreprise
-    await addContact(props.entrepriseId);
+    const result = await addContact(props.entrepriseId);
     alreadyAdded.value = true;
+    infoMessage.value =
+      "message" in result
+        ? `${result.message} ✉️ Un email de présentation a été envoyé.`
+        : "Entreprise ajoutée à vos contacts. ✉️ Un email de présentation a été envoyé.";
   } catch (err: any) {
     console.error("❌ Erreur ajout contact:", err);
     error.value = err.message || "Erreur lors de l’ajout du contact.";
