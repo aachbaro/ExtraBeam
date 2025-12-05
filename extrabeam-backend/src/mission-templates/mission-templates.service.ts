@@ -13,13 +13,15 @@ import { ForbiddenException, Injectable, InternalServerErrorException, NotFoundE
 
 import type { AuthUser } from '../common/auth/auth.types';
 import { SupabaseService } from '../common/supabase/supabase.service';
-import type { Tables } from '../common/types/database';
+import type { Tables, TablesInsert, TablesUpdate } from '../common/types/database';
 import type { CreateTemplateDto } from './dto/create-template.dto';
 import type { UpdateTemplateDto } from './dto/update-template.dto';
 
 @Injectable()
 export class MissionTemplatesService {
   constructor(private readonly supabaseService: SupabaseService) {}
+
+  private readonly table = 'mission_templates';
 
   private ensureClient(user: AuthUser | null): asserts user is AuthUser {
     if (!user) {
@@ -34,7 +36,7 @@ export class MissionTemplatesService {
     this.ensureClient(user);
     const admin = this.supabaseService.getAdminClient();
     const { data, error } = await admin
-      .from('mission_templates')
+      .from(this.table)
       .select('*')
       .eq('client_id', user.id)
       .order('created_at', { ascending: false });
@@ -49,14 +51,14 @@ export class MissionTemplatesService {
   async createTemplate(dto: CreateTemplateDto, user: AuthUser | null) {
     this.ensureClient(user);
 
-    if (!dto.nom || !dto.etablissement) {
-      throw new ForbiddenException('Champs requis manquants : nom, etablissement');
-    }
-
     const admin = this.supabaseService.getAdminClient();
+    const payload: TablesInsert<'mission_templates'> = {
+      ...dto,
+      client_id: user.id,
+    };
     const { data, error } = await admin
-      .from('mission_templates')
-      .insert([{ ...dto, client_id: user.id }])
+      .from(this.table)
+      .insert([payload])
       .select()
       .single<Tables<'mission_templates'>>();
 
@@ -71,9 +73,10 @@ export class MissionTemplatesService {
     this.ensureClient(user);
     const admin = this.supabaseService.getAdminClient();
 
+    const updates: TablesUpdate<'mission_templates'> = { ...dto };
     const { data, error } = await admin
-      .from('mission_templates')
-      .update(dto)
+      .from(this.table)
+      .update(updates)
       .eq('id', id)
       .eq('client_id', user.id)
       .select()
@@ -95,7 +98,7 @@ export class MissionTemplatesService {
     const admin = this.supabaseService.getAdminClient();
 
     const { error, count } = await admin
-      .from('mission_templates')
+      .from(this.table)
       .delete({ count: 'exact' })
       .eq('id', id)
       .eq('client_id', user.id);
