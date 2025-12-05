@@ -4,12 +4,8 @@
  ---------------------------------------------------------------
  📌 Description :
  - Affiche les détails d’une facture (client, montant, statut, lien paiement)
- - En mode entreprise : peut éditer, supprimer, générer lien paiement
- - En mode client (readonly) : peut télécharger PDF et voir lien de paiement
-
- 🔒 Règles d’accès :
- - Actions sensibles (edit/delete/lien) → owner uniquement
- - Client → lecture seule
+ - Entreprise (readonly = false) → peut éditer, supprimer, générer lien
+ - Client       (readonly = true) → lecture seule : PDF + payer
  ------------------------------------------------------------- -->
 
 <template>
@@ -30,7 +26,7 @@
           <b class="truncate">{{ facture.client_name }}</b>
         </p>
 
-        <!-- Droite : statut (chip compact) -->
+        <!-- Droite : statut -->
         <span
           class="inline-flex items-center justify-center px-2 py-1 text-xs rounded-full w-max sm:justify-self-end mx-auto sm:mx-0"
           :class="statusClasses[facture.status]"
@@ -70,13 +66,14 @@
 
       <!-- Actions -->
       <div class="flex justify-between gap-2 pt-3">
-        <!-- Toujours dispo : téléchargement PDF -->
+        <!-- Toujours disponible : PDF -->
         <button class="btn-primary p-1" @click.stop="downloadPdf">
           <Icon name="download" class="w-4 h-4" />
         </button>
 
-        <!-- Actions sensibles : uniquement si !readonly -->
-        <div v-if="!readonly" class="flex gap-2">
+        <!-- Actions réservées ENTREPRISE (readonly = false) -->
+        <div v-if="!effectiveReadonly" class="flex gap-2">
+          <!-- Générer / régénérer lien -->
           <button
             v-if="!facture.payment_link"
             class="btn-primary p-1 text-sm"
@@ -84,12 +81,17 @@
           >
             Générer lien
           </button>
+
           <button v-else class="btn-primary p-1" @click.stop="onPaymentLink">
             <Icon name="arrow-path" class="w-4 h-4" />
           </button>
+
+          <!-- Edit -->
           <button class="btn-primary p-1" @click.stop="$emit('edit', facture)">
             <Icon name="pencil" class="w-4 h-4" />
           </button>
+
+          <!-- Delete -->
           <button
             class="btn-primary hover:bg-red-700 p-1"
             @click.stop="onDelete"
@@ -115,7 +117,7 @@ import { useExpandableCard } from "@/composables/ui/useExpandableCard";
 const props = defineProps<{
   facture: FactureWithRelations;
   entreprise?: any;
-  readonly?: boolean;
+  readonly?: boolean; // true = client → actions interdites
 }>();
 
 const emit = defineEmits(["edit", "deleted", "updated"]);
@@ -123,9 +125,15 @@ const emit = defineEmits(["edit", "deleted", "updated"]);
 const { removeFacture } = useFactures();
 const { expanded } = useExpandableCard();
 
-// ----------------------
+const effectiveReadonly = computed(() => {
+  // Si le parent force readonly → priorité
+  if (props.readonly === true) return true;
+
+  // Sinon on utilise la logique du parent (ex: isReadonly)
+  return props.readonly ?? false;
+});
+
 // Labels & styles
-// ----------------------
 const statusLabels: Record<string, string> = {
   pending_payment: "Paiement en attente",
   paid: "Payée",
@@ -142,9 +150,7 @@ const entrepriseForPdf = computed(() => {
   return props.entreprise || props.facture.missions?.entreprise || {};
 });
 
-// ----------------------
 // Utils
-// ----------------------
 function formatDate(date: string) {
   return new Date(date).toLocaleDateString("fr-FR");
 }
@@ -153,19 +159,19 @@ function downloadPdf() {
   try {
     generateFacturePdf(props.facture, entrepriseForPdf.value);
   } catch (err) {
-    console.error("❌ Erreur génération PDF:", err);
+    console.error("❌ PDF error:", err);
     alert("Impossible de générer le PDF.");
   }
 }
 
 async function onPaymentLink() {
-  if (props.readonly) return;
+  if (props.readonly) return; // Client → interdit
   try {
     const { url } = await generateFacturePaymentLink(props.facture.id);
     emit("updated", { ...props.facture, payment_link: url });
     alert("✅ Lien de paiement généré !");
   } catch (err) {
-    console.error("❌ Erreur génération lien paiement:", err);
+    console.error("❌ Payment link error:", err);
     alert("Impossible de générer le lien de paiement");
   }
 }
@@ -173,11 +179,12 @@ async function onPaymentLink() {
 async function onDelete() {
   if (props.readonly) return;
   if (!confirm("Supprimer cette facture ?")) return;
+
   try {
     await removeFacture(props.facture.id);
     emit("deleted", props.facture.id);
   } catch (err) {
-    console.error("❌ Erreur suppression facture:", err);
+    console.error("❌ Delete error:", err);
     alert("Erreur lors de la suppression");
   }
 }

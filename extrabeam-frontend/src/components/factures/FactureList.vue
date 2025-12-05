@@ -4,18 +4,11 @@
 ---------------------------------------------------------------
 
 📌 Description :
- - Affiche la liste des factures d’une entreprise ou d’un client
- - Permet d’ajouter une facture manuelle (sans mission) uniquement
-   pour l’entreprise propriétaire de la page ou un admin
-
-📍 Endpoints :
- - GET  /api/factures → liste factures
- - POST /api/factures → création facture manuelle
-
-🔒 Règles d’accès :
- - Entreprise owner/Admin → accès complet + création/suppression/édition
+ - Affiche les factures d’une entreprise OU d’un client
  - Client → lecture seule
-------------------------------------------------------------- -->
+ - Entreprise owner/Admin → accès complet
+
+--------------------------------------------------------------- -->
 
 <template>
   <div class="space-y-4 mt-8">
@@ -63,7 +56,7 @@
         :key="f.id"
         :facture="f"
         :entreprise="entreprise"
-        :readonly="!canAddFacture"
+        :readonly="props.readonly ?? isReadonly"
         @edit="onEdit"
         @deleted="onDeleted"
         @updated="onUpdated"
@@ -94,7 +87,7 @@ import type { FactureWithRelations } from "../../services/factures";
 // Props & Emits
 // ----------------------
 const props = defineProps<{
-  entreprise?: any;
+  entreprise?: any; // Possibly undefined when we are on client page
   readonly?: boolean;
   factures?: FactureWithRelations[];
 }>();
@@ -117,11 +110,7 @@ const externalFactures = ref<FactureWithRelations[]>([]);
 watch(
   () => props.factures,
   (value) => {
-    if (value) {
-      externalFactures.value = [...value];
-    } else {
-      externalFactures.value = [];
-    }
+    externalFactures.value = value ? [...value] : [];
   },
   { immediate: true, deep: true }
 );
@@ -141,14 +130,24 @@ const openModal = ref(false);
 // ----------------------
 // Access Control
 // ----------------------
+/**
+ * canAddFacture → vrai si user est admin OU owner de l'entreprise.
+ */
 const canAddFacture = computed(() => {
   if (!user.value || !props.entreprise) return false;
+
   // Admin → accès total
   if (user.value.role === "admin") return true;
+
   // Owner entreprise → accès complet
-  if (user.value.entreprise_id === props.entreprise.id) return true;
-  return false;
+  return user.value.entreprise_id === props.entreprise.id;
 });
+
+/**
+ * isReadonly = true lorsque l'utilisateur ne peut PAS modifier les factures.
+ * → utilisé pour configurer FactureCard
+ */
+const isReadonly = computed(() => !canAddFacture.value);
 
 // ----------------------
 // Lifecycle
@@ -168,9 +167,7 @@ function onEdit(facture: any) {
 
 function onDeleted(id: number) {
   if (hasExternalFactures.value) {
-    externalFactures.value = externalFactures.value.filter(
-      (f) => f.id !== id
-    );
+    externalFactures.value = externalFactures.value.filter((f) => f.id !== id);
   }
   emit("deleted", id);
 }
@@ -184,11 +181,6 @@ function onUpdated(facture: FactureWithRelations) {
   emit("updated", facture);
 }
 
-/**
- * 🧾 Lorsqu'une facture manuelle est créée :
- * - ferme le modal
- * - recharge la liste
- */
 async function onFactureCreated(facture: FactureWithRelations) {
   openModal.value = false;
   if (hasExternalFactures.value) {
