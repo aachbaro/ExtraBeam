@@ -15,6 +15,7 @@
 
     <div class="mt-4 space-y-4">
       <!-- Sélection du modèle -->
+       {{ templates }}
       <div v-if="templates.length" class="space-y-1">
         <label class="text-sm font-medium">Utiliser un modèle</label>
         <select

@@ -37,7 +37,7 @@
       </div>
 
       <transition name="fade">
-        <div v-if="showForm" class="mt-4">
+        <div v-if="showForm" class="mt-4" @click.stop>
           <ClientTemplateForm @created="handleCreated" @cancel="toggleForm" />
         </div>
       </transition>
