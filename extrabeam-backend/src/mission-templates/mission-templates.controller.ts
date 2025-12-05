@@ -1,6 +1,21 @@
 // src/mission-templates/mission-templates.controller.ts
 // -------------------------------------------------------------
-// Contrôleur : Mission Templates
+// Contrôleur : Modèles de mission (mission_templates)
+// -------------------------------------------------------------
+//
+// 📌 Description :
+//   - Migration NestJS des endpoints historiques `/api/clients/templates`
+//   - Expose les routes pour la gestion des modèles côté client authentifié
+//
+// 📍 Endpoints :
+//   - GET    /api/clients/templates        → Liste des templates du client
+//   - POST   /api/clients/templates        → Création d’un template
+//   - PUT    /api/clients/templates/:id    → Mise à jour d’un template
+//   - DELETE /api/clients/templates/:id    → Suppression d’un template
+//
+// 🔒 Sécurité :
+//   - JwtAuthGuard obligatoire
+//   - Rôle requis : client
 // -------------------------------------------------------------
 
 import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, UseGuards } from '@nestjs/common';
@@ -8,11 +23,11 @@ import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, UseGuard
 import type { AuthUser } from '../common/auth/auth.types';
 import { User } from '../common/auth/decorators/user.decorator';
 import { JwtAuthGuard } from '../common/auth/guards/jwt.guard';
-import type { CreateTemplateDto } from './dto/create-template.dto';
-import type { UpdateTemplateDto } from './dto/update-template.dto';
+import { CreateTemplateDto } from './dto/create-template.dto';
+import { UpdateTemplateDto } from './dto/update-template.dto';
 import { MissionTemplatesService } from './mission-templates.service';
 
-@Controller('mission-templates')
+@Controller('clients/templates')
 @UseGuards(JwtAuthGuard)
 export class MissionTemplatesController {
   constructor(private readonly missionTemplatesService: MissionTemplatesService) {}
