@@ -15,7 +15,6 @@
 
     <div class="mt-4 space-y-4">
       <!-- Sélection du modèle -->
-       {{ templates }}
       <div v-if="templates.length" class="space-y-1">
         <label class="text-sm font-medium">Utiliser un modèle</label>
         <select
@@ -158,7 +157,7 @@
 import { computed, nextTick, onMounted, ref, watch } from "vue";
 import { createPublicMission } from "@/services/missions";
 import { listTemplates, type MissionTemplate } from "@/services/templates";
-import { useUserStore } from "@/stores/user";
+import { useAuth } from "@/composables/useAuth";
 import ExpandableCard from "../ui/ExpandableCard.vue";
 
 const props = defineProps<{
@@ -167,7 +166,7 @@ const props = defineProps<{
 
 const emit = defineEmits(["created"]);
 
-const userStore = useUserStore();
+const { user, ready } = useAuth();
 
 const expanded = ref(false);
 const pending = ref(false);
@@ -224,15 +223,31 @@ watch(expanded, (isOpen) => {
   }
 });
 
-onMounted(async () => {
-  const user = userStore.user;
-  if (!user || user.role !== "client") return;
+async function loadTemplates() {
+  if (templates.value.length) return;
+  await ready();
+
+  if (user.value?.role !== "client") {
+    console.warn("⚠️ Aucun template chargé : utilisateur non client ou non connecté");
+    return;
+  }
 
   try {
     const { templates: data } = await listTemplates();
     templates.value = data;
+
+    if (!data.length) {
+      console.warn("ℹ️ Aucun template trouvé pour ce client");
+    }
   } catch (err) {
     console.error("❌ Erreur chargement templates:", err);
+  }
+}
+
+onMounted(loadTemplates);
+watch(user, (u) => {
+  if (u?.role === "client" && !templates.value.length) {
+    loadTemplates();
   }
 });
 
