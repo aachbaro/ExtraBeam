@@ -14,6 +14,21 @@
     <template #indicator></template>
 
     <div class="mt-4 space-y-4">
+      <!-- Sélection du modèle -->
+      <div v-if="templates.length" class="space-y-1">
+        <label class="text-sm font-medium">Utiliser un modèle</label>
+        <select
+          v-model="selectedTemplateId"
+          @change="applyTemplate"
+          class="input"
+        >
+          <option value="">-- Aucun --</option>
+          <option v-for="t in templates" :key="t.id" :value="t.id">
+            {{ t.nom }}
+          </option>
+        </select>
+      </div>
+
       <!-- Établissement -->
       <div>
         <label class="text-sm font-medium">Établissement</label>
@@ -139,8 +154,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from "vue";
+import { computed, nextTick, onMounted, ref, watch } from "vue";
 import { createPublicMission } from "@/services/missions";
+import { listTemplates, type MissionTemplate } from "@/services/templates";
+import { useUserStore } from "@/stores/user";
 import ExpandableCard from "../ui/ExpandableCard.vue";
 
 const props = defineProps<{
@@ -149,8 +166,13 @@ const props = defineProps<{
 
 const emit = defineEmits(["created"]);
 
+const userStore = useUserStore();
+
 const expanded = ref(false);
 const pending = ref(false);
+
+const templates = ref<MissionTemplate[]>([]);
+const selectedTemplateId = ref<number | "">("");
 
 // ----- Formulaire -----
 const initialFormState = {
@@ -200,6 +222,36 @@ watch(expanded, (isOpen) => {
     });
   }
 });
+
+onMounted(async () => {
+  const user = userStore.user;
+  if (!user || user.role !== "client") return;
+
+  try {
+    const { templates: data } = await listTemplates();
+    templates.value = data;
+  } catch (err) {
+    console.error("❌ Erreur chargement templates:", err);
+  }
+});
+
+function applyTemplate() {
+  const t = templates.value.find((x) => x.id === selectedTemplateId.value);
+  if (!t) return;
+
+  form.value.etablissement = t.etablissement;
+  form.value.adresseLigne1 = t.etablissement_adresse_ligne1 || "";
+  form.value.adresseLigne2 = t.etablissement_adresse_ligne2 || "";
+  form.value.codePostal = t.etablissement_code_postal || "";
+  form.value.ville = t.etablissement_ville || "";
+  form.value.pays = t.etablissement_pays || "";
+
+  form.value.contactName = t.contact_name || "";
+  form.value.contactEmail = t.contact_email || "";
+  form.value.contactPhone = t.contact_phone || "";
+
+  form.value.instructions = t.instructions || "";
+}
 
 // Envoi
 async function send() {
