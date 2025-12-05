@@ -40,6 +40,7 @@ import { MissionTemplatesModule } from './mission-templates/mission-templates.mo
 import { NotificationsModule } from './notifications/notifications.module';
 import { PaymentsModule } from './payments/payments.module';
 import { UploadsModule } from './uploads/uploads.module';
+import { ClientContactsModule } from './client-contacts/client-contacts.module';
 
 @Module({
   imports: [
@@ -64,6 +65,7 @@ import { UploadsModule } from './uploads/uploads.module';
     NotificationsModule,
     PaymentsModule,
     UploadsModule,
+    ClientContactsModule,
   ],
   controllers: [AppController],
 })
