@@ -22,8 +22,8 @@
       <span v-else>➕ Ajouter à mes contacts</span>
     </button>
 
-    <p v-if="infoMessage" class="text-sm text-green-700 mt-2">{{ infoMessage }}</p>
-    <p v-if="error" class="text-sm text-red-600 mt-2">{{ error }}</p>
+    <!-- <p v-if="infoMessage" class="text-sm text-green-700 mt-2">{{ infoMessage }}</p> -->
+    <!-- <p v-if="error" class="text-sm text-red-600 mt-2">{{ error }}</p> -->
   </div>
 </template>
 
