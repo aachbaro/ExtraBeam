@@ -26,7 +26,12 @@
       >
         <!-- Bloc gauche : nom de l'établissement -->
         <h3 class="font-bold text-lg text-gray-900 truncate sm:text-left">
-          {{ mission.etablissement }}
+          <template v-if="isClientView && mission.entreprise?.nom">
+            Mission avec {{ mission.entreprise.nom }}
+          </template>
+          <template v-else>
+            {{ mission.etablissement }}
+          </template>
         </h3>
 
         <!-- Bloc centre : premier créneau -->
@@ -71,10 +76,22 @@
       </div>
 
       <!-- Contact -->
-      <p v-if="mission.contact_name" class="text-sm font-medium">
+      <p v-if="!isClientView" class="text-sm font-medium">
         👤 {{ mission.contact_name }}
       </p>
-      <p v-if="mission.contact_phone" class="text-sm">
+      <p v-else class="text-sm font-medium">
+        👤 {{ mission.entreprise?.nom }}
+      </p>
+      <p v-if="isClientView && mission.entreprise?.telephone" class="text-sm">
+        📞
+        <a
+          :href="`tel:${mission.entreprise.telephone.replace(/\s+/g, '')}`"
+          class="text-blue-600 underline"
+        >
+          {{ mission.entreprise.telephone }}
+        </a>
+      </p>
+      <p v-else-if="mission.contact_phone" class="text-sm">
         📞
         <a
           :href="`tel:${mission.contact_phone.replace(/\s+/g, '')}`"
@@ -83,7 +100,16 @@
           {{ mission.contact_phone }}
         </a>
       </p>
-      <p v-if="mission.contact_email" class="text-sm">
+      <p v-if="isClientView && mission.entreprise?.email" class="text-sm">
+        ✉️
+        <a
+          :href="`mailto:${mission.entreprise.email}`"
+          class="text-blue-600 underline"
+        >
+          {{ mission.entreprise.email }}
+        </a>
+      </p>
+      <p v-else-if="mission.contact_email" class="text-sm">
         ✉️
         <a
           :href="`mailto:${mission.contact_email}`"
@@ -92,6 +118,14 @@
           {{ mission.contact_email }}
         </a>
       </p>
+
+      <RouterLink
+        v-if="isClientView && mission.entreprise?.slug"
+        :to="`/entreprises/${mission.entreprise.slug}`"
+        class="mt-2 inline-block px-3 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+      >
+        Voir la page de l'entreprise →
+      </RouterLink>
 
       <!-- Créneaux -->
       <div v-if="mission.slots?.length" class="space-y-1 text-sm text-gray-600">
@@ -229,7 +263,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { updateMission } from "../../services/missions";
 import {
   listFacturesByMission,
@@ -240,11 +274,16 @@ import FactureCard from "../factures/FactureCard.vue";
 import type { MissionWithRelations } from "../../services/missions";
 import ExpandableCard from "@/components/ui/ExpandableCard.vue";
 import { useExpandableCard } from "@/composables/ui/useExpandableCard";
+import { useAuth } from "@/composables/useAuth";
+import { RouterLink } from "vue-router";
 
 const props = defineProps<{
   mission: MissionWithRelations;
   readonly?: boolean;
 }>();
+
+const { user } = useAuth();
+const isClientView = computed(() => user.value?.role === "client");
 
 console.log("🚀 MissionCard props.mission :", props.mission.slots);
 
