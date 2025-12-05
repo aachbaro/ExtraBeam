@@ -155,7 +155,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from "vue";
-import { createPublicMission } from "@/services/missions";
+import { createPublicMission, createMission } from "@/services/missions";
 import { listTemplates, type MissionTemplate } from "@/services/templates";
 import { useAuth } from "@/composables/useAuth";
 import ExpandableCard from "../ui/ExpandableCard.vue";
@@ -228,7 +228,9 @@ async function loadTemplates() {
   await ready();
 
   if (user.value?.role !== "client") {
-    console.warn("⚠️ Aucun template chargé : utilisateur non client ou non connecté");
+    console.warn(
+      "⚠️ Aucun template chargé : utilisateur non client ou non connecté"
+    );
     return;
   }
 
@@ -304,11 +306,17 @@ async function send() {
       ],
     };
 
-    if (user.value && user.value.role === "client") {
-      payload.client_id = user.value.id;
-    }
+    let mission;
 
-    const { mission } = await createPublicMission(payload);
+    if (user.value && user.value.role === "client") {
+      // Appel authentifié → POST /api/missions
+      const res = await createMission(payload);
+      mission = res.mission;
+    } else {
+      // Visiteur → POST /api/missions/public
+      const res = await createPublicMission(payload);
+      mission = res.mission;
+    }
 
     emit("created", mission);
     alert("Votre mission a bien été envoyée !");
