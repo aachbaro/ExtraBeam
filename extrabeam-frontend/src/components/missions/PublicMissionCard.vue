@@ -273,7 +273,7 @@ function applyTemplate() {
 async function send() {
   pending.value = true;
   try {
-    const payload = {
+    const payload: any = {
       etablissement: form.value.etablissement,
 
       etablissement_adresse_ligne1: form.value.adresseLigne1,
@@ -303,6 +303,10 @@ async function send() {
         },
       ],
     };
+
+    if (user.value && user.value.role === "client") {
+      payload.client_id = user.value.id;
+    }
 
     const { mission } = await createPublicMission(payload);
 
