@@ -163,7 +163,6 @@ export class MissionsService {
 
   private buildMissionInsert(payload: MissionCreatePayload): MissionInsert {
     return {
-      client_id: payload.client_id ?? null,
       contact_email: payload.contact_email,
       contact_name: payload.contact_name ?? null,
       contact_phone: payload.contact_phone,
@@ -259,38 +258,6 @@ export class MissionsService {
     this.ensureAuthenticated(user);
     const role = user.role ?? '';
     const admin = this.supabaseService.getAdminClient();
-
-    if (ENTREPRISE_ROLES.has(role as EntrepriseRole)) {
-      const entreprise = await this.loadEntrepriseForUser(
-        user,
-        input.entrepriseRef ?? input.entreprise_id ?? null,
-      );
-
-      const missionData: MissionInsert = {
-        ...this.buildMissionInsert(input),
-        entreprise_id: entreprise.id,
-        status: input.status ?? 'proposed',
-      };
-
-      const { data, error } = await admin
-        .from('missions')
-        .insert(missionData)
-        .select('*')
-        .single<MissionRow>();
-
-      if (error) throw new InternalServerErrorException(error.message);
-
-      if (input.slots?.length) {
-        const slots = this.normalizeSlots(input.slots, data.id, entreprise.id);
-        const { error: slotsError } = await admin.from('slots').insert(slots);
-        if (slotsError)
-          throw new InternalServerErrorException(slotsError.message);
-      }
-      const missionWithRelations = await this.fetchMissionWithRelations(data.id);
-      await this.notificationsService.notifyMissionCreated(missionWithRelations);
-      return data;
-    }
-
     if (role === 'client') {
       if (!input.entrepriseRef) {
         throw new BadRequestException(
@@ -319,6 +286,38 @@ export class MissionsService {
         .single<MissionRow>();
 
       if (error) throw new InternalServerErrorException(error.message);
+      if (input.slots?.length) {
+        const slots = this.normalizeSlots(input.slots, data.id, entreprise.id);
+        const { error: slotsError } = await admin.from('slots').insert(slots);
+        if (slotsError)
+          throw new InternalServerErrorException(slotsError.message);
+      }
+      const missionWithRelations = await this.fetchMissionWithRelations(data.id);
+      await this.notificationsService.notifyMissionCreated(missionWithRelations);
+      return data;
+    }
+
+    if (ENTREPRISE_ROLES.has(role as EntrepriseRole)) {
+      const entreprise = await this.loadEntrepriseForUser(
+        user,
+        input.entrepriseRef ?? input.entreprise_id ?? null,
+      );
+
+      const missionData: MissionInsert = {
+        ...this.buildMissionInsert(input),
+        entreprise_id: entreprise.id,
+        client_id: null,
+        status: input.status ?? 'proposed',
+      };
+
+      const { data, error } = await admin
+        .from('missions')
+        .insert(missionData)
+        .select('*')
+        .single<MissionRow>();
+
+      if (error) throw new InternalServerErrorException(error.message);
+
       if (input.slots?.length) {
         const slots = this.normalizeSlots(input.slots, data.id, entreprise.id);
         const { error: slotsError } = await admin.from('slots').insert(slots);
