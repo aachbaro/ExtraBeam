@@ -18,9 +18,7 @@
   <div class="max-w-5xl mx-auto p-6 space-y-16">
     <!-- Hero Section -->
     <section class="text-center space-y-6">
-      <h1 class="text-4xl font-bold text-gray-900">
-        Site en construction 🚧
-      </h1>
+      <h1 class="text-4xl font-bold text-gray-900">Site en construction 🚧</h1>
       <p class="text-lg text-gray-600">
         Futur site de gestion d'emploi du temps et missions pour extras
       </p>
@@ -52,7 +50,6 @@
         </div>
       </div>
     </section>
-
   </div>
 </template>
 
@@ -65,4 +62,7 @@ const router = useRouter();
 function goToRegister(role) {
   router.push(`/register?role=${role}`);
 }
+
+console.log("VITE_API_URL =", import.meta.env.VITE_API_URL);
+console.log("VITE_SUPABASE_URL =", import.meta.env.VITE_SUPABASE_URL);
 </script>
