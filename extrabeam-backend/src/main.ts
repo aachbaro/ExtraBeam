@@ -42,6 +42,7 @@ async function bootstrap() {
     'http://127.0.0.1:5173', // Variante locale
     'https://extrabeam.app', // Domaine prod
     'https://www.extrabeam.app',
+    'https://dispo-dr8xocbcu-adams-projects-adee5a2a.vercel.app',
   ];
 
   app.enableCors({
