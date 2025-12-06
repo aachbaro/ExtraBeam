@@ -41,6 +41,7 @@ async function bootstrap() {
     // Ton domaine en production
     'https://extrabeam.app',
     'https://www.extrabeam.app',
+    'https://dispo-dr8xocbcu-adams-projects-adee5a2a.vercel.app',
   ];
 
   // Regex autorisant tous les déploiements Vercel
