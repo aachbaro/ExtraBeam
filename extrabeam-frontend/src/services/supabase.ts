@@ -34,3 +34,4 @@ if (!anon) throw new Error("[supabase] VITE_SUPABASE_ANON_KEY manquant");
 // ----------------------
 
 export const supabase = createClient(url, anon);
+
