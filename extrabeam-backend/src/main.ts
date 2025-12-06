@@ -29,27 +29,34 @@ import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/utils/filters/all-exceptions.filter';
 
 async function bootstrap() {
-  // -------------------------------------------------------------
-  // 🏁 Création de l’application Nest
-  // -------------------------------------------------------------
   const app = await NestFactory.create(AppModule, { cors: true });
 
   // -------------------------------------------------------------
-  // 🌍 Configuration CORS
+  // 🌍 Configuration CORS (support complet Vercel)
   // -------------------------------------------------------------
   const allowedOrigins = [
-    'http://localhost:5173', // Frontend local (Vite)
-    'http://127.0.0.1:5173', // Variante locale
-    'https://extrabeam.app', // Domaine prod
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+
+    // Ton domaine en production
+    'https://extrabeam.app',
     'https://www.extrabeam.app',
-    'https://dispo-dr8xocbcu-adams-projects-adee5a2a.vercel.app',
   ];
+
+  // Regex autorisant tous les déploiements Vercel
+  const vercelRegex = /^https:\/\/.*\.vercel\.app$/;
 
   app.enableCors({
     origin: (origin, callback) => {
-      // Autorise les requêtes sans origin (ex: Postman, curl)
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) return callback(null, true);
+      if (!origin) return callback(null, true); // curl / Postman
+
+      if (
+        allowedOrigins.includes(origin) ||
+        vercelRegex.test(origin)
+      ) {
+        return callback(null, true);
+      }
+
       console.warn(`❌ CORS refusé pour l'origine : ${origin}`);
       return callback(new Error('Not allowed by CORS'));
     },
@@ -59,48 +66,46 @@ async function bootstrap() {
   });
 
   // -------------------------------------------------------------
-  // 🛡️ Sécurité de base
+  // 🛡️ Sécurité
   // -------------------------------------------------------------
   app.use(helmet());
 
   // -------------------------------------------------------------
-  // 💳 Support Stripe Webhook
+  // 💳 Stripe Webhook (raw body)
   // -------------------------------------------------------------
-  // Stripe exige d'accéder au "raw body" pour vérifier la signature.
-  // Ce middleware doit être défini avant tout autre middleware JSON.
   app.use(
     '/api/payments/webhook',
     bodyParser.raw({ type: 'application/json' }),
   );
 
   // -------------------------------------------------------------
-  // 📦 Middleware global JSON (pour les autres routes)
+  // 📦 JSON global
   // -------------------------------------------------------------
   app.use(bodyParser.json({ limit: '10mb' }));
 
   // -------------------------------------------------------------
-  // ⚙️ Préfixe global des routes API
+  // ⚙️ Préfixe global API
   // -------------------------------------------------------------
   app.setGlobalPrefix('api');
 
   // -------------------------------------------------------------
-  // 🧱 Validation automatique des DTOs
+  // 🧱 Validation DTO
   // -------------------------------------------------------------
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true, // ignore les champs non déclarés
-      forbidNonWhitelisted: true, // lève une erreur si champ inconnu
-      transform: true, // convertit automatiquement les types primitifs
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
     }),
   );
 
   // -------------------------------------------------------------
-  // 🚨 Gestion centralisée des erreurs
+  // 🚨 Gestion erreurs
   // -------------------------------------------------------------
   app.useGlobalFilters(new AllExceptionsFilter());
 
   // -------------------------------------------------------------
-  // 🚀 Lancement du serveur
+  // 🚀 Start
   // -------------------------------------------------------------
   const port = Number(process.env.PORT) || 3000;
   await app.listen(port);
