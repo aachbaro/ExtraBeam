@@ -39,6 +39,7 @@ import { ClientsModule } from './clients/clients.module';
 import { MissionTemplatesModule } from './mission-templates/mission-templates.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { PaymentsModule } from './payments/payments.module';
+import { SubscriptionModule } from './subscription/subscription.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { ClientContactsModule } from './client-contacts/client-contacts.module';
 
@@ -64,6 +65,7 @@ import { ClientContactsModule } from './client-contacts/client-contacts.module';
     MissionTemplatesModule,
     NotificationsModule,
     PaymentsModule,
+    SubscriptionModule,
     UploadsModule,
     ClientContactsModule,
   ],
