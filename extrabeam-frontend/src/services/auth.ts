@@ -139,13 +139,29 @@ export async function logout() {
  * Connexion via Google OAuth (redirection automatique)
  * Redirige ensuite vers /auth/callback
  */
+// export async function signInWithGoogle() {
+//   const { error } = await supabase.auth.signInWithOAuth({
+//     provider: "google",
+//     options: {
+//       redirectTo: `${window.location.origin}/auth/callback`,
+//     },
+//   });
+//   if (error) throw error;
+// }
+
 export async function signInWithGoogle() {
+  const redirect =
+    import.meta.env.DEV
+      ? "http://localhost:5173/auth/callback"
+      : window.location.origin + "/auth/callback";
+
+  console.log("🔗 Redirecting Google OAuth to:", redirect);
+
   const { error } = await supabase.auth.signInWithOAuth({
     provider: "google",
-    options: {
-      redirectTo: `${window.location.origin}/auth/callback`,
-    },
+    options: { redirectTo: redirect },
   });
+
   if (error) throw error;
 }
 
