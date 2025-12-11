@@ -11,6 +11,7 @@ import { Body, Controller, Param, Post, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
 
 import type { AuthUser } from '../common/auth/auth.types';
+import { Public } from '../common/auth/decorators/public.decorator';
 import { User } from '../common/auth/decorators/user.decorator';
 import { JwtAuthGuard } from '../common/auth/guards/jwt.guard';
 import { SubscribeDto } from './dto/subscribe.dto';
@@ -37,6 +38,7 @@ export class SubscriptionController {
   // 🔴 Webhook Stripe Billing
   // -------------------------------------------------------------
   @Post('webhook')
+  @Public()
   async handleWebhook(@Req() req: Request) {
     const signature = req.headers['stripe-signature'];
     return this.subscriptionService.handleWebhook(req, signature as string);
