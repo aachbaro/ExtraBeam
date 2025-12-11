@@ -3,13 +3,14 @@
 // Contrôleur : Paiements
 // -------------------------------------------------------------
 
-import { Controller, Param, ParseIntPipe, Post, Req, UseGuards } from '@nestjs/common'
+import { Body, Controller, Param, ParseIntPipe, Post, Req, UseGuards } from '@nestjs/common'
 import type { Request } from 'express'
 
 import type { AuthUser } from '../common/auth/auth.types'
 import { User } from '../common/auth/decorators/user.decorator'
 import { JwtAuthGuard } from '../common/auth/guards/jwt.guard'
 import { PaymentsService } from './payments.service'
+import { SubscribeDto } from './dto/subscribe.dto'
 
 @Controller('payments')
 export class PaymentsController {
@@ -22,6 +23,16 @@ export class PaymentsController {
     @User() user: AuthUser,
   ): Promise<{ url: string; sessionId: string; paymentIntent: string }> {
     return this.paymentsService.createCheckoutForFacture(id, user)
+  }
+
+  @Post('subscribe/:slug')
+  @UseGuards(JwtAuthGuard)
+  async createSubscriptionSession(
+    @Param('slug') slug: string,
+    @Body() payload: SubscribeDto,
+    @User() user: AuthUser,
+  ): Promise<{ url: string }> {
+    return this.paymentsService.createSubscriptionCheckout(slug, payload, user)
   }
 
   @Post('webhook')
