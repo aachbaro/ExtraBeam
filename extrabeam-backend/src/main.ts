@@ -2,10 +2,11 @@
 // -------------------------------------------------------------
 // Entrée principale du backend ExtraBeam (NestJS)
 // -------------------------------------------------------------
-//
-// Compatible Render / Vercel
-// CORS full dynamic (origin: true)
-// Helmet, rawBody Stripe, DTO validation, erreurs globales
+// - CORS dynamique
+// - Helmet
+// - Webhooks Stripe (raw body)
+// - Validation DTO
+// - Gestion globale des erreurs
 // -------------------------------------------------------------
 
 import { NestFactory } from '@nestjs/core';
@@ -17,16 +18,13 @@ import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/utils/filters/all-exceptions.filter';
 
 async function bootstrap() {
-  // -------------------------------------------------------------
-  // 🏁 App NestJS
-  // -------------------------------------------------------------
   const app = await NestFactory.create(AppModule);
 
   // -------------------------------------------------------------
-  // 🌍 CORS — autorise toutes les origines (recommandé sur Render)
+  // 🌍 CORS
   // -------------------------------------------------------------
   app.enableCors({
-    origin: true, // ← dynamique : renvoie l’origine exacte du navigateur
+    origin: true,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
@@ -38,20 +36,24 @@ async function bootstrap() {
   app.use(helmet());
 
   // -------------------------------------------------------------
-  // 💳 Stripe Webhook : raw body obligatoire
+  // ⚠️ Stripe Webhook : corps brut obligatoire
   // -------------------------------------------------------------
+  // Pour les factures (paiements à l’unité)
   app.use(
     '/api/payments/webhook',
-    bodyParser.raw({ type: 'application/json' })
+    bodyParser.raw({ type: 'application/json' }),
   );
 
+  // Pour les abonnements (Stripe Billing)
+  app.use('/api/subscription/webhook', bodyParser.raw({ type: '*/*' }));
+
   // -------------------------------------------------------------
-  // 📦 JSON global
+  // 📦 JSON standard
   // -------------------------------------------------------------
   app.use(bodyParser.json({ limit: '10mb' }));
 
   // -------------------------------------------------------------
-  // ⚙️ Préfixe global des routes API
+  // 🌐 Préfixe global API
   // -------------------------------------------------------------
   app.setGlobalPrefix('api');
 
@@ -63,11 +65,11 @@ async function bootstrap() {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
-    })
+    }),
   );
 
   // -------------------------------------------------------------
-  // 🚨 Gestion centralisée des erreurs
+  // 🚨 Gestion globale des erreurs
   // -------------------------------------------------------------
   app.useGlobalFilters(new AllExceptionsFilter());
 
@@ -77,7 +79,7 @@ async function bootstrap() {
   const port = Number(process.env.PORT) || 3000;
   await app.listen(port);
 
-  console.log(`🚀 ExtraBeam backend prêt sur : http://localhost:${port}/api`);
+  console.log(`🚀 ExtraBeam backend lancé : http://localhost:${port}/api`);
 }
 
 bootstrap();

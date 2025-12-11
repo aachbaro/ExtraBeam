@@ -1,23 +1,13 @@
-/**
- * -------------------------------------------------------------
- * Controller : subscription.controller.ts
- * Rôle :
- *   - Expose les endpoints Stripe Billing pour ExtraBeam
- *   - POST /subscription/:slug → créer une session Checkout Stripe
- *   - POST /subscription/webhook → recevoir les webhooks Stripe
- *
- * Ne doit PAS contenir de logique métier.
- * -------------------------------------------------------------
- */
+// src/subscription/subscription.controller.ts
+// -------------------------------------------------------------
+// Controller : SubscriptionController
+// Rôle :
+//   - POST /api/subscription/:slug → créer une session Checkout Stripe
+//   - POST /api/subscription/webhook → recevoir les webhooks Stripe
+// ⚠️ Ne contient aucune logique métier (déléguée au service).
+// -------------------------------------------------------------
 
-import {
-  Body,
-  Controller,
-  Param,
-  Post,
-  Req,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Param, Post, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
 
 import type { AuthUser } from '../common/auth/auth.types';
@@ -30,6 +20,9 @@ import { SubscriptionService } from './subscription.service';
 export class SubscriptionController {
   constructor(private readonly subscriptionService: SubscriptionService) {}
 
+  // -------------------------------------------------------------
+  // 🔵 Créer une session Stripe Checkout
+  // -------------------------------------------------------------
   @Post(':slug')
   @UseGuards(JwtAuthGuard)
   async createCheckout(
@@ -40,6 +33,9 @@ export class SubscriptionController {
     return this.subscriptionService.createCheckout(slug, dto, user);
   }
 
+  // -------------------------------------------------------------
+  // 🔴 Webhook Stripe Billing
+  // -------------------------------------------------------------
   @Post('webhook')
   async handleWebhook(@Req() req: Request) {
     const signature = req.headers['stripe-signature'];

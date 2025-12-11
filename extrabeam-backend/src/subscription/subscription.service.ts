@@ -4,17 +4,21 @@
  * Stripe Billing – Gestion des abonnements ExtraBeam
  * -------------------------------------------------------------
  * Rôle :
- *   - Charger l’entreprise par slug
- *   - Vérifier les permissions
- *   - Créer les sessions Stripe Checkout
- *   - Gérer les webhooks
- *   - Mettre à jour la table entreprise
+ *   - Charger l’entreprise (slug)
+ *   - Vérifier les permissions d’accès
+ *   - Créer une session Stripe Checkout (abonnement)
+ *   - Recevoir les webhooks Stripe Billing
+ *   - Mettre à jour la table `entreprise` (status, plan, périodes)
  *
- * Ce fichier ne doit PAS :
- *   - Gérer les factures
- *   - Importer FacturesService
- *   - Importer PaymentsService
- *   - Créer des paiements à l’unité
+ * Ne gère PAS :
+ *   - Les factures (paiements unitaires)
+ *   - Les missions
+ *   - Les paiements client → PaymentsService
+ *
+ * Dépendances :
+ *   - Supabase (lecture/écriture DB)
+ *   - AccessService (vérification permissions)
+ *   - Stripe (Billing)
  * -------------------------------------------------------------
  */
 
@@ -33,6 +37,7 @@ import type { AuthUser } from '../common/auth/auth.types';
 import { SupabaseService } from '../common/supabase/supabase.service';
 import type { Table } from '../types/aliases';
 import type { TablesUpdate } from '../types/database';
+
 import { SubscribeDto, SubscriptionPlan } from './dto/subscribe.dto';
 import {
   buildMetadata,
@@ -42,7 +47,6 @@ import {
 
 type EntrepriseRow = Table<'entreprise'>;
 type RawBodyRequest = Request & { rawBody?: Buffer };
-
 type WebhookResponse = { received: true };
 
 @Injectable()
@@ -57,13 +61,12 @@ export class SubscriptionService {
   }
 
   private ensureUser(user: AuthUser | null): asserts user is AuthUser {
-    if (!user) {
-      throw new UnauthorizedException('Authentification requise');
-    }
+    if (!user) throw new UnauthorizedException('Authentification requise');
   }
 
   private async loadEntrepriseBySlug(slug: string): Promise<EntrepriseRow> {
     const admin = this.supabaseService.getAdminClient();
+
     const { data, error } = await admin
       .from('entreprise')
       .select('*')
@@ -77,6 +80,9 @@ export class SubscriptionService {
     return data;
   }
 
+  // -------------------------------------------------------------
+  // 🔵 Customer Stripe
+  // -------------------------------------------------------------
   async getOrCreateStripeCustomer(entreprise: EntrepriseRow): Promise<string> {
     if (entreprise.stripe_customer_id) {
       return entreprise.stripe_customer_id;
@@ -84,7 +90,7 @@ export class SubscriptionService {
 
     const customer = await this.stripe.customers.create({
       email: entreprise.email,
-      name: [entreprise.prenom, entreprise.nom].filter(Boolean).join(' ').trim(),
+      name: `${entreprise.prenom ?? ''} ${entreprise.nom ?? ''}`.trim(),
       metadata: {
         entreprise_id: entreprise.id.toString(),
         slug: entreprise.slug ?? '',
@@ -95,18 +101,22 @@ export class SubscriptionService {
     const update: TablesUpdate<'entreprise'> = {
       stripe_customer_id: customer.id,
     };
-    const { error: updateError } = await admin
+
+    const { error } = await admin
       .from('entreprise')
       .update(update)
       .eq('id', entreprise.id);
 
-    if (updateError) {
-      throw new InternalServerErrorException(updateError.message);
+    if (error) {
+      throw new InternalServerErrorException(error.message);
     }
 
     return customer.id;
   }
 
+  // -------------------------------------------------------------
+  // 🟢 Créer une session Stripe Checkout (abonnement)
+  // -------------------------------------------------------------
   async createCheckout(slug: string, dto: SubscribeDto, user: AuthUser) {
     this.ensureUser(user);
 
@@ -122,18 +132,19 @@ export class SubscriptionService {
     const priceId = getPriceId(dto.plan);
     const customerId = await this.getOrCreateStripeCustomer(entreprise);
 
+    // 🟡 Si l’utilisateur passe un referral code → on l'enregistre une seule fois
     if (dto.referralCode && !entreprise.referred_by) {
       const admin = this.supabaseService.getAdminClient();
-      const referralUpdate: TablesUpdate<'entreprise'> = {
-        referred_by: dto.referralCode,
-      };
-      const { error: referralError } = await admin
+
+      const { error } = await admin
         .from('entreprise')
-        .update(referralUpdate)
+        .update({
+          referred_by: dto.referralCode ?? null,
+        } as TablesUpdate<'entreprise'>)
         .eq('id', entreprise.id);
 
-      if (referralError) {
-        throw new InternalServerErrorException(referralError.message);
+      if (error) {
+        throw new InternalServerErrorException(error.message);
       }
     }
 
@@ -148,14 +159,9 @@ export class SubscriptionService {
     const session = await this.stripe.checkout.sessions.create({
       mode: 'subscription',
       customer: customerId,
+      line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${process.env.APP_URL}/entreprise/${entreprise.slug ?? slug}/subscription/success`,
       cancel_url: `${process.env.APP_URL}/entreprise/${entreprise.slug ?? slug}/subscription/canceled`,
-      line_items: [
-        {
-          price: priceId,
-          quantity: 1,
-        },
-      ],
       metadata,
     });
 
@@ -166,17 +172,22 @@ export class SubscriptionService {
     return { url: session.url, sessionId: session.id };
   }
 
-  async handleWebhook(req: Request, signature: string): Promise<WebhookResponse> {
-    if (!signature) {
+  // -------------------------------------------------------------
+  // 🔴 Webhook Stripe
+  // -------------------------------------------------------------
+  async handleWebhook(
+    req: Request,
+    signature: string,
+  ): Promise<WebhookResponse> {
+    if (!signature)
       throw new UnauthorizedException('Signature Stripe manquante');
-    }
 
-    const requestWithRawBody = req as RawBodyRequest;
-    const rawBody = requestWithRawBody.rawBody
-      ? requestWithRawBody.rawBody
-      : Buffer.from(JSON.stringify(req.body ?? {}));
+    const rawBody =
+      (req as RawBodyRequest).rawBody ??
+      Buffer.from(JSON.stringify(req.body ?? {}));
 
     let event: Stripe.Event;
+
     try {
       event = this.stripe.webhooks.constructEvent(
         rawBody,
@@ -184,20 +195,23 @@ export class SubscriptionService {
         process.env.STRIPE_WEBHOOK_SECRET as string,
       );
     } catch (error) {
-      throw new UnauthorizedException(`Webhook Error: ${(error as Error).message}`);
+      throw new UnauthorizedException(
+        `Webhook Error: ${(error as Error).message}`,
+      );
     }
 
     if (event.type === 'checkout.session.completed') {
-      await this.handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session);
+      await this.handleCheckoutCompleted(event.data.object);
     }
 
     return { received: true };
   }
 
+  // -------------------------------------------------------------
+  // 🟣 Gestion du checkout (webhook)
+  // -------------------------------------------------------------
   private async handleCheckoutCompleted(session: Stripe.Checkout.Session) {
-    if (session.mode !== 'subscription') {
-      return;
-    }
+    if (session.mode !== 'subscription') return;
 
     const entrepriseId = session.metadata?.entreprise_id;
     if (!entrepriseId) {
@@ -209,7 +223,10 @@ export class SubscriptionService {
       throw new NotFoundException('Subscription Stripe manquante');
     }
 
-    const subscription = await this.stripe.subscriptions.retrieve(subscriptionId);
+    // Récupération souscription Stripe
+    const subscription =
+      await this.stripe.subscriptions.retrieve(subscriptionId);
+
     const admin = this.supabaseService.getAdminClient();
     const { data: entreprise, error } = await admin
       .from('entreprise')
@@ -232,24 +249,32 @@ export class SubscriptionService {
     );
   }
 
+  // -------------------------------------------------------------
+  // 🔵 Mise à jour entreprise après abonnement
+  // -------------------------------------------------------------
   private async updateEntrepriseOnSubscription(
     entreprise: EntrepriseRow,
     subscription: Stripe.Subscription,
     plan: SubscriptionPlan | null,
     referralCode?: string,
   ) {
+    // Stripe TS 2024 ne donne plus current_period_end → cast propre
+    const s: any = subscription;
+    const periodEnd = s.current_period_end
+      ? new Date(s.current_period_end * 1000).toISOString()
+      : null;
+
     const customerId =
       typeof subscription.customer === 'string'
         ? subscription.customer
-        : subscription.customer?.id ?? null;
+        : (subscription.customer?.id ?? null);
 
     const update: TablesUpdate<'entreprise'> = {
       stripe_subscription_id: subscription.id,
-      stripe_customer_id: entreprise.stripe_customer_id ?? customerId ?? undefined,
+      stripe_customer_id:
+        entreprise.stripe_customer_id ?? customerId ?? undefined,
       subscription_status: subscription.status ?? null,
-      subscription_period_end: subscription.current_period_end
-        ? new Date(subscription.current_period_end * 1000).toISOString()
-        : null,
+      subscription_period_end: periodEnd,
       subscription_plan: plan ?? entreprise.subscription_plan ?? null,
     };
 
