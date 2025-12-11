@@ -234,10 +234,19 @@ export type Database = {
           pays: string | null
           penalites_retard: string
           prenom: string
+          referral_code: string | null
+          referral_rewards: number | null
+          referral_rewards_pending: number | null
+          referred_by: string | null
           siret: string
           slug: string | null
           statut_juridique: string
           stripe_account_id: string | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          subscription_period_end: string | null
+          subscription_plan: string | null
+          subscription_status: string | null
           taux_horaire: number
           telephone: string | null
           tva_intracom: string | null
@@ -261,10 +270,19 @@ export type Database = {
           pays?: string | null
           penalites_retard?: string
           prenom: string
+          referral_code?: string | null
+          referral_rewards?: number | null
+          referral_rewards_pending?: number | null
+          referred_by?: string | null
           siret: string
           slug?: string | null
           statut_juridique?: string
           stripe_account_id?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_period_end?: string | null
+          subscription_plan?: string | null
+          subscription_status?: string | null
           taux_horaire?: number
           telephone?: string | null
           tva_intracom?: string | null
@@ -288,10 +306,19 @@ export type Database = {
           pays?: string | null
           penalites_retard?: string
           prenom?: string
+          referral_code?: string | null
+          referral_rewards?: number | null
+          referral_rewards_pending?: number | null
+          referred_by?: string | null
           siret?: string
           slug?: string | null
           statut_juridique?: string
           stripe_account_id?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_period_end?: string | null
+          subscription_plan?: string | null
+          subscription_status?: string | null
           taux_horaire?: number
           telephone?: string | null
           tva_intracom?: string | null
