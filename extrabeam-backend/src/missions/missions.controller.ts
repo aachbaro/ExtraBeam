@@ -33,9 +33,11 @@ import {
   Put,
   Query,
   UseGuards,
+  UsePipes,
 } from '@nestjs/common';
 import { User } from '../common/auth/decorators/user.decorator';
 import { JwtAuthGuard } from '../common/auth/guards/jwt.guard';
+import { StrictValidationPipe } from '../common/pipes/strict-validation.pipe';
 import { MissionCreateDto } from './dto/mission-create.dto';
 import { MissionUpdateDto } from './dto/mission-update.dto';
 import { MissionUpdateStatusDto } from './dto/update-mission-status.dto';
@@ -98,6 +100,7 @@ export class MissionsController {
   // -------------------------------------------------------------
   @Post()
   @UseGuards(JwtAuthGuard)
+  @UsePipes(StrictValidationPipe)
   async createMission(
     @Body() dto: MissionCreateDto,
     @User() user?: AuthUser | null,
@@ -110,6 +113,7 @@ export class MissionsController {
   // 🌍 Création publique (visiteur non connecté)
   // -------------------------------------------------------------
   @Post('public')
+  @UsePipes(StrictValidationPipe)
   async createPublicMission(
     @Body() dto: MissionCreateDto,
   ): Promise<{ mission: MissionRow }> {
@@ -122,6 +126,7 @@ export class MissionsController {
   // -------------------------------------------------------------
   @Put(':id')
   @UseGuards(JwtAuthGuard)
+  @UsePipes(StrictValidationPipe)
   async updateMission(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: MissionUpdateDto,
@@ -153,6 +158,7 @@ export class MissionsController {
   // -------------------------------------------------------------
   @Post(':id/status')
   @UseGuards(JwtAuthGuard)
+  @UsePipes(StrictValidationPipe)
   async updateStatus(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: MissionUpdateStatusDto,

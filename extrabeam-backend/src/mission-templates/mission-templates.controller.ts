@@ -18,11 +18,23 @@
 //   - Rôle requis : client
 // -------------------------------------------------------------
 
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Post,
+  Put,
+  UseGuards,
+  UsePipes,
+} from '@nestjs/common';
 
 import type { AuthUser } from '../common/auth/auth.types';
 import { User } from '../common/auth/decorators/user.decorator';
 import { JwtAuthGuard } from '../common/auth/guards/jwt.guard';
+import { StrictValidationPipe } from '../common/pipes/strict-validation.pipe';
 import { CreateTemplateDto } from './dto/create-template.dto';
 import { UpdateTemplateDto } from './dto/update-template.dto';
 import { MissionTemplatesService } from './mission-templates.service';
@@ -38,11 +50,13 @@ export class MissionTemplatesController {
   }
 
   @Post()
+  @UsePipes(StrictValidationPipe)
   async create(@Body() dto: CreateTemplateDto, @User() user: AuthUser) {
     return this.missionTemplatesService.createTemplate(dto, user);
   }
 
   @Put(':id')
+  @UsePipes(StrictValidationPipe)
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateTemplateDto,

@@ -16,11 +16,23 @@
 //
 // -------------------------------------------------------------
 
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Query,
+  UseGuards,
+  UsePipes,
+} from '@nestjs/common';
 
 import type { AuthUser } from '../common/auth/auth.types';
 import { User } from '../common/auth/decorators/user.decorator';
 import { JwtAuthGuard } from '../common/auth/guards/jwt.guard';
+import { StrictValidationPipe } from '../common/pipes/strict-validation.pipe';
 import { AttachClientDto } from './dto/attach-client.dto';
 import { ClientContactWithRelations, ClientsService } from './clients.service';
 
@@ -38,6 +50,7 @@ export class ClientsController {
   }
 
   @Post('attach')
+  @UsePipes(StrictValidationPipe)
   async attach(
     @Body() dto: AttachClientDto,
     @Query('entrepriseRef') entrepriseRef: string,

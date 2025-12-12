@@ -5,12 +5,10 @@
 // - CORS dynamique
 // - Helmet
 // - Webhooks Stripe (raw body)
-// - Validation DTO
 // - Gestion globale des erreurs
 // -------------------------------------------------------------
 
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
 import * as bodyParser from 'body-parser';
 
@@ -45,7 +43,6 @@ async function bootstrap() {
   );
 
   // Pour les abonnements (Stripe Billing)
-  // app.use('/api/subscription/webhook', bodyParser.raw({ type: '*/*' }));
   app.use(
     '/api/subscription/webhook',
     bodyParser.raw({ type: 'application/json' }),
@@ -60,18 +57,6 @@ async function bootstrap() {
   // 🌐 Préfixe global API
   // -------------------------------------------------------------
   app.setGlobalPrefix('api');
-
-  // -------------------------------------------------------------
-  // 🧱 Validation DTOs
-  // -------------------------------------------------------------
-  // app.useGlobalPipes(
-  //   new ValidationPipe({
-  //     whitelist: true,
-  //     forbidNonWhitelisted: true,
-  //     transform: true,
-  //     forbidUnknownValues: false,
-  //   }),
-  // );
 
   // -------------------------------------------------------------
   // 🚨 Gestion globale des erreurs
