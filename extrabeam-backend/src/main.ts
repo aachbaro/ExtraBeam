@@ -45,7 +45,11 @@ async function bootstrap() {
   );
 
   // Pour les abonnements (Stripe Billing)
-  app.use('/api/subscription/webhook', bodyParser.raw({ type: '*/*' }));
+  // app.use('/api/subscription/webhook', bodyParser.raw({ type: '*/*' }));
+  app.use(
+    '/api/subscription/webhook',
+    bodyParser.raw({ type: 'application/json' }),
+  );
 
   // -------------------------------------------------------------
   // 📦 JSON standard
@@ -60,13 +64,14 @@ async function bootstrap() {
   // -------------------------------------------------------------
   // 🧱 Validation DTOs
   // -------------------------------------------------------------
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-    }),
-  );
+  // app.useGlobalPipes(
+  //   new ValidationPipe({
+  //     whitelist: true,
+  //     forbidNonWhitelisted: true,
+  //     transform: true,
+  //     forbidUnknownValues: false,
+  //   }),
+  // );
 
   // -------------------------------------------------------------
   // 🚨 Gestion globale des erreurs
