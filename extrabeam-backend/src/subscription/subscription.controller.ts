@@ -25,6 +25,7 @@ import type { AuthUser } from '../common/auth/auth.types';
 import { StripeWebhookGuard } from '../common/auth/guards/stripe-webhook.guard';
 import { User } from '../common/auth/decorators/user.decorator';
 import { JwtAuthGuard } from '../common/auth/guards/jwt.guard';
+import { StrictValidationPipe } from '../common/pipes/strict-validation.pipe';
 import { SubscribeDto } from './dto/subscribe.dto';
 import { SubscriptionService } from './subscription.service';
 
@@ -37,6 +38,7 @@ export class SubscriptionController {
   // -------------------------------------------------------------
   @Post(':slug')
   @UseGuards(JwtAuthGuard)
+  @UsePipes(StrictValidationPipe)
   async createCheckout(
     @Param('slug') slug: string,
     @Body() dto: SubscribeDto,
@@ -50,7 +52,6 @@ export class SubscriptionController {
   // -------------------------------------------------------------
   @Post('webhook')
   @UseGuards(StripeWebhookGuard)
-  @UsePipes() // ⬅️ DÉSACTIVE TOUS LES PIPES (CRUCIAL)
   @HttpCode(200)
   async webhook(
     @Req() req: Request,

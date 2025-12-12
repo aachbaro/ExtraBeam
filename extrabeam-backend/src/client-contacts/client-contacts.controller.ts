@@ -12,11 +12,22 @@
 //   - Rôle `client`
 // -------------------------------------------------------------
 
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Post,
+  UseGuards,
+  UsePipes,
+} from '@nestjs/common';
 
 import type { AuthUser } from '../common/auth/auth.types';
 import { User } from '../common/auth/decorators/user.decorator';
 import { JwtAuthGuard } from '../common/auth/guards/jwt.guard';
+import { StrictValidationPipe } from '../common/pipes/strict-validation.pipe';
 import type { CreateClientContactDto } from './dto/create-client-contact.dto';
 import { ClientContactsService } from './client-contacts.service';
 
@@ -31,6 +42,7 @@ export class ClientContactsController {
   }
 
   @Post()
+  @UsePipes(StrictValidationPipe)
   async add(@Body() dto: CreateClientContactDto, @User() user: AuthUser) {
     return this.clientContactsService.addContact(dto, user);
   }

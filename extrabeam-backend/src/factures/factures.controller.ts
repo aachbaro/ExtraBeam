@@ -33,11 +33,13 @@ import {
   Put,
   Query,
   UseGuards,
+  UsePipes,
 } from '@nestjs/common';
 
 import type { AuthUser } from '../common/auth/auth.types';
 import { User } from '../common/auth/decorators/user.decorator';
 import { JwtAuthGuard } from '../common/auth/guards/jwt.guard';
+import { StrictValidationPipe } from '../common/pipes/strict-validation.pipe';
 import { FactureCreateDto } from './dto/facture-create.dto';
 import { FactureUpdateDto } from './dto/facture-update.dto';
 import { FacturesService, FactureWithRelations } from './factures.service';
@@ -71,6 +73,7 @@ export class FacturesController {
   }
 
   @Post()
+  @UsePipes(StrictValidationPipe)
   async createFacture(
     @Body() dto: FactureCreateDto,
     @User() user: AuthUser,
@@ -80,6 +83,7 @@ export class FacturesController {
   }
 
   @Put(':id')
+  @UsePipes(StrictValidationPipe)
   async updateFacture(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: FactureUpdateDto,
