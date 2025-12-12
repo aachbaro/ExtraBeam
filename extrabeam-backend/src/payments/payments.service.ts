@@ -81,6 +81,8 @@ export class PaymentsService {
       throw new ForbiddenException('Accès interdit');
     }
 
+    this.accessService.assertActiveSubscription(entreprise);
+
     if (!data.montant_ttc || data.montant_ttc <= 0) {
       throw new BadRequestException('Montant TTC invalide');
     }

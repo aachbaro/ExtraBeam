@@ -105,6 +105,8 @@ export class MissionsService {
       throw new ForbiddenException("Accès interdit à l'entreprise");
     }
 
+    this.accessService.assertActiveSubscription(entreprise);
+
     return entreprise;
   }
 

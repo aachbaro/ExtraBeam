@@ -18,6 +18,7 @@ import {
   HttpCode,
   BadRequestException,
   UsePipes,
+  Get,
 } from '@nestjs/common';
 import type { Request } from 'express';
 
@@ -48,6 +49,15 @@ export class SubscriptionController {
     }
 
     return this.subscriptionService.handleWebhook(req, signature);
+  }
+
+  // -------------------------------------------------------------
+  // 🟢 Statut abonnement (JWT requis)
+  // -------------------------------------------------------------
+  @Get('status')
+  @UseGuards(JwtAuthGuard)
+  async getStatus(@User() user: AuthUser) {
+    return this.subscriptionService.getStatus(user);
   }
 
   // -------------------------------------------------------------

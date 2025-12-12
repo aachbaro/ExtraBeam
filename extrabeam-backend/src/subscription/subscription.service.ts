@@ -160,6 +160,9 @@ export class SubscriptionService {
       mode: 'subscription',
       customer: customerId,
       line_items: [{ price: priceId, quantity: 1 }],
+      subscription_data: {
+        metadata,
+      },
       success_url: `${process.env.APP_URL}/entreprise/${entreprise.slug ?? slug}/subscription/success`,
       cancel_url: `${process.env.APP_URL}/entreprise/${entreprise.slug ?? slug}/subscription/canceled`,
       metadata,
@@ -173,6 +176,30 @@ export class SubscriptionService {
   }
 
   // -------------------------------------------------------------
+  // 📡 Statut abonnement pour le frontend
+  // -------------------------------------------------------------
+  async getStatus(user: AuthUser) {
+    this.ensureUser(user);
+
+    const ref = this.accessService.resolveEntrepriseRef(user);
+    if (!ref) {
+      throw new NotFoundException('Entreprise introuvable');
+    }
+
+    const entreprise = await this.accessService.findEntreprise(ref);
+    if (!this.accessService.canAccessEntreprise(user, entreprise)) {
+      throw new ForbiddenException("Accès interdit à l'entreprise");
+    }
+
+    return {
+      status: entreprise.subscription_status ?? 'incomplete',
+      plan: entreprise.subscription_plan,
+      periodEnd: entreprise.subscription_period_end,
+      isTrial: entreprise.subscription_status === 'trialing',
+    };
+  }
+
+  // -------------------------------------------------------------
   // 🔴 Webhook Stripe
   // -------------------------------------------------------------
   async handleWebhook(
@@ -183,7 +210,8 @@ export class SubscriptionService {
       throw new UnauthorizedException('Signature Stripe manquante');
     }
 
-    if (!Buffer.isBuffer(req.body)) {
+    const rawBody = (req as RawBodyRequest).body;
+    if (!Buffer.isBuffer(rawBody)) {
       throw new InternalServerErrorException(
         'Webhook Stripe: body is not a raw Buffer',
       );
@@ -193,7 +221,7 @@ export class SubscriptionService {
 
     try {
       event = this.stripe.webhooks.constructEvent(
-        req.body, // ✅ BUFFER BRUT, NON MODIFIÉ
+        rawBody, // ✅ BUFFER BRUT, NON MODIFIÉ
         signature,
         process.env.STRIPE_WEBHOOK_SECRET as string,
       );
@@ -203,11 +231,44 @@ export class SubscriptionService {
       );
     }
 
-    // -------------------------------------------------------------
-    // 🎯 Gestion des événements
-    // -------------------------------------------------------------
-    if (event.type === 'checkout.session.completed') {
-      await this.handleCheckoutCompleted(event.data.object);
+    console.log(`[Stripe] Webhook reçu : ${event.type}`);
+
+    switch (event.type) {
+      case 'checkout.session.completed':
+        await this.handleCheckoutCompleted(event.data.object);
+        break;
+      case 'customer.subscription.created':
+        await this.handleSubscriptionEvent(
+          event.data.object as Stripe.Subscription,
+          'customer.subscription.created',
+        );
+        break;
+      case 'customer.subscription.updated':
+        await this.handleSubscriptionEvent(
+          event.data.object as Stripe.Subscription,
+          'customer.subscription.updated',
+        );
+        break;
+      case 'customer.subscription.deleted':
+        await this.handleSubscriptionEvent(
+          event.data.object as Stripe.Subscription,
+          'customer.subscription.deleted',
+        );
+        break;
+      case 'invoice.payment_succeeded':
+        await this.handleInvoiceEvent(
+          event.data.object as Stripe.Invoice,
+          true,
+        );
+        break;
+      case 'invoice.payment_failed':
+        await this.handleInvoiceEvent(
+          event.data.object as Stripe.Invoice,
+          false,
+        );
+        break;
+      default:
+        console.log(`[Stripe] Événement ignoré : ${event.type}`);
     }
 
     return { received: true };
@@ -221,12 +282,18 @@ export class SubscriptionService {
 
     const entrepriseId = session.metadata?.entreprise_id;
     if (!entrepriseId) {
-      throw new NotFoundException('Entreprise manquante dans les métadonnées');
+      console.warn(
+        '[Stripe][checkout.session.completed] Metadonnée entreprise manquante',
+      );
+      return;
     }
 
     const subscriptionId = session.subscription;
     if (!subscriptionId || typeof subscriptionId !== 'string') {
-      throw new NotFoundException('Subscription Stripe manquante');
+      console.warn(
+        '[Stripe][checkout.session.completed] Subscription Stripe manquante',
+      );
+      return;
     }
 
     // Récupération souscription Stripe
@@ -241,7 +308,10 @@ export class SubscriptionService {
       .maybeSingle<EntrepriseRow>();
 
     if (error || !entreprise) {
-      throw new NotFoundException('Entreprise introuvable');
+      console.warn(
+        `[Stripe][checkout.session.completed] Entreprise ${entrepriseId} introuvable`,
+      );
+      return;
     }
 
     const plan = (session.metadata?.plan as SubscriptionPlan) ?? null;
@@ -253,6 +323,142 @@ export class SubscriptionService {
       plan,
       referralCode,
     );
+  }
+
+  // -------------------------------------------------------------
+  // 🟠 Gestion des subscriptions (création/màj/suppression)
+  // -------------------------------------------------------------
+  private async handleSubscriptionEvent(
+    subscription: Stripe.Subscription,
+    source: string,
+  ) {
+    const entreprise = await this.resolveEntrepriseFromSubscription(subscription);
+
+    if (!entreprise) {
+      console.warn(
+        `[Stripe][${source}] Impossible de lier la subscription ${subscription.id} à une entreprise`,
+      );
+      return;
+    }
+
+    const plan = this.inferPlanFromSubscription(subscription);
+    const referralCode = subscription.metadata?.referral_code;
+
+    await this.updateEntrepriseOnSubscription(
+      entreprise,
+      subscription,
+      plan,
+      referralCode ?? undefined,
+    );
+
+    console.log(
+      `[Stripe][${source}] Entreprise ${entreprise.id} mise à jour (${subscription.status})`,
+    );
+  }
+
+  // -------------------------------------------------------------
+  // 🧾 Gestion des factures (paiement réussi/échoué)
+  // -------------------------------------------------------------
+  private async handleInvoiceEvent(invoice: Stripe.Invoice, succeeded: boolean) {
+    const subscriptionId =
+      typeof invoice.subscription === 'string'
+        ? invoice.subscription
+        : invoice.subscription?.id;
+
+    if (!subscriptionId) {
+      console.warn(
+        `[Stripe][invoice.${succeeded ? 'payment_succeeded' : 'payment_failed'}] Subscription manquante`,
+      );
+      return;
+    }
+
+    try {
+      const subscription =
+        await this.stripe.subscriptions.retrieve(subscriptionId);
+      await this.handleSubscriptionEvent(
+        subscription,
+        succeeded ? 'invoice.payment_succeeded' : 'invoice.payment_failed',
+      );
+    } catch (error) {
+      console.error(
+        `[Stripe][invoice] Impossible de récupérer la subscription ${subscriptionId}:`,
+        error,
+      );
+    }
+  }
+
+  // -------------------------------------------------------------
+  // 🔎 Helpers de résolution Stripe → Entreprise
+  // -------------------------------------------------------------
+  private async resolveEntrepriseFromSubscription(
+    subscription: Stripe.Subscription,
+  ): Promise<EntrepriseRow | null> {
+    const entrepriseId = subscription.metadata?.entreprise_id;
+    if (entrepriseId) {
+      const entreprise = await this.findEntrepriseById(entrepriseId);
+      if (entreprise) return entreprise;
+    }
+
+    const customerId =
+      typeof subscription.customer === 'string'
+        ? subscription.customer
+        : subscription.customer?.id;
+
+    if (customerId) {
+      const entreprise = await this.findEntrepriseByCustomer(customerId);
+      if (entreprise) return entreprise;
+    }
+
+    return null;
+  }
+
+  private async findEntrepriseById(
+    entrepriseId: string | number,
+  ): Promise<EntrepriseRow | null> {
+    const admin = this.supabaseService.getAdminClient();
+    const { data, error } = await admin
+      .from('entreprise')
+      .select('*')
+      .eq('id', Number(entrepriseId))
+      .maybeSingle<EntrepriseRow>();
+
+    if (error || !data) return null;
+    return data;
+  }
+
+  private async findEntrepriseByCustomer(
+    customerId: string,
+  ): Promise<EntrepriseRow | null> {
+    const admin = this.supabaseService.getAdminClient();
+    const { data, error } = await admin
+      .from('entreprise')
+      .select('*')
+      .eq('stripe_customer_id', customerId)
+      .maybeSingle<EntrepriseRow>();
+
+    if (error || !data) return null;
+    return data;
+  }
+
+  private inferPlanFromSubscription(
+    subscription: Stripe.Subscription,
+  ): SubscriptionPlan | null {
+    const metadataPlan = subscription.metadata?.plan as
+      | SubscriptionPlan
+      | undefined;
+    if (metadataPlan && Object.values(SubscriptionPlan).includes(metadataPlan)) {
+      return metadataPlan;
+    }
+
+    const priceId = subscription.items?.data?.[0]?.price?.id;
+    if (priceId) {
+      const monthly = process.env.STRIPE_PRICE_MONTHLY;
+      const annual = process.env.STRIPE_PRICE_ANNUAL;
+      if (priceId === monthly) return SubscriptionPlan.Monthly;
+      if (priceId === annual) return SubscriptionPlan.Annual;
+    }
+
+    return null;
   }
 
   // -------------------------------------------------------------
