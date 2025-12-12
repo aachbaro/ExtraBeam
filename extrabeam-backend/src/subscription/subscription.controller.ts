@@ -34,20 +34,6 @@ export class SubscriptionController {
   constructor(private readonly subscriptionService: SubscriptionService) {}
 
   // -------------------------------------------------------------
-  // 🔵 Checkout (JWT requis)
-  // -------------------------------------------------------------
-  @Post(':slug')
-  @UseGuards(JwtAuthGuard)
-  @UsePipes(StrictValidationPipe)
-  async createCheckout(
-    @Param('slug') slug: string,
-    @Body() dto: SubscribeDto,
-    @User() user: AuthUser,
-  ) {
-    return this.subscriptionService.createCheckout(slug, dto, user);
-  }
-
-  // -------------------------------------------------------------
   // 🔴 Stripe Webhook (RAW BODY, NO PIPES)
   // -------------------------------------------------------------
   @Post('webhook')
@@ -62,5 +48,19 @@ export class SubscriptionController {
     }
 
     return this.subscriptionService.handleWebhook(req, signature);
+  }
+
+  // -------------------------------------------------------------
+  // 🔵 Checkout (JWT requis)
+  // -------------------------------------------------------------
+  @Post(':slug')
+  @UseGuards(JwtAuthGuard)
+  @UsePipes(StrictValidationPipe)
+  async createCheckout(
+    @Param('slug') slug: string,
+    @Body() dto: SubscribeDto,
+    @User() user: AuthUser,
+  ) {
+    return this.subscriptionService.createCheckout(slug, dto, user);
   }
 }
