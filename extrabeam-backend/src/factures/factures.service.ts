@@ -120,6 +120,7 @@ export class FacturesService {
     if (!this.accessService.canAccessEntreprise(user, entreprise)) {
       throw new ForbiddenException("Accès interdit à l'entreprise");
     }
+    this.accessService.assertActiveSubscription(entreprise);
     return entreprise;
   }
 
@@ -383,6 +384,7 @@ export class FacturesService {
     if (!this.accessService.canAccessEntreprise(user, entreprise)) {
       throw new ForbiddenException('Accès interdit');
     }
+    this.accessService.assertActiveSubscription(entreprise);
 
     const admin = this.supabaseService.getAdminClient();
     const { mission_id, ...rest } = input;
@@ -434,6 +436,8 @@ export class FacturesService {
     if (!this.accessService.canAccessEntreprise(user, entreprise)) {
       throw new ForbiddenException('Accès interdit');
     }
+
+    this.accessService.assertActiveSubscription(entreprise);
 
     await this.notificationsService.sendFactureNotification(id, user);
     return { sent: true };

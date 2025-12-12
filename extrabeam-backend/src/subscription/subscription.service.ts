@@ -26,6 +26,7 @@ import {
   ForbiddenException,
   Injectable,
   InternalServerErrorException,
+  Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -39,6 +40,7 @@ import type { Table } from '../types/aliases';
 import type { TablesUpdate } from '../types/database';
 
 import { SubscribeDto, SubscriptionPlan } from './dto/subscribe.dto';
+import type { SubscriptionStatusResponse } from './dto/subscription-status.dto';
 import {
   buildMetadata,
   createStripeClient,
@@ -52,6 +54,7 @@ type WebhookResponse = { received: true };
 @Injectable()
 export class SubscriptionService {
   private readonly stripe: Stripe;
+  private readonly logger = new Logger(SubscriptionService.name);
 
   constructor(
     private readonly supabaseService: SupabaseService,
@@ -78,6 +81,24 @@ export class SubscriptionService {
     }
 
     return data;
+  }
+
+  private normalizeStatus(
+    status: EntrepriseRow['subscription_status'],
+  ): SubscriptionStatusResponse['status'] {
+    const allowed: SubscriptionStatusResponse['status'][] = [
+      'active',
+      'trialing',
+      'past_due',
+      'canceled',
+      'incomplete',
+    ];
+
+    if (status && allowed.includes(status as SubscriptionStatusResponse['status'])) {
+      return status as SubscriptionStatusResponse['status'];
+    }
+
+    return 'incomplete';
   }
 
   // -------------------------------------------------------------
@@ -178,7 +199,7 @@ export class SubscriptionService {
   // -------------------------------------------------------------
   // 📡 Statut abonnement pour le frontend
   // -------------------------------------------------------------
-  async getStatus(user: AuthUser) {
+  async getStatus(user: AuthUser): Promise<SubscriptionStatusResponse> {
     this.ensureUser(user);
 
     const ref = this.accessService.resolveEntrepriseRef(user);
@@ -191,11 +212,26 @@ export class SubscriptionService {
       throw new ForbiddenException("Accès interdit à l'entreprise");
     }
 
+    const normalizedStatus = this.normalizeStatus(
+      entreprise.subscription_status,
+    );
+    const periodEnd = entreprise.subscription_period_end ?? null;
+    const periodEndDate = periodEnd ? new Date(periodEnd) : null;
+    const isExpired =
+      periodEndDate !== null &&
+      Number.isFinite(periodEndDate.getTime()) &&
+      periodEndDate.getTime() < Date.now();
+
+    const isTrial = normalizedStatus === 'trialing';
+    const isActiveStatus =
+      normalizedStatus === 'active' || normalizedStatus === 'trialing';
+
     return {
-      status: entreprise.subscription_status ?? 'incomplete',
-      plan: entreprise.subscription_plan,
-      periodEnd: entreprise.subscription_period_end,
-      isTrial: entreprise.subscription_status === 'trialing',
+      status: normalizedStatus,
+      plan: (entreprise.subscription_plan as SubscriptionPlan | null) ?? null,
+      periodEnd,
+      isTrial,
+      isActive: isActiveStatus && !isExpired,
     };
   }
 
@@ -210,12 +246,12 @@ export class SubscriptionService {
       throw new UnauthorizedException('Signature Stripe manquante');
     }
 
-    const rawBody = (req as RawBodyRequest).body;
-    if (!Buffer.isBuffer(rawBody)) {
-      throw new InternalServerErrorException(
-        'Webhook Stripe: body is not a raw Buffer',
-      );
-    }
+    const rawRequest = req as RawBodyRequest;
+    const rawBody = rawRequest.rawBody
+      ? rawRequest.rawBody
+      : Buffer.isBuffer(rawRequest.body)
+        ? rawRequest.body
+        : Buffer.from(JSON.stringify(rawRequest.body ?? {}));
 
     let event: Stripe.Event;
 
@@ -231,28 +267,16 @@ export class SubscriptionService {
       );
     }
 
-    console.log(`[Stripe] Webhook reçu : ${event.type}`);
-
     switch (event.type) {
       case 'checkout.session.completed':
         await this.handleCheckoutCompleted(event.data.object);
         break;
       case 'customer.subscription.created':
-        await this.handleSubscriptionEvent(
-          event.data.object as Stripe.Subscription,
-          'customer.subscription.created',
-        );
-        break;
       case 'customer.subscription.updated':
-        await this.handleSubscriptionEvent(
-          event.data.object as Stripe.Subscription,
-          'customer.subscription.updated',
-        );
-        break;
       case 'customer.subscription.deleted':
         await this.handleSubscriptionEvent(
           event.data.object as Stripe.Subscription,
-          'customer.subscription.deleted',
+          event.type,
         );
         break;
       case 'invoice.payment_succeeded':
@@ -268,7 +292,7 @@ export class SubscriptionService {
         );
         break;
       default:
-        console.log(`[Stripe] Événement ignoré : ${event.type}`);
+        return { received: true };
     }
 
     return { received: true };
@@ -282,7 +306,7 @@ export class SubscriptionService {
 
     const entrepriseId = session.metadata?.entreprise_id;
     if (!entrepriseId) {
-      console.warn(
+      this.logger.warn(
         '[Stripe][checkout.session.completed] Metadonnée entreprise manquante',
       );
       return;
@@ -290,7 +314,7 @@ export class SubscriptionService {
 
     const subscriptionId = session.subscription;
     if (!subscriptionId || typeof subscriptionId !== 'string') {
-      console.warn(
+      this.logger.warn(
         '[Stripe][checkout.session.completed] Subscription Stripe manquante',
       );
       return;
@@ -308,7 +332,7 @@ export class SubscriptionService {
       .maybeSingle<EntrepriseRow>();
 
     if (error || !entreprise) {
-      console.warn(
+      this.logger.warn(
         `[Stripe][checkout.session.completed] Entreprise ${entrepriseId} introuvable`,
       );
       return;
@@ -335,7 +359,7 @@ export class SubscriptionService {
     const entreprise = await this.resolveEntrepriseFromSubscription(subscription);
 
     if (!entreprise) {
-      console.warn(
+      this.logger.warn(
         `[Stripe][${source}] Impossible de lier la subscription ${subscription.id} à une entreprise`,
       );
       return;
@@ -351,7 +375,7 @@ export class SubscriptionService {
       referralCode ?? undefined,
     );
 
-    console.log(
+    this.logger.log(
       `[Stripe][${source}] Entreprise ${entreprise.id} mise à jour (${subscription.status})`,
     );
   }
@@ -366,7 +390,7 @@ export class SubscriptionService {
         : invoice.subscription?.id;
 
     if (!subscriptionId) {
-      console.warn(
+      this.logger.warn(
         `[Stripe][invoice.${succeeded ? 'payment_succeeded' : 'payment_failed'}] Subscription manquante`,
       );
       return;
@@ -380,9 +404,8 @@ export class SubscriptionService {
         succeeded ? 'invoice.payment_succeeded' : 'invoice.payment_failed',
       );
     } catch (error) {
-      console.error(
-        `[Stripe][invoice] Impossible de récupérer la subscription ${subscriptionId}:`,
-        error,
+      this.logger.error(
+        `[Stripe][invoice] Impossible de récupérer la subscription ${subscriptionId}: ${(error as Error).message}`,
       );
     }
   }

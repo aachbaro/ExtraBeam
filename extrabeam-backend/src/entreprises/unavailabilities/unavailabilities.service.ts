@@ -144,6 +144,7 @@ export class UnavailabilitiesService {
     if (!this.access.canAccessEntreprise(user, entreprise)) {
       throw new ForbiddenException('Accès interdit');
     }
+    this.access.assertActiveSubscription(entreprise);
 
     if (!body.start_time || !body.end_time || !body.start_date) {
       throw new BadRequestException(
@@ -191,6 +192,7 @@ export class UnavailabilitiesService {
     if (!this.access.canAccessEntreprise(user, entreprise)) {
       throw new ForbiddenException('Accès interdit');
     }
+    this.access.assertActiveSubscription(entreprise);
 
     const { data, error } = await admin
       .from('unavailabilities')
@@ -226,6 +228,7 @@ export class UnavailabilitiesService {
     if (!this.access.canAccessEntreprise(user, entreprise)) {
       throw new ForbiddenException('Accès interdit');
     }
+    this.access.assertActiveSubscription(entreprise);
 
     // suppression d’une occurrence d’une récurrence
     if (date) {

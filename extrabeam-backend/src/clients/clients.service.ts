@@ -69,6 +69,7 @@ export class ClientsService {
     if (!this.accessService.canAccessEntreprise(user, entreprise)) {
       throw new ForbiddenException('Accès interdit');
     }
+    this.accessService.assertActiveSubscription(entreprise);
     return entreprise;
   }
 
