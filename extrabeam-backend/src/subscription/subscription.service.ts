@@ -179,18 +179,21 @@ export class SubscriptionService {
     req: Request,
     signature: string,
   ): Promise<WebhookResponse> {
-    if (!signature)
+    if (!signature) {
       throw new UnauthorizedException('Signature Stripe manquante');
+    }
 
-    const rawBody =
-      (req as RawBodyRequest).rawBody ??
-      Buffer.from(JSON.stringify(req.body ?? {}));
+    if (!Buffer.isBuffer(req.body)) {
+      throw new InternalServerErrorException(
+        'Webhook Stripe: body is not a raw Buffer',
+      );
+    }
 
     let event: Stripe.Event;
 
     try {
       event = this.stripe.webhooks.constructEvent(
-        rawBody,
+        req.body, // ✅ BUFFER BRUT, NON MODIFIÉ
         signature,
         process.env.STRIPE_WEBHOOK_SECRET as string,
       );
@@ -200,6 +203,9 @@ export class SubscriptionService {
       );
     }
 
+    // -------------------------------------------------------------
+    // 🎯 Gestion des événements
+    // -------------------------------------------------------------
     if (event.type === 'checkout.session.completed') {
       await this.handleCheckoutCompleted(event.data.object);
     }
