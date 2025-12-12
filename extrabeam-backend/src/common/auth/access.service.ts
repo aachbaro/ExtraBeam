@@ -20,7 +20,11 @@
 //
 // -------------------------------------------------------------
 
-import { Injectable, NotFoundException } from '@nestjs/common'
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common'
 
 import { SupabaseService } from '../supabase/supabase.service'
 import type { AuthUser } from './auth.types'
@@ -98,5 +102,21 @@ export class AccessService {
     }
 
     return user.id === entreprise.user_id
+  }
+
+  // -------------------------------------------------------------
+  // ✅ Vérification abonnement actif centralisée
+  // -------------------------------------------------------------
+  assertActiveSubscription(entreprise: EntrepriseRow): void {
+    if (entreprise.subscription_status !== 'active') {
+      throw new ForbiddenException('Abonnement inactif ou suspendu')
+    }
+
+    if (entreprise.subscription_period_end) {
+      const periodEnd = new Date(entreprise.subscription_period_end)
+      if (Number.isFinite(periodEnd.getTime()) && periodEnd < new Date()) {
+        throw new ForbiddenException('Abonnement expiré')
+      }
+    }
   }
 }
