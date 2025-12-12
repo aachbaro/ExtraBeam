@@ -239,33 +239,27 @@ export class SubscriptionService {
         break;
       case 'customer.subscription.created':
         await this.handleSubscriptionEvent(
-          event.data.object as Stripe.Subscription,
+          event.data.object,
           'customer.subscription.created',
         );
         break;
       case 'customer.subscription.updated':
         await this.handleSubscriptionEvent(
-          event.data.object as Stripe.Subscription,
+          event.data.object,
           'customer.subscription.updated',
         );
         break;
       case 'customer.subscription.deleted':
         await this.handleSubscriptionEvent(
-          event.data.object as Stripe.Subscription,
+          event.data.object,
           'customer.subscription.deleted',
         );
         break;
       case 'invoice.payment_succeeded':
-        await this.handleInvoiceEvent(
-          event.data.object as Stripe.Invoice,
-          true,
-        );
+        await this.handleInvoiceEvent(event.data.object, true);
         break;
       case 'invoice.payment_failed':
-        await this.handleInvoiceEvent(
-          event.data.object as Stripe.Invoice,
-          false,
-        );
+        await this.handleInvoiceEvent(event.data.object, false);
         break;
       default:
         console.log(`[Stripe] Événement ignoré : ${event.type}`);
@@ -332,7 +326,8 @@ export class SubscriptionService {
     subscription: Stripe.Subscription,
     source: string,
   ) {
-    const entreprise = await this.resolveEntrepriseFromSubscription(subscription);
+    const entreprise =
+      await this.resolveEntrepriseFromSubscription(subscription);
 
     if (!entreprise) {
       console.warn(
@@ -359,29 +354,28 @@ export class SubscriptionService {
   // -------------------------------------------------------------
   // 🧾 Gestion des factures (paiement réussi/échoué)
   // -------------------------------------------------------------
-  private async handleInvoiceEvent(invoice: Stripe.Invoice, succeeded: boolean) {
-    const subscriptionId =
-      typeof invoice.subscription === 'string'
-        ? invoice.subscription
-        : invoice.subscription?.id;
+  private async handleInvoiceEvent(
+    invoice: Stripe.Invoice,
+    succeeded: boolean,
+  ) {
+    const subscriptionId = invoice.lines.data[0]?.subscription;
 
-    if (!subscriptionId) {
-      console.warn(
-        `[Stripe][invoice.${succeeded ? 'payment_succeeded' : 'payment_failed'}] Subscription manquante`,
-      );
+    // Cas NORMAL : invoice non liée à un abonnement
+    if (!subscriptionId || typeof subscriptionId !== 'string') {
       return;
     }
 
     try {
       const subscription =
         await this.stripe.subscriptions.retrieve(subscriptionId);
+
       await this.handleSubscriptionEvent(
         subscription,
         succeeded ? 'invoice.payment_succeeded' : 'invoice.payment_failed',
       );
     } catch (error) {
       console.error(
-        `[Stripe][invoice] Impossible de récupérer la subscription ${subscriptionId}:`,
+        `[Stripe][invoice] Impossible de récupérer la subscription ${subscriptionId}`,
         error,
       );
     }
@@ -446,7 +440,10 @@ export class SubscriptionService {
     const metadataPlan = subscription.metadata?.plan as
       | SubscriptionPlan
       | undefined;
-    if (metadataPlan && Object.values(SubscriptionPlan).includes(metadataPlan)) {
+    if (
+      metadataPlan &&
+      Object.values(SubscriptionPlan).includes(metadataPlan)
+    ) {
       return metadataPlan;
     }
 
