@@ -111,6 +111,8 @@ export class SlotsService {
         }
         return { ...s, status_slot: 'active' };
       });
+
+      this.accessService.assertActiveSubscription(entreprise);
     }
 
     return slots;
@@ -132,6 +134,7 @@ export class SlotsService {
     if (!this.accessService.canAccessEntreprise(user, entreprise)) {
       throw new ForbiddenException('Accès interdit');
     }
+    this.accessService.assertActiveSubscription(entreprise);
 
     // 🔎 Validation de base
     const { start, end, title, mission_id } = body;
@@ -191,6 +194,7 @@ export class SlotsService {
     if (!this.accessService.canAccessEntreprise(user, entreprise)) {
       throw new ForbiddenException('Accès interdit');
     }
+    this.accessService.assertActiveSubscription(entreprise);
 
     const { data, error } = await admin
       .from('slots')
@@ -216,6 +220,7 @@ export class SlotsService {
     if (!this.accessService.canAccessEntreprise(user, entreprise)) {
       throw new ForbiddenException('Accès interdit');
     }
+    this.accessService.assertActiveSubscription(entreprise);
 
     const { error } = await admin
       .from('slots')
