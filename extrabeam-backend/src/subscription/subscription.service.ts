@@ -280,16 +280,10 @@ export class SubscriptionService {
         );
         break;
       case 'invoice.payment_succeeded':
-        await this.handleInvoiceEvent(
-          event.data.object as Stripe.Invoice,
-          true,
-        );
+        await this.handleInvoiceEvent(event.data.object, true);
         break;
       case 'invoice.payment_failed':
-        await this.handleInvoiceEvent(
-          event.data.object as Stripe.Invoice,
-          false,
-        );
+        await this.handleInvoiceEvent(event.data.object, false);
         break;
       default:
         return { received: true };
@@ -356,7 +350,8 @@ export class SubscriptionService {
     subscription: Stripe.Subscription,
     source: string,
   ) {
-    const entreprise = await this.resolveEntrepriseFromSubscription(subscription);
+    const entreprise =
+      await this.resolveEntrepriseFromSubscription(subscription);
 
     if (!entreprise) {
       this.logger.warn(
@@ -383,29 +378,29 @@ export class SubscriptionService {
   // -------------------------------------------------------------
   // 🧾 Gestion des factures (paiement réussi/échoué)
   // -------------------------------------------------------------
-  private async handleInvoiceEvent(invoice: Stripe.Invoice, succeeded: boolean) {
-    const subscriptionId =
-      typeof invoice.subscription === 'string'
-        ? invoice.subscription
-        : invoice.subscription?.id;
+  private async handleInvoiceEvent(
+    invoice: Stripe.Invoice,
+    succeeded: boolean,
+  ) {
+    const subscriptionId = invoice.lines.data[0]?.subscription;
 
-    if (!subscriptionId) {
-      this.logger.warn(
-        `[Stripe][invoice.${succeeded ? 'payment_succeeded' : 'payment_failed'}] Subscription manquante`,
-      );
+    // Cas NORMAL : invoice non liée à un abonnement
+    if (!subscriptionId || typeof subscriptionId !== 'string') {
       return;
     }
 
     try {
       const subscription =
         await this.stripe.subscriptions.retrieve(subscriptionId);
+
       await this.handleSubscriptionEvent(
         subscription,
         succeeded ? 'invoice.payment_succeeded' : 'invoice.payment_failed',
       );
     } catch (error) {
-      this.logger.error(
-        `[Stripe][invoice] Impossible de récupérer la subscription ${subscriptionId}: ${(error as Error).message}`,
+      console.error(
+        `[Stripe][invoice] Impossible de récupérer la subscription ${subscriptionId}`,
+        error,
       );
     }
   }
@@ -469,7 +464,10 @@ export class SubscriptionService {
     const metadataPlan = subscription.metadata?.plan as
       | SubscriptionPlan
       | undefined;
-    if (metadataPlan && Object.values(SubscriptionPlan).includes(metadataPlan)) {
+    if (
+      metadataPlan &&
+      Object.values(SubscriptionPlan).includes(metadataPlan)
+    ) {
       return metadataPlan;
     }
 
