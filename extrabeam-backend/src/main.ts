@@ -16,7 +16,9 @@ import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/utils/filters/all-exceptions.filter';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  // Désactive le body-parser par défaut de Nest pour contrôler précisément
+  // l'ordre des middlewares et préserver le corps brut pour Stripe.
+  const app = await NestFactory.create(AppModule, { bodyParser: false });
 
   // -------------------------------------------------------------
   // 🌍 CORS
@@ -52,6 +54,7 @@ async function bootstrap() {
   // 📦 JSON standard
   // -------------------------------------------------------------
   app.use(bodyParser.json({ limit: '10mb' }));
+  app.use(bodyParser.urlencoded({ extended: true }));
 
   // -------------------------------------------------------------
   // 🌐 Préfixe global API
