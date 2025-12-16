@@ -192,8 +192,8 @@ export class SubscriptionService {
       subscription_data: {
         metadata,
       },
-      success_url: `${process.env.APP_URL}/entreprise/${entreprise.slug ?? slug}/subscription/success`,
-      cancel_url: `${process.env.APP_URL}/entreprise/${entreprise.slug ?? slug}/subscription/canceled`,
+      success_url: `${process.env.FRONTEND_URL}/entreprise/${entreprise.slug ?? slug}/subscription/success`,
+      cancel_url: `${process.env.FRONTEND_URL}/entreprise/${entreprise.slug ?? slug}/subscription/canceled`,
       metadata,
     });
 
