@@ -14,113 +14,115 @@
 --------------------------------------------------------------- -->
 
 <template>
-  <div class="w-full flex flex-col items-center justify-center px-4 pb-5">
-    <!-- Bloc CV -->
-    <div v-if="entrepriseSlug" class="max-w-[1200px] w-full mb-6">
-      <CvCard
-        :entreprise="entreprise"
-        :entreprise-ref="entrepriseSlug"
-        :is-owner="isOwner"
-      />
-    </div>
-
-    <!-- Section contact -->
-    <div v-if="entreprise" class="max-w-[1200px] w-full mb-4 flex flex-col gap-3">
-      <AddContactButton
-        v-if="user?.role === 'client' && !isOwner"
-        :entreprise-id="entreprise.id"
-      />
-
-      <div class="flex gap-3">
-        <button
-          class="flex-1 border border-black rounded-lg py-3 text-center text-lg font-medium hover:bg-gray-100"
-          :disabled="!entreprise.telephone"
-          @click="openPhone(entreprise.telephone)"
-        >
-          📞 Appeler
-        </button>
-
-        <button
-          class="flex-1 border border-black rounded-lg py-3 text-center text-lg font-medium hover:bg-gray-100"
-          :disabled="!entreprise.email"
-          @click="openMail(entreprise.email)"
-        >
-          ✉️ Email
-        </button>
-      </div>
-    </div>
-
-    <!-- Section Proposer mission (visiteurs uniquement) -->
-    <div v-if="entreprise && !isOwner" class="max-w-[1200px] w-full mb-6">
-      <PublicMissionCard
-        :entrepriseSlug="entreprise.slug"
-        @created="onMissionCreated"
-      />
-    </div>
-
-    <!-- Header infos entreprise -->
-    <div class="max-w-[1200px] w-full mb-6 hidden">
-      <div v-if="loading" class="text-gray-500 mt-2">Chargement...</div>
-      <div v-else-if="!entreprise" class="text-red-600 mt-2">
-        ❌ Entreprise introuvable
+  <SubscriptionGate :slug="entrepriseSlug">
+    <div class="w-full flex flex-col items-center justify-center px-4 pb-5">
+      <!-- Bloc CV -->
+      <div v-if="entrepriseSlug" class="max-w-[1200px] w-full mb-6">
+        <CvCard
+          :entreprise="entreprise"
+          :entreprise-ref="entrepriseSlug"
+          :is-owner="isOwner"
+        />
       </div>
 
-      <!-- Infos entreprise -->
-      <EntrepriseInfos
-        v-else
-        :entreprise="entreprise"
-        :is-owner="isOwner"
-        @updated="onEntrepriseUpdated"
-      />
+      <!-- Section contact -->
+      <div v-if="entreprise" class="max-w-[1200px] w-full mb-4 flex flex-col gap-3">
+        <AddContactButton
+          v-if="user?.role === 'client' && !isOwner"
+          :entreprise-id="entreprise.id"
+        />
 
-      <!-- Bouton ajouter en contact (si client et pas owner) -->
+        <div class="flex gap-3">
+          <button
+            class="flex-1 border border-black rounded-lg py-3 text-center text-lg font-medium hover:bg-gray-100"
+            :disabled="!entreprise.telephone"
+            @click="openPhone(entreprise.telephone)"
+          >
+            📞 Appeler
+          </button>
+
+          <button
+            class="flex-1 border border-black rounded-lg py-3 text-center text-lg font-medium hover:bg-gray-100"
+            :disabled="!entreprise.email"
+            @click="openMail(entreprise.email)"
+          >
+            ✉️ Email
+          </button>
+        </div>
+      </div>
+
+      <!-- Section Proposer mission (visiteurs uniquement) -->
+      <div v-if="entreprise && !isOwner" class="max-w-[1200px] w-full mb-6">
+        <PublicMissionCard
+          :entrepriseSlug="entreprise.slug"
+          @created="onMissionCreated"
+        />
+      </div>
+
+      <!-- Header infos entreprise -->
+      <div class="max-w-[1200px] w-full mb-6 hidden">
+        <div v-if="loading" class="text-gray-500 mt-2">Chargement...</div>
+        <div v-else-if="!entreprise" class="text-red-600 mt-2">
+          ❌ Entreprise introuvable
+        </div>
+
+        <!-- Infos entreprise -->
+        <EntrepriseInfos
+          v-else
+          :entreprise="entreprise"
+          :is-owner="isOwner"
+          @updated="onEntrepriseUpdated"
+        />
+
+        <!-- Bouton ajouter en contact (si client et pas owner) -->
+        <div
+          v-if="user?.role === 'client' && !isOwner && entreprise"
+          class="mt-4"
+        >
+          <AddContactButton :entreprise-id="entreprise.id" />
+        </div>
+      </div>
+
+      <!-- Agenda -->
       <div
-        v-if="user?.role === 'client' && !isOwner && entreprise"
-        class="mt-4"
+        class="h-[70vh] max-w-[1200px] w-full flex items-center border border-black p-3 rounded-lg"
       >
-        <AddContactButton :entreprise-id="entreprise.id" />
+        <Agenda
+          v-if="entreprise"
+          :slug="entreprise.slug"
+          :is-admin="isOwner"
+          :slots="overview?.slots"
+          :unavailabilities="overview?.unavailabilities"
+        />
+      </div>
+
+      <!-- Missions -->
+      <div
+        v-if="entreprise && isOwner"
+        class="max-w-[1200px] w-full mt-4 border border-black p-3 rounded-lg"
+      >
+        <MissionList
+          v-if="entreprise"
+          :is-owner="isOwner"
+          :missions="overview?.missions"
+        />
+      </div>
+
+      <!-- Factures -->
+      <div
+        v-if="entreprise && isOwner"
+        class="max-w-[1200px] w-full mt-4 border border-black p-3 rounded-lg"
+      >
+        <FactureList
+          :entreprise="entreprise"
+          :factures="overview?.factures"
+          @edit="onEditFacture"
+          @deleted="onDeletedFacture"
+          @updated="onFactureUpdated"
+        />
       </div>
     </div>
-
-    <!-- Agenda -->
-    <div
-      class="h-[70vh] max-w-[1200px] w-full flex items-center border border-black p-3 rounded-lg"
-    >
-      <Agenda
-        v-if="entreprise"
-        :slug="entreprise.slug"
-        :is-admin="isOwner"
-        :slots="overview?.slots"
-        :unavailabilities="overview?.unavailabilities"
-      />
-    </div>
-
-    <!-- Missions -->
-    <div
-      v-if="entreprise && isOwner"
-      class="max-w-[1200px] w-full mt-4 border border-black p-3 rounded-lg"
-    >
-      <MissionList
-        v-if="entreprise"
-        :is-owner="isOwner"
-        :missions="overview?.missions"
-      />
-    </div>
-
-    <!-- Factures -->
-    <div
-      v-if="entreprise && isOwner"
-      class="max-w-[1200px] w-full mt-4 border border-black p-3 rounded-lg"
-    >
-      <FactureList
-        :entreprise="entreprise"
-        :factures="overview?.factures"
-        @edit="onEditFacture"
-        @deleted="onDeletedFacture"
-        @updated="onFactureUpdated"
-      />
-    </div>
-  </div>
+  </SubscriptionGate>
 </template>
 
 <script setup lang="ts">
@@ -136,6 +138,7 @@ import FactureList from "../components/factures/FactureList.vue";
 import AddContactButton from "../components/AddContactButton.vue";
 import CvCard from "../components/cv/CvCard.vue";
 import PublicMissionCard from "../components/missions/PublicMissionCard.vue";
+import SubscriptionGate from "../components/subscription/SubscriptionGate.vue";
 
 const route = useRoute();
 const overview = ref<any>(null);
