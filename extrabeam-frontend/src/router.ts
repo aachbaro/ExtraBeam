@@ -39,6 +39,15 @@ import AuthCallback from "@/pages/auth/callback.vue";
 import OnboardingPage from "@/pages/auth/onboarding.vue";
 
 import { useAuth } from "@/composables/useAuth";
+import { useSubscriptionStore } from "@/stores/subscription.store";
+
+declare module "vue-router" {
+  interface RouteMeta {
+    requiresAuth?: boolean;
+    role?: string;
+    requiresSubscription?: boolean;
+  }
+}
 
 // ----------------------
 // Définition des routes
@@ -97,7 +106,7 @@ const routes = [
     name: "facture",
     component: FacturePage,
     props: true,
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, requiresSubscription: true },
   },
 
   // ⚠️ 404 fallback
@@ -125,6 +134,7 @@ const router: Router = createRouter({
 
 router.beforeEach(async (to, _from, next) => {
   const { user, loading, initAuth } = useAuth();
+  const subscription = useSubscriptionStore();
 
   // ⚙️ Initialise la session si nécessaire
   if (loading.value) await initAuth();
@@ -142,6 +152,21 @@ router.beforeEach(async (to, _from, next) => {
   if (requiredRole && user.value?.role !== requiredRole) {
     console.warn(`🚫 Accès refusé : rôle requis (${requiredRole})`);
     return next("/");
+  }
+
+  if (to.meta.requiresSubscription) {
+    if (!subscription.hasLoadedOnce && !subscription.loading) {
+      await subscription.refresh();
+    }
+
+    if (!subscription.loading && !subscription.hasAccess) {
+      const slug = (to.params.slug as string | undefined) ?? (to.params.ref as string | undefined);
+      if (slug) {
+        return next({ name: "entreprise", params: { slug }, query: { locked: "subscription" } });
+      }
+
+      return next({ name: "home" });
+    }
   }
 
   next();
