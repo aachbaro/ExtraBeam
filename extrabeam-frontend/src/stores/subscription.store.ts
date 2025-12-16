@@ -32,8 +32,12 @@ export const useSubscriptionStore = defineStore("subscription", () => {
     error.value = null;
   };
 
-  const refresh = async () => {
-    if (hasLoadedOnce.value) return;
+  const refresh = async ({ force = false }: { force?: boolean } = {}) => {
+    if (hasLoadedOnce.value && !force) return;
+
+    if (force) {
+      hasLoadedOnce.value = false;
+    }
 
     loading.value = true;
     error.value = null;
