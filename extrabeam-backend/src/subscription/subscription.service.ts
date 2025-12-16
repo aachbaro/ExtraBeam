@@ -322,6 +322,23 @@ export class SubscriptionService {
       return;
     }
 
+    const planFromMetadata = Object.values(SubscriptionPlan).includes(
+      session.metadata?.plan as SubscriptionPlan,
+    )
+      ? (session.metadata?.plan as SubscriptionPlan)
+      : null;
+
+    if (!planFromMetadata) {
+      this.logger.warn(
+        '[Stripe][checkout.session.completed] Plan manquant dans les metadata',
+      );
+    }
+
+    const customerId =
+      typeof session.customer === 'string'
+        ? session.customer
+        : session.customer?.id;
+
     // Récupération souscription Stripe
     const subscription =
       await this.stripe.subscriptions.retrieve(subscriptionId);
@@ -340,14 +357,52 @@ export class SubscriptionService {
       return;
     }
 
-    const plan = (session.metadata?.plan as SubscriptionPlan) ?? null;
+    // Idempotence : si la subscription est déjà enregistrée, on ignore
+    if (entreprise.stripe_subscription_id === subscriptionId) {
+      this.logger.log(
+        '[Stripe][checkout.session.completed] Subscription déjà traitée',
+      );
+      return;
+    }
+
+    // Garde-fou : ne pas écraser un statut déjà actif ou plus récent
+    const existingStatus = entreprise.subscription_status;
+    const protectedStatuses: (typeof entreprise.subscription_status)[] = [
+      'active',
+      'past_due',
+      'unpaid',
+    ];
+
+    if (existingStatus && protectedStatuses.includes(existingStatus)) {
+      this.logger.warn(
+        `[Stripe][checkout.session.completed] Statut déjà présent (${existingStatus}), webhook ignoré par sécurité`,
+      );
+      return;
+    }
+
+    const inferredPlan =
+      planFromMetadata ??
+      this.inferPlanFromSubscription(subscription) ??
+      (entreprise.subscription_plan as SubscriptionPlan | null) ??
+      null;
     const referralCode = session.metadata?.referral_code;
 
     await this.updateEntrepriseOnSubscription(
       entreprise,
       subscription,
-      plan,
+      inferredPlan,
       referralCode,
+      {
+        // checkout.session.completed = paiement confirmé → status "active"
+        subscription_status: 'active',
+        subscription_plan: planFromMetadata ?? inferredPlan ?? null,
+        stripe_subscription_id: subscriptionId,
+        stripe_customer_id: entreprise.stripe_customer_id ?? customerId ?? undefined,
+      },
+    );
+
+    this.logger.log(
+      `[Stripe][checkout.session.completed] Entreprise ${entreprise.id} mise à jour (session ${session.id})`,
     );
   }
 
@@ -498,6 +553,7 @@ export class SubscriptionService {
     subscription: Stripe.Subscription,
     plan: SubscriptionPlan | null,
     referralCode?: string,
+    overrides?: Partial<TablesUpdate<'entreprise'>>,
   ) {
     // Stripe TS 2024 ne donne plus current_period_end → cast propre
     const s: any = subscription;
@@ -524,9 +580,13 @@ export class SubscriptionService {
     }
 
     const admin = this.supabaseService.getAdminClient();
+    const mergedUpdate: TablesUpdate<'entreprise'> = {
+      ...update,
+      ...(overrides ?? {}),
+    };
     const { error } = await admin
       .from('entreprise')
-      .update(update)
+      .update(mergedUpdate)
       .eq('id', entreprise.id);
 
     if (error) {
