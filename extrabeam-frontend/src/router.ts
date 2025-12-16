@@ -33,6 +33,7 @@ import Home from "@/pages/Home.vue";
 import EntreprisePage from "@/pages/EntreprisePage.vue";
 import EntrepriseCvPage from "@/pages/EntrepriseCvPage.vue";
 import FacturePage from "@/pages/FacturePage.vue";
+import SubscriptionManagementPage from "@/pages/SubscriptionManagementPage.vue";
 import ClientPage from "@/pages/ClientPage.vue";
 import RegisterPage from "@/pages/auth/RegisterPage.vue";
 import AuthCallback from "@/pages/auth/callback.vue";
@@ -44,7 +45,7 @@ import { useSubscriptionStore } from "@/stores/subscription.store";
 declare module "vue-router" {
   interface RouteMeta {
     requiresAuth?: boolean;
-    role?: string;
+    role?: string | string[];
     requiresSubscription?: boolean;
   }
 }
@@ -94,6 +95,14 @@ const routes = [
   },
 
   {
+    path: "/entreprise/:slug/subscription",
+    name: "entreprise-subscription",
+    component: SubscriptionManagementPage,
+    props: true,
+    meta: { requiresAuth: true, requiresSubscription: false, role: ["freelance", "admin"] },
+  },
+
+  {
     path: "/entreprise/:ref/cv",
     name: "entreprise-cv",
     component: EntrepriseCvPage,
@@ -140,7 +149,7 @@ router.beforeEach(async (to, _from, next) => {
   if (loading.value) await initAuth();
 
   const isAuthenticated = !!user.value;
-  const requiredRole = to.meta.role as string | undefined;
+  const requiredRole = to.meta.role;
 
   // 🔒 Route protégée sans connexion
   if (to.meta.requiresAuth && !isAuthenticated) {
@@ -149,9 +158,15 @@ router.beforeEach(async (to, _from, next) => {
   }
 
   // 🎯 Rôle requis non respecté
-  if (requiredRole && user.value?.role !== requiredRole) {
-    console.warn(`🚫 Accès refusé : rôle requis (${requiredRole})`);
-    return next("/");
+  if (requiredRole) {
+    const allowedRoles = Array.isArray(requiredRole)
+      ? requiredRole
+      : [requiredRole];
+
+    if (!user.value?.role || !allowedRoles.includes(user.value.role)) {
+      console.warn(`🚫 Accès refusé : rôle requis (${requiredRole})`);
+      return next("/");
+    }
   }
 
   if (to.meta.requiresSubscription) {
