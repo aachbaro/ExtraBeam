@@ -39,7 +39,10 @@ import { SupabaseService } from '../common/supabase/supabase.service';
 import type { Table } from '../types/aliases';
 import type { TablesUpdate } from '../types/database';
 
-import { SubscribeDto, SubscriptionPlan } from './dto/subscribe.dto';
+import {
+  SubscribeDto,
+  SubscriptionPlan,
+} from './dto/subscribe.dto';
 import type { SubscriptionStatusResponse } from './dto/subscription-status.dto';
 import {
   buildMetadata,
@@ -150,7 +153,12 @@ export class SubscriptionService {
       throw new InternalServerErrorException('Email entreprise manquant');
     }
 
-    const priceId = getPriceId(dto.plan);
+    const plan =
+      dto.plan ||
+      (entreprise.subscription_plan as SubscriptionPlan | null) ||
+      SubscriptionPlan.Monthly;
+
+    const priceId = getPriceId(plan);
     const customerId = await this.getOrCreateStripeCustomer(entreprise);
 
     // 🟡 Si l’utilisateur passe un referral code → on l'enregistre une seule fois
@@ -172,7 +180,7 @@ export class SubscriptionService {
     const metadata = buildMetadata({
       entrepriseId: entreprise.id,
       slug: entreprise.slug ?? slug,
-      plan: dto.plan,
+      plan,
       userId: user.id,
       referralCode: dto.referralCode,
     });
