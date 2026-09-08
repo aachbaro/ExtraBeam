@@ -22,7 +22,7 @@ export default function Topbar({ currentSlug }: Props) {
 
   function handleLogout() {
     clearUser();
-    window.location.href = getOidcLogoutUrl(`${window.location.origin}/login`);
+    window.location.href = getOidcLogoutUrl(`${window.location.origin}/`);
   }
 
   return (

@@ -3,11 +3,17 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import { UserProvider } from "./context/UserContext";
 import FreelancerProfilePage from "./pages/FreelancerProfilePage";
+import HomePage from "./pages/HomePage";
 
 const LuluApp = lazy(() => import("./lulu/LuluApp"));
 const LuluDeveloperPage = lazy(() => import("./lulu/LuluDeveloperPage"));
 const RestoPage = lazy(() => import("./resto/RestoPage"));
 const RestoListPage = lazy(() => import("./resto/RestoListPage"));
+const LoginPage = lazy(() => import("./pages/LoginPage"));
+const RegisterPage = lazy(() => import("./pages/RegisterPage"));
+const AuthCallbackPage = lazy(() => import("./pages/AuthCallbackPage"));
+
+const Loading = () => <p role="status" className="p-8 text-center text-sm text-eb-secondary">Chargement…</p>;
 
 export default function App() {
   return (
@@ -16,10 +22,23 @@ export default function App() {
         future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
       >
         <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route
+            path="/login"
+            element={<Suspense fallback={<Loading />}><LoginPage /></Suspense>}
+          />
+          <Route
+            path="/register"
+            element={<Suspense fallback={<Loading />}><RegisterPage /></Suspense>}
+          />
+          <Route
+            path="/auth/callback"
+            element={<Suspense fallback={<Loading />}><AuthCallbackPage /></Suspense>}
+          />
           <Route
             path="/lulu/admin"
             element={
-              <Suspense fallback={<p role="status">Chargement…</p>}>
+              <Suspense fallback={<Loading />}>
                 <LuluDeveloperPage />
               </Suspense>
             }
@@ -27,7 +46,7 @@ export default function App() {
           <Route
             path="/lulu/*"
             element={
-              <Suspense fallback={<p role="status">Chargement de Lulu…</p>}>
+              <Suspense fallback={<Loading />}>
                 <LuluApp />
               </Suspense>
             }
@@ -35,21 +54,13 @@ export default function App() {
           <Route path="/extras/:slug" element={<FreelancerProfilePage />} />
           <Route
             path="/resto"
-            element={
-              <Suspense fallback={<p role="status">Chargement…</p>}>
-                <RestoListPage />
-              </Suspense>
-            }
+            element={<Suspense fallback={<Loading />}><RestoListPage /></Suspense>}
           />
           <Route
             path="/resto/:slug"
-            element={
-              <Suspense fallback={<p role="status">Chargement…</p>}>
-                <RestoPage />
-              </Suspense>
-            }
+            element={<Suspense fallback={<Loading />}><RestoPage /></Suspense>}
           />
-          <Route path="*" element={<Navigate to="/lulu" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
     </UserProvider>

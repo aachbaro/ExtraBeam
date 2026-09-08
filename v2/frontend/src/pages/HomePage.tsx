@@ -1,171 +1,208 @@
 import { Link } from "react-router-dom";
-
 import { useUserContext } from "../context/UserContext";
-
-function getPrimaryCta(userSlug?: string | null, userRole?: string | null) {
-  if (!userRole) {
-    return {
-      href: "/login",
-      label: "Se connecter",
-    };
-  }
-
-  if (userRole === "client") {
-    return {
-      href: "/client",
-      label: "Ouvrir mon espace",
-    };
-  }
-
-  if (userRole === "admin") {
-    return {
-      href: "/admin",
-      label: "Ouvrir l'admin",
-    };
-  }
-
-  return {
-    href: userSlug ? `/p/${userSlug}` : "/profile",
-    label: "Voir mon profil",
-  };
-}
-
-const featureCards = [
-  {
-    title: "Profil public soigné",
-    description: "Montre ton univers, tes experiences et tes infos pro dans une page partageable.",
-  },
-  {
-    title: "Agenda vivant",
-    description: "Disponibilites, indisponibilites et missions restent lisibles au meme endroit.",
-  },
-  {
-    title: "Facturation simple",
-    description: "Prepare tes factures et centralise les infos utiles sans sortir de l'app.",
-  },
-];
+import { getDefaultAppPath } from "../api";
 
 export default function HomePage() {
   const { user } = useUserContext();
-  const primaryCta = getPrimaryCta(user?.slug, user?.role);
+
+  const appPath = user ? getDefaultAppPath(user) : null;
 
   return (
-    <main className="min-h-screen bg-eb-page text-eb-text">
-      <div className="mx-auto flex min-h-screen w-full max-w-[1200px] flex-col px-4 py-6 md:px-6 lg:px-8">
-        <header className="flex items-center justify-between">
-          <Link to="/" className="font-logo text-[24px] leading-none text-eb-text select-none">
+    <div className="min-h-screen bg-eb-page text-eb-text">
+      {/* Nav */}
+      <nav className="sticky top-0 z-10 border-b border-eb-layout bg-white/90 backdrop-blur-sm">
+        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
+          <span className="font-logo text-[22px] leading-none select-none text-eb-primary">
             ExtraBeam
-          </Link>
-
-          <div className="flex items-center gap-3">
-            {!user && (
-              <Link to="/register" className="eb-btn-ghost text-[13px]">
-                Creer un compte
-              </Link>
-            )}
-            <Link to={primaryCta.href} className="eb-btn-ghost text-[13px]">
-              {primaryCta.label}
-            </Link>
-          </div>
-        </header>
-
-        <section className="grid flex-1 items-center gap-6 py-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)] lg:py-12">
-          <div className="relative overflow-hidden rounded-eb-card border border-eb-layout bg-eb-panel px-6 py-8 text-white md:px-8 md:py-10">
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-0 opacity-90"
-              style={{
-                background:
-                  "radial-gradient(circle at top right, rgba(59,130,246,0.22) 0%, rgba(59,130,246,0.1) 20%, rgba(17,24,39,0) 50%), radial-gradient(circle at bottom left, rgba(16,185,129,0.16) 0%, rgba(16,185,129,0.05) 22%, rgba(17,24,39,0) 46%)"
-              }}
-            />
-
-            <div className="relative z-10 max-w-[620px]">
-              <p className="text-[12px] font-medium uppercase tracking-[0.14em] text-white/70">
-                Freelance restauration et missions terrain
-              </p>
-              <h1 className="mt-4 text-[34px] font-light leading-[1.08] md:text-[48px]">
-                Une page pro qui donne envie de te booker.
-              </h1>
-              <p className="mt-5 max-w-[520px] text-[15px] leading-7 text-white/82">
-                ExtraBeam rassemble ton profil public, ton agenda et ta gestion quotidienne pour que ton activite paraisse nette, serieuse et facile a comprendre.
-              </p>
-
-              <div className="mt-8 flex flex-wrap gap-3">
+          </span>
+          <div className="flex items-center gap-2">
+            {user ? (
+              <>
+                <span className="hidden text-[13px] text-eb-secondary sm:block">
+                  {user.display_name}
+                </span>
                 <Link
-                  to={primaryCta.href}
-                  className="eb-focus-ring inline-flex min-h-[44px] items-center justify-center rounded-eb bg-white px-5 text-[14px] font-medium text-eb-panel"
+                  to={appPath!}
+                  className="rounded-lg bg-eb-primary px-4 py-2 text-[13px] font-medium text-white hover:opacity-90 transition-opacity"
                 >
-                  {primaryCta.label}
+                  Mon espace →
                 </Link>
-                {!user && (
-                  <Link
-                    to="/register"
-                    className="eb-focus-ring inline-flex min-h-[44px] items-center justify-center rounded-eb border border-white/20 px-5 text-[14px] font-medium text-white"
-                  >
-                    Demarrer gratuitement
-                  </Link>
-                )}
-              </div>
-
-              <div className="mt-10 grid gap-3 md:grid-cols-3">
-                {featureCards.map((card) => (
-                  <article key={card.title} className="rounded-eb border border-white/10 bg-white/6 p-4 backdrop-blur-sm">
-                    <p className="text-[14px] font-medium text-white">{card.title}</p>
-                    <p className="mt-2 text-[13px] leading-6 text-white/76">{card.description}</p>
-                  </article>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <aside className="space-y-4">
-            <section className="rounded-eb-card border border-eb-layout bg-white p-6">
-              <p className="text-[12px] font-medium uppercase tracking-[0.12em] text-eb-muted">
-                Ce que tu peux montrer
-              </p>
-              <div className="mt-4 space-y-4">
-                <div className="rounded-eb border border-eb-layout bg-eb-page px-4 py-3">
-                  <p className="text-[14px] font-medium text-eb-text">Experience et positionnement</p>
-                  <p className="mt-1 text-[13px] leading-6 text-eb-secondary">
-                    Mets en avant tes passages en restauration, evenementiel ou production avec une lecture claire.
-                  </p>
-                </div>
-                <div className="rounded-eb border border-eb-layout bg-eb-page px-4 py-3">
-                  <p className="text-[14px] font-medium text-eb-text">Disponibilites a jour</p>
-                  <p className="mt-1 text-[13px] leading-6 text-eb-secondary">
-                    Un client peut comprendre rapidement quand tu es dispo sans te relancer partout.
-                  </p>
-                </div>
-                <div className="rounded-eb border border-eb-layout bg-eb-page px-4 py-3">
-                  <p className="text-[14px] font-medium text-eb-text">Infos administratives propres</p>
-                  <p className="mt-1 text-[13px] leading-6 text-eb-secondary">
-                    SIRET, coordonnees et bases de facturation restent accessibles dans ton espace detenteur.
-                  </p>
-                </div>
-              </div>
-            </section>
-
-            <section className="rounded-eb-card border border-eb-layout bg-white p-6">
-              <p className="text-[18px] font-semibold text-eb-text">Navigation rapide</p>
-              <div className="mt-4 flex flex-wrap gap-3">
-                <Link
-                  to={primaryCta.href}
-                  className="eb-focus-ring inline-flex min-h-[42px] items-center justify-center rounded-eb bg-eb-primary px-4 text-[14px] font-medium text-white"
-                >
-                  {primaryCta.label}
-                </Link>
+              </>
+            ) : (
+              <>
                 <Link
                   to="/login"
-                  className="eb-focus-ring inline-flex min-h-[42px] items-center justify-center rounded-eb border border-eb-layout px-4 text-[14px] font-medium text-eb-text"
+                  className="rounded-lg border border-eb-layout px-4 py-2 text-[13px] font-medium text-eb-secondary hover:bg-eb-page transition-colors"
                 >
-                  Connexion
+                  Se connecter
                 </Link>
+                <Link
+                  to="/register"
+                  className="rounded-lg bg-eb-primary px-4 py-2 text-[13px] font-medium text-white hover:opacity-90 transition-opacity"
+                >
+                  Créer un compte
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
+      </nav>
+
+      {/* Hero */}
+      <section className="mx-auto max-w-5xl px-4 pt-16 pb-12 text-center">
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-eb-primary/70">
+          La plateforme de la restauration indépendante
+        </p>
+        <h1 className="mt-4 text-[38px] font-light leading-tight tracking-tight text-eb-primary md:text-[52px]">
+          Extras et restaurants,<br />
+          <span className="font-semibold">enfin connectés</span>
+        </h1>
+        <p className="mx-auto mt-5 max-w-xl text-[15px] leading-7 text-eb-secondary">
+          ExtraBeam est un espace partagé où les extras gèrent leur activité
+          et où les restaurants trouvent les bonnes personnes, disponibles, au bon moment.
+        </p>
+        {!user && (
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            <Link
+              to="/register"
+              className="rounded-xl bg-eb-primary px-6 py-3 text-[14px] font-semibold text-white hover:opacity-90 transition-opacity"
+            >
+              Démarrer gratuitement
+            </Link>
+            <Link
+              to="/login"
+              className="rounded-xl border border-eb-layout px-6 py-3 text-[14px] font-medium text-eb-secondary hover:bg-white transition-colors"
+            >
+              Se connecter
+            </Link>
+          </div>
+        )}
+        {user && (
+          <Link
+            to={appPath!}
+            className="mt-8 inline-block rounded-xl bg-eb-primary px-6 py-3 text-[14px] font-semibold text-white hover:opacity-90 transition-opacity"
+          >
+            Accéder à mon espace →
+          </Link>
+        )}
+      </section>
+
+      {/* Two columns — extras vs restaurants */}
+      <section className="mx-auto max-w-5xl px-4 pb-16">
+        <div className="grid gap-4 md:grid-cols-2">
+          {/* Extras */}
+          <div className="rounded-2xl border border-eb-layout bg-white p-7">
+            <div className="mb-5 flex items-center gap-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-eb-primary/10 text-xl">
+                👤
+              </span>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-eb-primary/70">Extra</p>
+                <h2 className="text-[18px] font-semibold text-eb-primary">Ton activité, bien présentée</h2>
               </div>
-            </section>
-          </aside>
+            </div>
+            <ul className="space-y-3">
+              {[
+                ["Profil public partageable", "Présente ton expérience, ton poste, ton taux horaire — les restaurants voient tout d'un coup d'œil."],
+                ["Agenda de disponibilité", "Indique tes dispo et tes indisponibilités. Les clients peuvent te proposer des missions directement sur ton agenda."],
+                ["Gestion des missions", "Reçois des propositions, accepte, suis l'avancement. Tout dans un seul endroit."],
+                ["Facturation intégrée", "Génère tes factures à partir de tes missions. SIRET, TVA, coordonnées — pré-remplis automatiquement."],
+              ].map(([title, desc]) => (
+                <li key={title} className="flex gap-3">
+                  <span className="mt-0.5 text-eb-primary">✓</span>
+                  <div>
+                    <p className="text-[13px] font-medium text-eb-primary">{title}</p>
+                    <p className="text-[12px] leading-5 text-eb-secondary">{desc}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            {!user && (
+              <Link
+                to="/register"
+                className="mt-6 block w-full rounded-xl bg-eb-primary py-2.5 text-center text-[13px] font-semibold text-white hover:opacity-90 transition-opacity"
+              >
+                Créer mon profil d'extra
+              </Link>
+            )}
+          </div>
+
+          {/* Restaurants */}
+          <div className="rounded-2xl border border-eb-layout bg-white p-7">
+            <div className="mb-5 flex items-center gap-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 text-xl">
+                🍽️
+              </span>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-amber-600/80">Restaurant</p>
+                <h2 className="text-[18px] font-semibold text-eb-primary">Gérez votre équipe, simplement</h2>
+              </div>
+            </div>
+            <ul className="space-y-3">
+              {[
+                ["Page restaurant", "Votre établissement a sa propre page avec logo, description et équipe. Comme une carte de visite digitale."],
+                ["Planning des shifts", "Créez vos services midi et soir pour la semaine. Publiez-les quand ils sont prêts."],
+                ["Disponibilités de l'équipe", "Chaque membre indique sa dispo par shift. Vous voyez en un coup d'œil qui est là."],
+                ["Recherche d'extras *(à venir)*", "Trouvez parmi les extras disponibles ceux dont le profil correspond à vos besoins du moment."],
+              ].map(([title, desc]) => (
+                <li key={title} className="flex gap-3">
+                  <span className="mt-0.5 text-amber-500">✓</span>
+                  <div>
+                    <p className="text-[13px] font-medium text-eb-primary">{title}</p>
+                    <p className="text-[12px] leading-5 text-eb-secondary">{desc}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            {!user && (
+              <Link
+                to="/register"
+                className="mt-6 block w-full rounded-xl border border-eb-layout py-2.5 text-center text-[13px] font-semibold text-eb-primary hover:bg-eb-page transition-colors"
+              >
+                Créer la page de mon restaurant
+              </Link>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* Quick access (connected) */}
+      {user && (
+        <section className="mx-auto max-w-5xl px-4 pb-16">
+          <div className="rounded-2xl border border-eb-layout bg-white p-6">
+            <p className="mb-4 text-[13px] font-medium text-eb-secondary">Accès rapide</p>
+            <div className="flex flex-wrap gap-3">
+              <Link
+                to={appPath!}
+                className="rounded-lg bg-eb-primary px-4 py-2 text-[13px] font-medium text-white hover:opacity-90 transition-opacity"
+              >
+                Mon espace
+              </Link>
+              <Link
+                to="/resto"
+                className="rounded-lg border border-eb-layout px-4 py-2 text-[13px] font-medium text-eb-secondary hover:bg-eb-page transition-colors"
+              >
+                Mes restaurants
+              </Link>
+              {user.role === "admin" && (
+                <Link
+                  to="/admin"
+                  className="rounded-lg border border-eb-layout px-4 py-2 text-[13px] font-medium text-eb-secondary hover:bg-eb-page transition-colors"
+                >
+                  Administration
+                </Link>
+              )}
+            </div>
+          </div>
         </section>
-      </div>
-    </main>
+      )}
+
+      {/* Footer */}
+      <footer className="border-t border-eb-layout py-8 text-center">
+        <p className="text-[12px] text-eb-secondary">
+          ExtraBeam — Plateforme en développement · v2
+        </p>
+      </footer>
+    </div>
   );
 }
