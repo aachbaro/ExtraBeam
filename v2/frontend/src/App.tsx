@@ -6,6 +6,8 @@ import FreelancerProfilePage from "./pages/FreelancerProfilePage";
 
 const LuluApp = lazy(() => import("./lulu/LuluApp"));
 const LuluDeveloperPage = lazy(() => import("./lulu/LuluDeveloperPage"));
+const RestoPage = lazy(() => import("./resto/RestoPage"));
+const RestoListPage = lazy(() => import("./resto/RestoListPage"));
 
 export default function App() {
   return (
@@ -31,6 +33,22 @@ export default function App() {
             }
           />
           <Route path="/extras/:slug" element={<FreelancerProfilePage />} />
+          <Route
+            path="/resto"
+            element={
+              <Suspense fallback={<p role="status">Chargement…</p>}>
+                <RestoListPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/resto/:slug"
+            element={
+              <Suspense fallback={<p role="status">Chargement…</p>}>
+                <RestoPage />
+              </Suspense>
+            }
+          />
           <Route path="*" element={<Navigate to="/lulu" replace />} />
         </Routes>
       </BrowserRouter>

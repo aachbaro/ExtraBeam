@@ -11,8 +11,10 @@ import type {
   AdminAccountDetailResponse,
   AdminOverviewResponse,
   AccountRole,
+  AssignmentStatus,
   AuthResponse,
   AuthUser,
+  AvailabilityStatus,
   ClientContact,
   ClientDashboardResponse,
   Experience,
@@ -25,6 +27,11 @@ import type {
   MissionTemplateMode,
   MissionStatus,
   ProfileOverview,
+  Restaurant,
+  RestaurantMember,
+  RestaurantShift,
+  ShiftAssignment,
+  ShiftAvailability,
   Skill,
   Slot,
   Unavailability,
@@ -150,6 +157,19 @@ async function patchJson<T>(path: string, body: object, token: string): Promise<
 async function getJson<T>(path: string, token?: string | null): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, {
     headers: { ...authHeaders(token) },
+  });
+  if (!response.ok) throw new Error(await readErrorMessage(response));
+  return (await response.json()) as T;
+}
+
+async function putJson<T>(path: string, body: object, token: string): Promise<T> {
+  const response = await fetch(`${API_URL}${path}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(token),
+    },
+    body: JSON.stringify(body),
   });
   if (!response.ok) throw new Error(await readErrorMessage(response));
   return (await response.json()) as T;
@@ -574,4 +594,178 @@ export async function fetchAdminAccountDetail(
   token: string
 ): Promise<AdminAccountDetailResponse> {
   return getJson<AdminAccountDetailResponse>(`/admin/accounts/${accountId}/`, token);
+}
+
+// ---------------------------------------------------------------------------
+// Resto — restaurants
+// ---------------------------------------------------------------------------
+
+const RESTO = "/resto";
+
+export async function fetchRestaurants(): Promise<Restaurant[]> {
+  return getJson<Restaurant[]>(`${RESTO}/restaurants/`);
+}
+
+export async function fetchMyRestaurants(token: string): Promise<Restaurant[]> {
+  return getJson<Restaurant[]>(`${RESTO}/restaurants/me/`, token);
+}
+
+export async function fetchRestaurant(slug: string, token?: string | null): Promise<Restaurant> {
+  return getJson<Restaurant>(`${RESTO}/restaurants/${slug}/`, token);
+}
+
+export interface RestaurantPayload {
+  slug?: string;
+  name: string;
+  description?: string;
+  address?: string;
+  city?: string;
+  cuisine_type?: string;
+  logo_url?: string;
+  cover_url?: string;
+}
+
+export async function createRestaurant(data: RestaurantPayload, token: string): Promise<Restaurant> {
+  return postJson<Restaurant>(`${RESTO}/restaurants/`, data, token);
+}
+
+export async function updateRestaurant(
+  slug: string,
+  data: Partial<RestaurantPayload>,
+  token: string
+): Promise<Restaurant> {
+  return patchJson<Restaurant>(`${RESTO}/restaurants/${slug}/`, data, token);
+}
+
+// ---------------------------------------------------------------------------
+// Resto — membres
+// ---------------------------------------------------------------------------
+
+export interface MemberPayload {
+  name: string;
+  position?: string;
+  email?: string;
+  is_manager?: boolean;
+  is_active?: boolean;
+  extra_slug?: string;
+}
+
+export async function fetchMembers(slug: string, token?: string | null): Promise<RestaurantMember[]> {
+  return getJson<RestaurantMember[]>(`${RESTO}/restaurants/${slug}/members/`, token);
+}
+
+export async function addMember(slug: string, data: MemberPayload, token: string): Promise<RestaurantMember> {
+  return postJson<RestaurantMember>(`${RESTO}/restaurants/${slug}/members/`, data, token);
+}
+
+export async function updateMember(
+  slug: string,
+  memberId: number,
+  data: Partial<MemberPayload>,
+  token: string
+): Promise<RestaurantMember> {
+  return patchJson<RestaurantMember>(`${RESTO}/restaurants/${slug}/members/${memberId}/`, data, token);
+}
+
+export async function removeMember(slug: string, memberId: number, token: string): Promise<void> {
+  return deleteReq(`${RESTO}/restaurants/${slug}/members/${memberId}/`, token);
+}
+
+// ---------------------------------------------------------------------------
+// Resto — shifts
+// ---------------------------------------------------------------------------
+
+export interface ShiftPayload {
+  title?: string;
+  date: string;
+  start_time: string;
+  end_time: string;
+  service?: string;
+  positions_needed?: number;
+  position?: string;
+  notes?: string;
+  status?: string;
+}
+
+export async function fetchShifts(
+  slug: string,
+  token?: string | null,
+  params?: { from?: string; to?: string }
+): Promise<RestaurantShift[]> {
+  const p = new URLSearchParams();
+  if (params?.from) p.set("from", params.from);
+  if (params?.to) p.set("to", params.to);
+  const qs = p.toString() ? `?${p.toString()}` : "";
+  return getJson<RestaurantShift[]>(`${RESTO}/restaurants/${slug}/shifts/${qs}`, token);
+}
+
+export async function createShift(slug: string, data: ShiftPayload, token: string): Promise<RestaurantShift> {
+  return postJson<RestaurantShift>(`${RESTO}/restaurants/${slug}/shifts/`, data, token);
+}
+
+export async function updateShift(
+  slug: string,
+  shiftId: number,
+  data: Partial<ShiftPayload>,
+  token: string
+): Promise<RestaurantShift> {
+  return patchJson<RestaurantShift>(`${RESTO}/restaurants/${slug}/shifts/${shiftId}/`, data, token);
+}
+
+export async function deleteShift(slug: string, shiftId: number, token: string): Promise<void> {
+  return deleteReq(`${RESTO}/restaurants/${slug}/shifts/${shiftId}/`, token);
+}
+
+// ---------------------------------------------------------------------------
+// Resto — disponibilités & assignations
+// ---------------------------------------------------------------------------
+
+export async function setAvailability(
+  slug: string,
+  shiftId: number,
+  status: AvailabilityStatus,
+  token: string,
+  note?: string
+): Promise<ShiftAvailability> {
+  return putJson<ShiftAvailability>(
+    `${RESTO}/restaurants/${slug}/shifts/${shiftId}/availability/`,
+    { status, note: note ?? "" },
+    token
+  );
+}
+
+export async function assignMember(
+  slug: string,
+  shiftId: number,
+  memberId: number,
+  token: string
+): Promise<ShiftAssignment> {
+  return postJson<ShiftAssignment>(
+    `${RESTO}/restaurants/${slug}/shifts/${shiftId}/assignments/`,
+    { member_id: memberId },
+    token
+  );
+}
+
+export async function updateAssignment(
+  slug: string,
+  shiftId: number,
+  assignmentId: number,
+  status: AssignmentStatus,
+  token: string
+): Promise<ShiftAssignment> {
+  return patchJson<ShiftAssignment>(
+    `${RESTO}/restaurants/${slug}/shifts/${shiftId}/assignments/${assignmentId}/`,
+    { status },
+    token
+  );
+}
+
+export async function removeAssignment(
+  slug: string,
+  shiftId: number,
+  assignmentId: number,
+  token: string
+): Promise<void> {
+  return deleteReq(`${RESTO}/restaurants/${slug}/shifts/${shiftId}/assignments/${assignmentId}/`, token);
 }

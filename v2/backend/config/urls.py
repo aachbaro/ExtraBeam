@@ -9,5 +9,6 @@ urlpatterns = [
     path("api/auth/social/bridge/", social_frontend_bridge, name="social-bridge"),
     path("api/auth/social/logout/", social_logout, name="social-logout"),
     path("api/auth/social/", include("social_django.urls", namespace="social")),
+    path("api/resto/", include("resto.urls")),
     path("api/", include("api.urls")),
 ]

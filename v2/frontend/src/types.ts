@@ -351,3 +351,86 @@ export interface AdminAccountDetailResponse {
   missions: Mission[];
   unavailabilities: Unavailability[];
 }
+
+// ---------------------------------------------------------------------------
+// Resto — restaurants, équipes, shifts
+// ---------------------------------------------------------------------------
+
+export type RestaurantPosition =
+  | "serveur" | "chef_de_rang" | "barman" | "sommelier" | "hote_accueil"
+  | "chef_cuisine" | "cuisinier" | "plongeur" | "manager" | "autre";
+
+export type ShiftService = "midi" | "soir" | "journee" | "autre";
+export type ShiftStatus = "draft" | "published";
+export type AvailabilityStatus = "available" | "unavailable" | "maybe";
+export type AssignmentStatus = "proposed" | "confirmed" | "declined";
+
+export interface Restaurant {
+  id: number;
+  slug: string;
+  name: string;
+  description: string;
+  address: string;
+  city: string;
+  cuisine_type: string;
+  logo_url: string;
+  cover_url: string;
+  member_count: number;
+  is_owner: boolean;
+  created_at: string;
+  updated_at: string;
+  // injected client-side by restaurant_detail
+  is_manager?: boolean;
+  my_member_id?: number | null;
+}
+
+export interface RestaurantMember {
+  id: number;
+  name: string;
+  position: RestaurantPosition;
+  is_active: boolean;
+  is_manager: boolean;
+  email: string;
+  joined_at: string;
+  avatar_url: string | null;
+  extra_slug: string | null;
+}
+
+export interface ShiftAvailability {
+  id: number;
+  member_id: number;
+  member_name: string;
+  status: AvailabilityStatus;
+  note: string;
+  updated_at: string;
+}
+
+export interface ShiftAssignment {
+  id: number;
+  member_id: number;
+  member_name: string;
+  member_position: RestaurantPosition;
+  avatar_url: string | null;
+  status: AssignmentStatus;
+  note: string;
+  created_at: string;
+}
+
+export interface RestaurantShift {
+  id: number;
+  title: string;
+  date: string;
+  start_time: string;
+  end_time: string;
+  service: ShiftService;
+  positions_needed: number;
+  position: RestaurantPosition;
+  notes: string;
+  status: ShiftStatus;
+  created_at: string;
+  updated_at: string;
+  availabilities: ShiftAvailability[];
+  assignments: ShiftAssignment[];
+  assigned_count: number;
+  available_count: number;
+}
