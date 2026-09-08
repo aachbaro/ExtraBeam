@@ -1,4 +1,4 @@
-import { lazy, Suspense, type ReactNode } from "react";
+import { lazy, Suspense } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 
@@ -8,10 +8,6 @@ import HomePage from "./pages/HomePage";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? "";
 
-function MaybeGoogleProvider({ children }: { children: ReactNode }) {
-  if (!GOOGLE_CLIENT_ID) return <>{children}</>;
-  return <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>{children}</GoogleOAuthProvider>;
-}
 
 const LuluApp = lazy(() => import("./lulu/LuluApp"));
 const LuluDeveloperPage = lazy(() => import("./lulu/LuluDeveloperPage"));
@@ -25,7 +21,7 @@ const Loading = () => <p role="status" className="p-8 text-center text-sm text-e
 
 export default function App() {
   return (
-    <MaybeGoogleProvider>
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID || "no-google-oauth"}>
     <UserProvider>
       <BrowserRouter
         future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
@@ -73,6 +69,6 @@ export default function App() {
         </Routes>
       </BrowserRouter>
     </UserProvider>
-    </MaybeGoogleProvider>
+    </GoogleOAuthProvider>
   );
 }
