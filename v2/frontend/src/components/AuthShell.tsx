@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+﻿import type { ReactNode } from "react";
 
 const featureBullets = [
   "Page publique et CV visible",
@@ -21,7 +21,7 @@ export default function AuthShell({ children }: { children: ReactNode }) {
           />
 
           <div className="relative z-10 flex items-start">
-            <span className="font-logo text-[32px] leading-none text-white">ExtraBeam</span>
+            <span className="font-logo text-[32px] leading-none text-white">Rivebelle</span>
           </div>
 
           <div className="relative z-10 flex flex-1 items-center">

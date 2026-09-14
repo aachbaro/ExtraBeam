@@ -1,4 +1,4 @@
-/**
+﻿/**
  * src/api.ts
  * Layer  : Frontend — client HTTP
  * Role   : Toutes les fonctions d'appel à l'API Django v2.
@@ -50,7 +50,7 @@ export const showLocalDebugAuth =
 export function getDefaultAppPath(user: Pick<AuthUser, "role" | "slug">): string {
   if (user.role === "admin") return "/admin";
   if (user.role === "client") return "/client";
-  return user.slug ? `/p/${user.slug}` : "/profile";
+  return user.slug ? `/extras/${user.slug}` : "/extras";
 }
 
 // ---------------------------------------------------------------------------
@@ -132,7 +132,7 @@ async function postJson<T>(path: string, body: object, token?: string | null): P
   } catch (error) {
     if (error instanceof TypeError) {
       throw new Error(
-        `Impossible de joindre l'API ExtraBeam sur ${API_URL}. Verifie que le backend Django tourne bien.`
+        `Impossible de joindre l'API Rivebelle sur ${API_URL}. Verifie que le backend Django tourne bien.`
       );
     }
     throw error;
@@ -642,6 +642,10 @@ export async function updateRestaurant(
 // ---------------------------------------------------------------------------
 
 export interface MemberPayload {
+  weekly_hours?: number;
+  skills?: string[];
+  preferences?: Record<string, number>;
+  default_availability?: string;
   name: string;
   position?: string;
   email?: string;
@@ -676,6 +680,11 @@ export async function removeMember(slug: string, memberId: number, token: string
 // ---------------------------------------------------------------------------
 
 export interface ShiftPayload {
+  fixed_member_id?: number;
+  break_minutes?: number;
+  required_skills?: string[];
+  repeat_weeks?: number;
+  repeat_interval?: number;
   title?: string;
   date: string;
   start_time: string;
@@ -768,4 +777,39 @@ export async function removeAssignment(
   token: string
 ): Promise<void> {
   return deleteReq(`${RESTO}/restaurants/${slug}/shifts/${shiftId}/assignments/${assignmentId}/`, token);
+}
+
+export type MonthlyMemberHours = { member_id: number; name: string; published_minutes: number; draft_minutes: number; target_minutes: number };
+export function fetchRestaurantHours(slug: string, month: string, token: string | null) {
+  return getJson<MonthlyMemberHours[]>(`${RESTO}/restaurants/${slug}/hours/?month=${month}`, token);
+}
+export function generateRestaurantPlanning(slug: string, from: string, to: string, token: string) {
+  return postJson<{shifts: RestaurantShift[]; warnings: {shift_id: number; missing: number}[]}>(`${RESTO}/restaurants/${slug}/generate/`, {from,to}, token);
+}
+
+export function setMemberShiftAvailability(slug: string, shiftId: number, member_id: number, status: AvailabilityStatus, token: string) {
+  return putJson<ShiftAvailability>(`${RESTO}/restaurants/${slug}/shifts/${shiftId}/availability/`, {member_id,status}, token);
+}
+
+export function fetchServices(slug: string, from: string, to: string, token: string) {
+  return getJson<import('./types').RestaurantService[]>(`${RESTO}/restaurants/${slug}/services/?from=${from}&to=${to}`, token);
+}
+export function createService(slug: string, data: { date: string; definition?: import('./types').ServiceDefinition; template_id?: number; repeat_weeks?: number; repeat_interval?: number }, token: string) {
+  return postJson<import('./types').RestaurantService[]>(`${RESTO}/restaurants/${slug}/services/`, data, token);
+}
+export function editService(slug: string, id: number, data: { definition: import('./types').ServiceDefinition } | { task_key: string; done: boolean }, token: string) {
+  return patchJson<import('./types').RestaurantService>(`${RESTO}/restaurants/${slug}/services/${id}/`, data, token);
+}
+export function deleteService(slug: string, id: number, token: string) {
+  return deleteReq(`${RESTO}/restaurants/${slug}/services/${id}/`, token);
+}
+export function fetchServiceTemplates(slug: string, token: string) {
+  return getJson<import('./types').ServiceTemplate[]>(`${RESTO}/restaurants/${slug}/service-templates/`, token);
+}
+export function saveServiceTemplate(slug: string, id: number | null, data: { definition: import('./types').ServiceDefinition; weekday: number; apply_future?: boolean }, token: string) {
+  const path = `${RESTO}/restaurants/${slug}/service-templates/`;
+  return id ? patchJson<import('./types').ServiceTemplate & {updated_services?: number}>(`${path}${id}/`, data, token) : postJson<import('./types').ServiceTemplate>(path, data, token);
+}
+export function deleteServiceTemplate(slug: string, id: number, token: string) {
+  return deleteReq(`${RESTO}/restaurants/${slug}/service-templates/${id}/`, token);
 }

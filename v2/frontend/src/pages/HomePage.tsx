@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+﻿import { Link } from "react-router-dom";
 import { useUserContext } from "../context/UserContext";
 import { getDefaultAppPath } from "../api";
 
@@ -13,7 +13,7 @@ export default function HomePage() {
       <nav className="sticky top-0 z-10 border-b border-eb-layout bg-white/90 backdrop-blur-sm">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
           <span className="font-logo text-[22px] leading-none select-none text-eb-primary">
-            ExtraBeam
+            Rivebelle
           </span>
           <div className="flex items-center gap-2">
             {user ? (
@@ -58,7 +58,7 @@ export default function HomePage() {
           <span className="font-semibold">enfin connectés</span>
         </h1>
         <p className="mx-auto mt-5 max-w-xl text-[15px] leading-7 text-eb-secondary">
-          ExtraBeam est un espace partagé où les extras gèrent leur activité
+          Rivebelle est un espace partagé où les extras gèrent leur activité
           et où les restaurants trouvent les bonnes personnes, disponibles, au bon moment.
         </p>
         {!user && (
@@ -200,7 +200,7 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="border-t border-eb-layout py-8 text-center">
         <p className="text-[12px] text-eb-secondary">
-          ExtraBeam — Plateforme en développement · v2
+          Rivebelle — Plateforme en développement · v2
         </p>
       </footer>
     </div>

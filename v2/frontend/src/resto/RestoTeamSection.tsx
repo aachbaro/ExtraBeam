@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import type { RestaurantMember } from "../types";
 import { addMember, removeMember, updateMember } from "../api";
 
@@ -157,7 +157,7 @@ export default function RestoTeamSection({
               />
             </div>
             <div>
-              <label className="block text-[12px] text-eb-secondary mb-1">Slug ExtraBeam (opt.)</label>
+              <label className="block text-[12px] text-eb-secondary mb-1">Slug Rivebelle (opt.)</label>
               <input
                 type="text"
                 value={addForm.extra_slug}

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * src/pages/ProfilePage.tsx
  * Layer  : Frontend — pages
  * Role   : Redirige l'utilisateur connecté vers son profil (/p/:slug).
@@ -28,14 +28,14 @@ export default function ProfilePage() {
 
   // Cas normal : rediriger vers la page profil canonique
   if (user.slug) {
-    return <Navigate to={`/p/${user.slug}`} replace />;
+    return <Navigate to={`/extras/${user.slug}`} replace />;
   }
 
   // Fallback : slug pas encore assigné (compte tout neuf ou login local sans rechargement)
   return (
     <main className="min-h-screen bg-eb-page px-6 py-8 text-eb-text">
       <div className="mx-auto w-full max-w-lg rounded-eb-card border border-eb-layout bg-white p-6">
-        <p className="font-logo text-[28px] text-eb-text">ExtraBeam</p>
+        <p className="font-logo text-[28px] text-eb-text">Rivebelle</p>
         <h1 className="mt-4 text-[20px] font-semibold text-eb-text">
           Profil non résolu
         </h1>

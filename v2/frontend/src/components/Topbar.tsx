@@ -1,4 +1,4 @@
-/**
+﻿/**
  * src/components/Topbar.tsx
  * Layer  : Frontend — composant UI partagé
  * Role   : Barre de navigation commune aux pages publiques et authentifiées.
@@ -31,7 +31,7 @@ export default function Topbar({ currentSlug }: Props) {
 
       <div className="flex items-center justify-between">
         <Link to="/" className="font-logo text-[24px] leading-none text-eb-text select-none">
-          ExtraBeam
+          Rivebelle
         </Link>
 
         <div className="flex items-center gap-3">
@@ -51,7 +51,7 @@ export default function Topbar({ currentSlug }: Props) {
                 </Link>
               ) : (
                 user.slug && user.slug !== currentSlug && (
-                  <Link to={`/p/${user.slug}`} className="eb-btn-ghost text-[13px]">
+                  <Link to={`/extras/${user.slug}`} className="eb-btn-ghost text-[13px]">
                     Mon profil
                   </Link>
                 )

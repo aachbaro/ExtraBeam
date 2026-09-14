@@ -1,4 +1,4 @@
-import { useDeferredValue, useEffect, useState } from "react";
+﻿import { useDeferredValue, useEffect, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 
 import { fetchAdminOverview } from "../api";
@@ -76,7 +76,7 @@ function AccountCard({ account }: { account: AdminAccountSummary }) {
             <p className="mt-1 truncate text-[14px] text-eb-secondary">{account.email}</p>
             <p className="mt-2 text-[13px] text-eb-muted">
               {authProviderLabels[account.auth_provider] ?? account.auth_provider}
-              {account.slug ? ` · /p/${account.slug}` : ""}
+              {account.slug ? ` · /extras/${account.slug}` : ""}
             </p>
           </div>
         </div>
@@ -117,7 +117,7 @@ function AccountCard({ account }: { account: AdminAccountSummary }) {
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-[13px] text-eb-muted">
         <span>Créé le {formatDate(account.created_at)}</span>
         {account.slug && account.role !== "client" ? (
-          <Link to={`/p/${account.slug}`} className="font-medium text-eb-primary">
+          <Link to={`/extras/${account.slug}`} className="font-medium text-eb-primary">
             Voir la page publique
           </Link>
         ) : null}
@@ -171,7 +171,7 @@ export default function AdminDashboardPage() {
           </p>
           <div className="mt-3 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <h1 className="text-[30px] font-semibold text-eb-text">Pilotage ExtraBeam</h1>
+              <h1 className="text-[30px] font-semibold text-eb-text">Pilotage Rivebelle</h1>
               <p className="mt-3 max-w-3xl text-[14px] leading-6 text-eb-secondary">
                 Vue globale des comptes, des missions et de l&apos;activité produit avec un accès rapide
                 aux fiches détaillées de chaque profil.

@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+﻿import { useState, type FormEvent } from "react";
 import { useGoogleLogin, type CodeResponse } from "@react-oauth/google";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 
@@ -83,7 +83,7 @@ export default function LoginPage() {
     <AuthShell>
       <div className="w-full max-w-[360px] rounded-eb-card border border-eb-layout bg-white p-7 md:max-w-[380px]">
         <div className="mb-8">
-          <span className="font-logo text-[24px] leading-none text-eb-text">ExtraBeam</span>
+          <span className="font-logo text-[24px] leading-none text-eb-text">Rivebelle</span>
           <h2 className="mt-7 text-[22px] font-semibold leading-tight text-eb-text">Connexion</h2>
           <p className="mt-2 text-[14px] leading-6 text-eb-secondary">
             Accedez a votre espace freelance ou client.
@@ -94,7 +94,7 @@ export default function LoginPage() {
           <div className="space-y-3 rounded-eb-card border border-eb-layout bg-[#F8FAFF] p-4">
             <p className="text-[13px] font-medium uppercase tracking-[0.12em] text-eb-primary">Compte partage</p>
             <p className="text-[14px] leading-6 text-eb-text">
-              Utilisez le compte pascuans pour partager la meme identite entre ExtraBeam et fragment.
+              Utilisez le compte pascuans pour partager la meme identite entre Rivebelle et fragment.
             </p>
             <a
               href={oidcLoginUrl}
@@ -169,7 +169,7 @@ export default function LoginPage() {
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
                     className="eb-focus-ring block min-h-[42px] w-full rounded-eb border border-eb-input bg-white px-3 text-[14px] text-eb-text outline-none placeholder:text-eb-muted disabled:cursor-not-allowed disabled:bg-[#F7F7F5]"
-                    placeholder="adam@extrabeam.fr"
+                    placeholder="adam@Rivebelle.fr"
                     disabled={loadingTarget !== null}
                   />
                 </div>

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * src/pages/FreelancerProfilePage.tsx
  * Layer  : Frontend — pages
  * Role   : Page de profil d'un freelance (accessible par tout le monde via /p/:slug).
@@ -127,7 +127,7 @@ export default function FreelancerProfilePage() {
     return (
       <main className="flex min-h-screen items-center justify-center bg-eb-page px-6">
         <div className="w-full max-w-md rounded-eb-card border border-eb-layout bg-white p-8">
-          <p className="font-logo text-[28px] text-eb-text">ExtraBeam</p>
+          <p className="font-logo text-[28px] text-eb-text">Rivebelle</p>
           <h1 className="mt-6 text-[22px] font-semibold text-eb-text">Profil introuvable</h1>
           <p className="mt-3 text-[14px] leading-6 text-eb-secondary">
             {isOwnBrokenProfile

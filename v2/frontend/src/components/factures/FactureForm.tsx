@@ -1,4 +1,4 @@
-/**
+﻿/**
  * src/components/factures/FactureForm.tsx
  * Layer  : Frontend — composant UI
  * Role   : Formulaire modal de création / édition d'une facture manuelle.
@@ -7,7 +7,12 @@
 import { useState } from "react";
 
 import type { FacturePayload } from "../../api";
-import type { Facture, FactureStatus, FreelancerProfile, Mission } from "../../types";
+import type {
+  Facture,
+  FactureStatus,
+  FreelancerProfile,
+  Mission,
+} from "../../types";
 
 const STATUS_LABELS: Record<FactureStatus, string> = {
   pending_payment: "En attente",
@@ -20,7 +25,8 @@ const DEFAULT_ESCOMPTE = "Escompte pour paiement anticipe : neant";
 const DEFAULT_LATE_PENALTIES = "Taux BCE + 10 points";
 const DEFAULT_RECOVERY_FEE =
   "Indemnite forfaitaire pour frais de recouvrement en cas de retard de paiement : 40 EUR";
-const LEGACY_COMBINED_LATE_PENALTIES = "Taux BCE + 10 pts, indemnite forfaitaire 40 EUR";
+const LEGACY_COMBINED_LATE_PENALTIES =
+  "Taux BCE + 10 pts, indemnite forfaitaire 40 EUR";
 
 interface FormState {
   mission_id: string;
@@ -109,7 +115,7 @@ function getLatePenaltiesDefault(value: string | null | undefined): string {
 function buildInitialForm(
   facture: Facture | undefined,
   profile: FreelancerProfile,
-  suggestedNumero?: string
+  suggestedNumero?: string,
 ): FormState {
   const dateEmission = facture?.date_emission ?? todayString();
 
@@ -138,22 +144,28 @@ function buildInitialForm(
     tva: facture?.tva ?? "0.00",
     montant_ttc: facture?.montant_ttc ?? "",
     mention_tva: facture?.mention_tva ?? profile.vat_notice ?? "",
-    conditions_paiement: facture?.conditions_paiement ?? profile.payment_terms ?? "",
+    conditions_paiement:
+      facture?.conditions_paiement ?? profile.payment_terms ?? "",
     escompte: facture?.escompte ?? DEFAULT_ESCOMPTE,
     penalites_retard:
-      facture?.penalites_retard ?? getLatePenaltiesDefault(profile.late_penalties),
+      facture?.penalites_retard ??
+      getLatePenaltiesDefault(profile.late_penalties),
     indemnite_recouvrement:
       facture?.indemnite_recouvrement ?? DEFAULT_RECOVERY_FEE,
   };
 }
 
-function applyMissionDefaults(previous: FormState, mission: Mission | undefined): FormState {
+function applyMissionDefaults(
+  previous: FormState,
+  mission: Mission | undefined,
+): FormState {
   if (!mission) {
     return { ...previous, mission_id: "" };
   }
 
   const next = { ...previous, mission_id: String(mission.id) };
-  next.client_name = mission.client_company || mission.client_name || next.client_name;
+  next.client_name =
+    mission.client_company || mission.client_name || next.client_name;
   next.contact_name = mission.client_name || next.contact_name;
   next.contact_email = mission.client_email || next.contact_email;
   next.contact_phone = mission.client_phone || next.contact_phone;
@@ -177,13 +189,20 @@ function applyMissionDefaults(previous: FormState, mission: Mission | undefined)
   return next;
 }
 
-function buildComplianceWarnings(form: FormState, profile: FreelancerProfile): string[] {
+function buildComplianceWarnings(
+  form: FormState,
+  profile: FreelancerProfile,
+): string[] {
   const warnings: string[] = [];
 
   if (!profile.display_name.trim()) {
     warnings.push("Ajoute ton nom ou ta raison sociale dans le profil.");
   }
-  if (!profile.address_line1.trim() || !profile.postal_code.trim() || !profile.city.trim()) {
+  if (
+    !profile.address_line1.trim() ||
+    !profile.postal_code.trim() ||
+    !profile.city.trim()
+  ) {
     warnings.push("Complete ton adresse emetteur dans le profil pour le PDF.");
   }
   if (!profile.siret.trim()) {
@@ -197,7 +216,9 @@ function buildComplianceWarnings(form: FormState, profile: FreelancerProfile): s
     !form.client_code_postal.trim() ||
     !form.client_ville.trim()
   ) {
-    warnings.push("Complete l'adresse du client (ligne 1, code postal, ville).");
+    warnings.push(
+      "Complete l'adresse du client (ligne 1, code postal, ville).",
+    );
   }
   if (!form.date_echeance.trim()) {
     warnings.push("Ajoute une date d'echeance de paiement.");
@@ -225,13 +246,17 @@ function buildOptionalHints(form: FormState): string[] {
   const hints: string[] = [];
 
   if (!form.client_siren.trim() && !form.client_siret.trim()) {
-    hints.push("Tu peux garder le SIREN ou SIRET client pour tes prochaines factures.");
+    hints.push(
+      "Tu peux garder le SIREN ou SIRET client pour tes prochaines factures.",
+    );
   }
   if (!form.client_vat_number.trim()) {
     hints.push("Ajoute la TVA intracom client si tu l'as sous la main.");
   }
   if (!form.contact_email.trim() && !form.contact_phone.trim()) {
-    hints.push("Un email ou telephone de contact aide si le client a un service compta.");
+    hints.push(
+      "Un email ou telephone de contact aide si le client a un service compta.",
+    );
   }
 
   return hints;
@@ -239,6 +264,8 @@ function buildOptionalHints(form: FormState): string[] {
 
 interface Props {
   initial?: Facture;
+  reuse?: Facture;
+  previousFactures?: Facture[];
   missions: Mission[];
   profile: FreelancerProfile;
   suggestedNumero?: string;
@@ -248,6 +275,8 @@ interface Props {
 
 export default function FactureForm({
   initial,
+  reuse,
+  previousFactures = [],
   missions,
   profile,
   suggestedNumero,
@@ -255,8 +284,73 @@ export default function FactureForm({
   onClose,
 }: Props) {
   const [form, setForm] = useState<FormState>(() =>
-    buildInitialForm(initial, profile, suggestedNumero)
+    reuse
+      ? {
+          ...buildInitialForm(reuse, profile, suggestedNumero),
+          numero: suggestedNumero ?? "",
+          date_emission: todayString(),
+          date_echeance: todayString(),
+          status: "pending_payment",
+          mission_id: "",
+          hours: "",
+          montant_ht: "",
+          montant_ttc: "",
+        }
+      : buildInitialForm(initial, profile, suggestedNumero),
   );
+  const [prestation, setPrestation] = useState({
+    date: todayString(),
+    start: "",
+    end: "",
+  });
+  const clients = [
+    ...new Map(
+      [...previousFactures]
+        .sort((a, b) => a.id - b.id)
+        .filter((f) => f.client_name.trim())
+        .map((f) => [
+          (
+            f.client_siret ||
+            f.client_siren ||
+            [f.client_name, f.client_code_postal, f.client_address_ligne1].join(
+              "|",
+            )
+          )
+            .trim()
+            .toLowerCase(),
+          f,
+        ]),
+    ).values(),
+  ];
+  function chooseClient(id: string) {
+    const client = clients.find((f) => f.id === Number(id));
+    if (!client) return;
+    const source = buildInitialForm(client, profile);
+    setForm((previous) => {
+      const next = { ...previous };
+      for (const k of Object.keys(next) as (keyof FormState)[]) {
+        if (k.startsWith("client_") || k.startsWith("contact_"))
+          (next as unknown as Record<string, string>)[k] = source[k];
+      }
+      return next;
+    });
+  }
+  function applyPrestation() {
+    if (!prestation.date || !prestation.start || !prestation.end) return;
+    const mins = (t: string) =>
+      Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
+    const duration =
+      (mins(prestation.end) - mins(prestation.start) + 1440) % 1440;
+    if (!duration) {
+      setError("Les horaires doivent définir une durée non nulle.");
+      return;
+    }
+    setHours((duration / 60).toFixed(2));
+    setField(
+      "description",
+      `Extra le ${formatDateLabel(prestation.date)}, de ${prestation.start} à ${prestation.end}${mins(prestation.end) < mins(prestation.start) ? " (lendemain)" : ""}`,
+    );
+  }
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -272,7 +366,8 @@ export default function FactureForm({
       ...previous,
       date_emission: value,
       date_echeance:
-        !previous.date_echeance || previous.date_echeance === previous.date_emission
+        !previous.date_echeance ||
+        previous.date_echeance === previous.date_emission
           ? value
           : previous.date_echeance,
     }));
@@ -318,7 +413,8 @@ export default function FactureForm({
       tva: value,
       montant_ttc: computeTtc(previous.montant_ht, value),
       mention_tva:
-        (parseNumber(value) ?? 0) > 0 && previous.mention_tva === profile.vat_notice
+        (parseNumber(value) ?? 0) > 0 &&
+        previous.mention_tva === profile.vat_notice
           ? ""
           : previous.mention_tva,
     }));
@@ -333,9 +429,11 @@ export default function FactureForm({
     setForm((previous) => ({
       ...previous,
       mention_tva: previous.mention_tva || profile.vat_notice || "",
-      conditions_paiement: previous.conditions_paiement || profile.payment_terms || "",
+      conditions_paiement:
+        previous.conditions_paiement || profile.payment_terms || "",
       penalites_retard:
-        previous.penalites_retard || getLatePenaltiesDefault(profile.late_penalties),
+        previous.penalites_retard ||
+        getLatePenaltiesDefault(profile.late_penalties),
       escompte: previous.escompte || DEFAULT_ESCOMPTE,
       indemnite_recouvrement:
         previous.indemnite_recouvrement || DEFAULT_RECOVERY_FEE,
@@ -384,8 +482,12 @@ export default function FactureForm({
         contact_phone: form.contact_phone.trim(),
         contact_email: form.contact_email.trim(),
         description: form.description.trim(),
-        hours: form.hours.trim() ? toFixedAmount(parseNumber(form.hours) ?? 0) : null,
-        rate: form.rate.trim() ? toFixedAmount(parseNumber(form.rate) ?? 0) : null,
+        hours: form.hours.trim()
+          ? toFixedAmount(parseNumber(form.hours) ?? 0)
+          : null,
+        rate: form.rate.trim()
+          ? toFixedAmount(parseNumber(form.rate) ?? 0)
+          : null,
         montant_ht: toFixedAmount(montantHt),
         tva: toFixedAmount(parseNumber(form.tva) ?? 0),
         montant_ttc: computeTtc(toFixedAmount(montantHt), form.tva),
@@ -397,7 +499,9 @@ export default function FactureForm({
       });
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erreur lors de la sauvegarde.");
+      setError(
+        err instanceof Error ? err.message : "Erreur lors de la sauvegarde.",
+      );
     } finally {
       setSaving(false);
     }
@@ -420,8 +524,8 @@ export default function FactureForm({
               {initial ? "Modifier la facture" : "Nouvelle facture manuelle"}
             </h2>
             <p className="mt-1 text-[12px] text-eb-muted">
-              ExtraBeam reprend tes mentions depuis le profil, puis tu ajustes ce qui est
-              propre a cette facture.
+              Rivebelle reprend tes mentions depuis le profil, puis tu ajustes
+              ce qui est propre a cette facture.
             </p>
           </div>
           <button
@@ -435,6 +539,91 @@ export default function FactureForm({
         </div>
 
         <div className="max-h-[75vh] space-y-5 overflow-y-auto pr-1">
+          {reuse && (
+            <p className="rounded border bg-amber-50 p-3 text-sm">
+              Nouvelle facture à partir de {reuse.numero}. Client, tarif et
+              mentions repris. Vérifiez la description et renseignez la durée ou
+              le montant de cette prestation.
+            </p>
+          )}
+          {clients.length > 0 && (
+            <label className="block text-sm">
+              Reprendre un client déjà facturé
+              <select
+                className="eb-input mt-1"
+                defaultValue=""
+                onChange={(e) => chooseClient(e.target.value)}
+              >
+                <option value="">Choisir un client</option>
+                {clients.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.client_name}
+                    {c.client_ville ? " · " + c.client_ville : ""}
+                    {c.client_siret ? " · " + c.client_siret : ""}
+                  </option>
+                ))}
+              </select>
+              <span className="block text-xs text-eb-muted mt-1">
+                Coordonnées conservées dans vos factures. Seules les
+                informations du client sont reprises.
+              </span>
+            </label>
+          )}
+          <details className="border rounded p-3">
+            <summary className="cursor-pointer text-sm">
+              Renseigner une date et des horaires de prestation
+            </summary>
+            <div className="grid grid-cols-3 gap-2 mt-3">
+              <label className="text-xs">
+                Date
+                <input
+                  aria-label="Date de prestation"
+                  type="date"
+                  className="eb-input"
+                  value={prestation.date}
+                  onChange={(e) =>
+                    setPrestation((p) => ({ ...p, date: e.target.value }))
+                  }
+                />
+              </label>
+              <label className="text-xs">
+                Début
+                <input
+                  aria-label="Début de prestation"
+                  type="time"
+                  className="eb-input"
+                  value={prestation.start}
+                  onChange={(e) =>
+                    setPrestation((p) => ({ ...p, start: e.target.value }))
+                  }
+                />
+              </label>
+              <label className="text-xs">
+                Fin
+                <input
+                  aria-label="Fin de prestation"
+                  type="time"
+                  className="eb-input"
+                  value={prestation.end}
+                  onChange={(e) =>
+                    setPrestation((p) => ({ ...p, end: e.target.value }))
+                  }
+                />
+              </label>
+            </div>
+            <p className="text-xs my-2">
+              Remplace la description et calcule la durée brute. Ajustez ensuite
+              les heures si une pause doit être déduite.
+            </p>
+            <button
+              type="button"
+              disabled={!prestation.start || !prestation.end}
+              className="border rounded px-3 py-2 text-sm"
+              onClick={applyPrestation}
+            >
+              Appliquer à la description et aux heures
+            </button>
+          </details>
           <div className="rounded-eb border border-[#dbe7f3] bg-[#f8fbff] p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
@@ -490,7 +679,9 @@ export default function FactureForm({
                 type="date"
                 className="eb-input"
                 value={form.date_echeance}
-                onChange={(event) => setField("date_echeance", event.target.value)}
+                onChange={(event) =>
+                  setField("date_echeance", event.target.value)
+                }
               />
             </div>
             <div className="md:col-span-2">
@@ -517,7 +708,9 @@ export default function FactureForm({
               <select
                 className="eb-input"
                 value={form.status}
-                onChange={(event) => setField("status", event.target.value as FactureStatus)}
+                onChange={(event) =>
+                  setField("status", event.target.value as FactureStatus)
+                }
               >
                 {STATUS_LIST.map((status) => (
                   <option key={status} value={status}>
@@ -564,7 +757,9 @@ export default function FactureForm({
                 <input
                   className="eb-input"
                   value={form.client_name}
-                  onChange={(event) => setField("client_name", event.target.value)}
+                  onChange={(event) =>
+                    setField("client_name", event.target.value)
+                  }
                   placeholder="La raison sociale du client"
                 />
               </div>
@@ -575,7 +770,9 @@ export default function FactureForm({
                 <input
                   className="eb-input"
                   value={form.client_address_ligne1}
-                  onChange={(event) => setField("client_address_ligne1", event.target.value)}
+                  onChange={(event) =>
+                    setField("client_address_ligne1", event.target.value)
+                  }
                 />
               </div>
               <div className="md:col-span-2">
@@ -585,7 +782,9 @@ export default function FactureForm({
                 <input
                   className="eb-input"
                   value={form.client_address_ligne2}
-                  onChange={(event) => setField("client_address_ligne2", event.target.value)}
+                  onChange={(event) =>
+                    setField("client_address_ligne2", event.target.value)
+                  }
                 />
               </div>
               <div>
@@ -595,7 +794,9 @@ export default function FactureForm({
                 <input
                   className="eb-input"
                   value={form.client_code_postal}
-                  onChange={(event) => setField("client_code_postal", event.target.value)}
+                  onChange={(event) =>
+                    setField("client_code_postal", event.target.value)
+                  }
                 />
               </div>
               <div>
@@ -605,7 +806,9 @@ export default function FactureForm({
                 <input
                   className="eb-input"
                   value={form.client_ville}
-                  onChange={(event) => setField("client_ville", event.target.value)}
+                  onChange={(event) =>
+                    setField("client_ville", event.target.value)
+                  }
                 />
               </div>
               <div className="md:col-span-2">
@@ -615,7 +818,9 @@ export default function FactureForm({
                 <input
                   className="eb-input"
                   value={form.client_pays}
-                  onChange={(event) => setField("client_pays", event.target.value)}
+                  onChange={(event) =>
+                    setField("client_pays", event.target.value)
+                  }
                 />
               </div>
             </div>
@@ -633,7 +838,9 @@ export default function FactureForm({
                 <input
                   className="eb-input"
                   value={form.client_siren}
-                  onChange={(event) => setField("client_siren", event.target.value)}
+                  onChange={(event) =>
+                    setField("client_siren", event.target.value)
+                  }
                   placeholder="942467069"
                 />
               </div>
@@ -644,7 +851,9 @@ export default function FactureForm({
                 <input
                   className="eb-input"
                   value={form.client_siret}
-                  onChange={(event) => setField("client_siret", event.target.value)}
+                  onChange={(event) =>
+                    setField("client_siret", event.target.value)
+                  }
                   placeholder="94246706900012"
                 />
               </div>
@@ -655,7 +864,9 @@ export default function FactureForm({
                 <input
                   className="eb-input"
                   value={form.client_vat_number}
-                  onChange={(event) => setField("client_vat_number", event.target.value)}
+                  onChange={(event) =>
+                    setField("client_vat_number", event.target.value)
+                  }
                   placeholder="FR17942467069"
                 />
               </div>
@@ -674,7 +885,9 @@ export default function FactureForm({
                 <input
                   className="eb-input"
                   value={form.contact_name}
-                  onChange={(event) => setField("contact_name", event.target.value)}
+                  onChange={(event) =>
+                    setField("contact_name", event.target.value)
+                  }
                 />
               </div>
               <div>
@@ -685,7 +898,9 @@ export default function FactureForm({
                   type="email"
                   className="eb-input"
                   value={form.contact_email}
-                  onChange={(event) => setField("contact_email", event.target.value)}
+                  onChange={(event) =>
+                    setField("contact_email", event.target.value)
+                  }
                 />
               </div>
               <div>
@@ -696,7 +911,9 @@ export default function FactureForm({
                   type="tel"
                   className="eb-input"
                   value={form.contact_phone}
-                  onChange={(event) => setField("contact_phone", event.target.value)}
+                  onChange={(event) =>
+                    setField("contact_phone", event.target.value)
+                  }
                 />
               </div>
             </div>
@@ -720,7 +937,8 @@ export default function FactureForm({
               Montants
             </p>
             <p className="mt-1 text-[12px] text-eb-muted">
-              Tu peux renseigner heures + taux ou saisir directement le montant HT.
+              Tu peux renseigner heures + taux ou saisir directement le montant
+              HT.
             </p>
             <div className="mt-3 grid gap-3 md:grid-cols-5">
               <div>
@@ -779,7 +997,11 @@ export default function FactureForm({
                 <label className="mb-1 block text-[12px] font-medium text-eb-secondary">
                   TTC (€)
                 </label>
-                <input className="eb-input bg-eb-page" value={form.montant_ttc} readOnly />
+                <input
+                  className="eb-input bg-eb-page"
+                  value={form.montant_ttc}
+                  readOnly
+                />
               </div>
             </div>
           </div>
@@ -796,7 +1018,9 @@ export default function FactureForm({
                 <input
                   className="eb-input"
                   value={form.mention_tva}
-                  onChange={(event) => setField("mention_tva", event.target.value)}
+                  onChange={(event) =>
+                    setField("mention_tva", event.target.value)
+                  }
                   placeholder="TVA non applicable, art. 293 B du CGI"
                 />
               </div>
@@ -808,7 +1032,9 @@ export default function FactureForm({
                   className="eb-input resize-none"
                   rows={2}
                   value={form.conditions_paiement}
-                  onChange={(event) => setField("conditions_paiement", event.target.value)}
+                  onChange={(event) =>
+                    setField("conditions_paiement", event.target.value)
+                  }
                   placeholder="Paiement comptant a reception"
                 />
               </div>
@@ -832,7 +1058,9 @@ export default function FactureForm({
                   className="eb-input resize-none"
                   rows={2}
                   value={form.penalites_retard}
-                  onChange={(event) => setField("penalites_retard", event.target.value)}
+                  onChange={(event) =>
+                    setField("penalites_retard", event.target.value)
+                  }
                   placeholder="Taux BCE + 10 points"
                 />
               </div>
@@ -844,7 +1072,9 @@ export default function FactureForm({
                   className="eb-input resize-none"
                   rows={2}
                   value={form.indemnite_recouvrement}
-                  onChange={(event) => setField("indemnite_recouvrement", event.target.value)}
+                  onChange={(event) =>
+                    setField("indemnite_recouvrement", event.target.value)
+                  }
                   placeholder={DEFAULT_RECOVERY_FEE}
                 />
               </div>
@@ -859,7 +1089,11 @@ export default function FactureForm({
             Annuler
           </button>
           <button type="submit" disabled={saving} className="eb-btn-primary">
-            {saving ? "Enregistrement..." : initial ? "Enregistrer" : "Creer la facture"}
+            {saving
+              ? "Enregistrement..."
+              : initial
+                ? "Enregistrer"
+                : "Creer la facture"}
           </button>
         </div>
       </form>

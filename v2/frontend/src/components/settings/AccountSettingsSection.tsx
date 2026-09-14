@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { deleteAccount } from "../../api";
@@ -54,7 +54,7 @@ function formatProvider(value?: string | null): string {
 
 function getFutureSubscriptionMessage(profile: FreelancerProfile): string {
   if (!profile.subscription_status) {
-    return "Aucun abonnement ExtraBeam n'est configuré pour ce compte aujourd'hui.";
+    return "Aucun abonnement Rivebelle n'est configuré pour ce compte aujourd'hui.";
   }
 
   if (profile.subscription_cancel_at_period_end && profile.subscription_period_end) {
@@ -87,7 +87,7 @@ export default function AccountSettingsSection({ profile, token, authProvider }:
       setError("Tape SUPPRIMER pour confirmer la suppression du compte.");
       return;
     }
-    if (!window.confirm("Supprimer définitivement ce compte ExtraBeam ?")) {
+    if (!window.confirm("Supprimer définitivement ce compte Rivebelle ?")) {
       return;
     }
 
@@ -110,7 +110,7 @@ export default function AccountSettingsSection({ profile, token, authProvider }:
           Paramètres
         </p>
         <p className="mt-1 text-[13px] text-eb-secondary">
-          Gère ton compte ExtraBeam, le statut de ton abonnement et les actions sensibles.
+          Gère ton compte Rivebelle, le statut de ton abonnement et les actions sensibles.
         </p>
       </div>
 
@@ -138,7 +138,7 @@ export default function AccountSettingsSection({ profile, token, authProvider }:
       <section className="mt-4 rounded-eb border border-red-200 bg-red-50 p-4">
         <p className="text-[14px] font-semibold text-red-800">Zone sensible</p>
         <p className="mt-2 text-[13px] leading-6 text-red-900/85">
-          La suppression efface ce compte ExtraBeam, son profil, ses créneaux, missions,
+          La suppression efface ce compte Rivebelle, son profil, ses créneaux, missions,
           factures et données liées. Le compte pascuans central n&apos;est pas supprimé ici.
         </p>
 

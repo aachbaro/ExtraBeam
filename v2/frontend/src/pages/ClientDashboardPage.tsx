@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 
 import {
@@ -34,7 +34,7 @@ function MissionList({ missions }: { missions: Mission[] }) {
           Missions
         </p>
         <p className="mt-1 text-[13px] text-eb-secondary">
-          Missions associees a ton email client dans ExtraBeam.
+          Missions associees a ton email client dans Rivebelle.
         </p>
       </div>
 
@@ -48,7 +48,7 @@ function MissionList({ missions }: { missions: Mission[] }) {
                     <h3 className="text-[16px] font-semibold text-eb-text">{mission.title}</h3>
                     {mission.profile_slug ? (
                       <Link
-                        to={`/p/${mission.profile_slug}`}
+                        to={`/extras/${mission.profile_slug}`}
                         className="text-[12px] font-medium text-eb-primary hover:underline"
                       >
                         {mission.profile_display_name}
@@ -124,7 +124,7 @@ function FactureList({ factures }: { factures: Facture[] }) {
                     <h3 className="text-[16px] font-semibold text-eb-text">{facture.numero}</h3>
                     {facture.profile_slug ? (
                       <Link
-                        to={`/p/${facture.profile_slug}`}
+                        to={`/extras/${facture.profile_slug}`}
                         className="text-[12px] font-medium text-eb-primary hover:underline"
                       >
                         {facture.profile_display_name}
