@@ -1,11 +1,16 @@
 ﻿import { Link } from "react-router-dom";
+import { getDefaultAppPath, getOidcLogoutUrl } from "../api";
 import { useUserContext } from "../context/UserContext";
-import { getDefaultAppPath } from "../api";
 
 export default function HomePage() {
-  const { user } = useUserContext();
+  const { user, clearUser } = useUserContext();
 
   const appPath = user ? getDefaultAppPath(user) : null;
+
+  function handleLogout() {
+    clearUser();
+    window.location.href = getOidcLogoutUrl(`${window.location.origin}/`);
+  }
 
   return (
     <div className="min-h-screen bg-eb-page text-eb-text">
@@ -27,6 +32,13 @@ export default function HomePage() {
                 >
                   Mon espace →
                 </Link>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="rounded-lg border border-eb-layout px-4 py-2 text-[13px] font-medium text-eb-secondary hover:bg-eb-page transition-colors"
+                >
+                  Se déconnecter
+                </button>
               </>
             ) : (
               <>
