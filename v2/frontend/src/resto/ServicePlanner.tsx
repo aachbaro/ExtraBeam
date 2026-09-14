@@ -16,6 +16,7 @@ import {
   deleteServiceTemplate,
   generateRestaurantPlanning,
   fetchRestaurantHours,
+  updateShift,
   type MonthlyMemberHours,
 } from "../api";
 import WeekTimeGrid, { type TimeRange } from "../components/agenda/WeekTimeGrid";
@@ -124,6 +125,14 @@ export default function ServicePlanner({
       setBusy(false);
     }
   }
+  async function publishAllDrafts() {
+    const draftShifts = services.flatMap((s) => s.shifts.filter((sh) => sh.status === "draft"));
+    if (!draftShifts.length) return;
+    await action(async () => {
+      await Promise.all(draftShifts.map((sh) => updateShift(slug, sh.id, { status: "published" }, token)));
+      setNotice(`${draftShifts.length} poste(s) publiés.`);
+    });
+  }
   async function prepare() {
     await action(async () => {
       const end = new Date(to + "T12:00:00");
@@ -208,6 +217,15 @@ export default function ServicePlanner({
                   <button className="border rounded px-3 py-2 text-sm" disabled={busy} onClick={() => void generate()}>
                     Générer les affectations
                   </button>
+                  {services.some((s) => s.shifts.some((sh) => sh.status === "draft")) && (
+                    <button
+                      className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm"
+                      disabled={busy}
+                      onClick={() => void publishAllDrafts()}
+                    >
+                      Publier la semaine
+                    </button>
+                  )}
                   <button
                     className="bg-eb-primary text-white px-4 py-2 rounded-lg text-sm"
                     onClick={() => setEditor({ initial: { date: from, start_time: "12:00", end_time: "15:30" } })}

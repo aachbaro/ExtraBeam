@@ -1,6 +1,6 @@
 import { useState } from "react";
-import type { RestaurantMember, RestaurantService, RestaurantShift } from "../types";
-import { assignMember, deleteShift, editService, removeAssignment, updateShift } from "../api";
+import type { RestaurantMember, RestaurantService } from "../types";
+import { assignMember, deleteShift, editService, removeAssignment } from "../api";
 import { serviceDefinition } from "./ServiceEditor";
 import type { ServiceDefinition } from "../types";
 
@@ -81,10 +81,6 @@ export default function ServiceDayCard({
 
   async function unassign(shiftId: number, assignmentId: number) {
     await run(() => removeAssignment(slug, shiftId, assignmentId, token));
-  }
-
-  async function publishShift(shift: RestaurantShift) {
-    await run(() => updateShift(slug, shift.id, { status: "published" }, token));
   }
 
   async function removeShift(shiftId: number) {
@@ -199,24 +195,13 @@ export default function ServiceDayCard({
                     </span>
                   </div>
                   {manager && (
-                    <div className="flex gap-1 shrink-0">
-                      {shift.status === "draft" && (
-                        <button
-                          disabled={busy}
-                          onClick={() => void publishShift(shift)}
-                          className="text-[10px] bg-green-500 text-white rounded px-1.5 py-0.5 hover:bg-green-600"
-                        >
-                          Publier
-                        </button>
-                      )}
-                      <button
-                        disabled={busy}
-                        onClick={() => void removeShift(shift.id)}
-                        className="text-[10px] text-eb-muted hover:text-red-500"
-                      >
-                        ✕
-                      </button>
-                    </div>
+                    <button
+                      disabled={busy}
+                      onClick={() => void removeShift(shift.id)}
+                      className="text-[10px] text-eb-muted hover:text-red-500 shrink-0"
+                    >
+                      ✕
+                    </button>
                   )}
                 </div>
 
@@ -225,14 +210,14 @@ export default function ServiceDayCard({
                   {active.map((a) => (
                     <span
                       key={a.id}
-                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] ${STATUS_COLOR[a.status] ?? "bg-eb-page text-eb-text"}`}
+                      className={`group inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] ${STATUS_COLOR[a.status] ?? "bg-eb-page text-eb-text"}`}
                     >
                       {a.member_name}
                       <span title={a.status}>{STATUS_LABEL[a.status]}</span>
                       {manager && (
                         <button
                           onClick={() => void unassign(shift.id, a.id)}
-                          className="opacity-50 hover:opacity-100 ml-0.5 leading-none"
+                          className="opacity-0 group-hover:opacity-100 ml-0.5 leading-none transition-opacity"
                           title="Retirer"
                         >
                           ×
