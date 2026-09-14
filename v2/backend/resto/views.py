@@ -121,6 +121,7 @@ def restaurant_detail(request, slug):
         profile = _profile(request)
         data = RestaurantSerializer(restaurant).data
         data["is_manager"] = _is_manager(restaurant, profile)
+        data["is_owner"] = bool(profile and restaurant.owner_id == profile.id)
         member = _my_member(restaurant, profile) if profile else None
         data["my_member_id"] = member.id if member else None
         return Response(data)
@@ -161,6 +162,8 @@ def members(request, slug):
         if RestaurantMember.objects.filter(restaurant=restaurant, profile=linked).exists():
             raise ValidationError({"extra_slug": "Cette personne est déjà membre."})
 
+    if request.data.get('default_availability', 'unknown') != 'unknown':
+        raise PermissionDenied("La disponibilité initiale doit rester à confirmer.")
     ser = RestaurantMemberCreateSerializer(data=request.data)
     ser.is_valid(raise_exception=True)
     member = ser.save(restaurant=restaurant, profile=linked)
@@ -185,6 +188,8 @@ def member_detail(request, slug, member_id):
         member.delete()
         return Response(status=204)
 
+    if 'default_availability' in request.data:
+        raise PermissionDenied("La disponibilité habituelle est renseignée par l’employé.")
     ser = RestaurantMemberUpdateSerializer(member, data=request.data, partial=True)
     ser.is_valid(raise_exception=True)
     ser.save()
@@ -288,8 +293,8 @@ def shift_availability(request, slug, shift_id):
 
     member = _my_member(restaurant, profile)
     if request.method == "PUT" and request.data.get("member_id") is not None:
-        _require_manager(restaurant, profile)
-        member = restaurant.members.filter(pk=request.data["member_id"], is_active=True).first()
+        if not member or str(member.id) != str(request.data['member_id']):
+            raise PermissionDenied("Chaque employé renseigne ses propres disponibilités.")
     if not member:
         raise PermissionDenied("Vous n'êtes pas membre de ce restaurant.")
 
@@ -429,6 +434,8 @@ def generate_planning(request, slug):
         start=date.fromisoformat(request.data.get("from", ""));end=date.fromisoformat(request.data.get("to", ""))
     except (TypeError,ValueError):raise ValidationError("Période invalide.")
     if not 0 <= (end-start).days <= 41:raise ValidationError("Choisissez une période de 1 à 6 semaines.")
+    from .services import materialize
+    materialize(restaurant,start,end)
     rows=list(restaurant.shifts.filter(date__range=(start,end)))
     warnings=scheduling.generate(restaurant,rows,profile)
     return Response({"shifts":RestaurantShiftSerializer(_shift_qs(restaurant).filter(date__range=(start,end)),many=True).data,"warnings":warnings})

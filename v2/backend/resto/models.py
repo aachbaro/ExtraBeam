@@ -37,6 +37,9 @@ POSITION_CHOICES = [
 
 
 class RestaurantMember(models.Model):
+    pin_hash = models.CharField(max_length=128, blank=True)
+    pin_failures = models.PositiveSmallIntegerField(default=0)
+    pin_locked_until = models.DateTimeField(null=True, blank=True)
     restaurant = models.ForeignKey(
         Restaurant, on_delete=models.CASCADE, related_name="members"
     )
@@ -159,6 +162,9 @@ class ShiftAssignment(models.Model):
 
 
 class ServiceTemplate(models.Model):
+    definition_versions = models.JSONField(default=list, blank=True)
+    starts_on = models.DateField(null=True, blank=True)
+    ends_on = models.DateField(null=True, blank=True)
     restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE, related_name="service_templates")
     name = models.CharField(max_length=120)
     weekday = models.PositiveSmallIntegerField(default=0)
@@ -182,3 +188,26 @@ class RestaurantService(models.Model):
     class Meta:
         ordering = ["date", "start_time", "id"]
         constraints = [models.UniqueConstraint(fields=["template", "date"], name="resto_template_date_unique")]
+
+
+class ServiceCancellation(models.Model):
+    template = models.ForeignKey(ServiceTemplate, on_delete=models.CASCADE, related_name="cancellations")
+    date = models.DateField()
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["template", "date"], name="resto_cancellation_unique")]
+
+
+class RestaurantSkill(models.Model):
+    restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE, related_name="skill_catalog")
+    name = models.CharField(max_length=40)
+    normalized = models.CharField(max_length=80)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["restaurant", "normalized"], name="resto_skill_unique")]
+
+
+class EmployeeSession(models.Model):
+    member = models.ForeignKey(RestaurantMember, on_delete=models.CASCADE, related_name="pin_sessions")
+    token_hash = models.CharField(max_length=64, unique=True)
+    expires_at = models.DateTimeField()

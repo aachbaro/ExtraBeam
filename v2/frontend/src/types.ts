@@ -385,6 +385,7 @@ export interface Restaurant {
 }
 
 export interface RestaurantMember {
+  pin_configured?: boolean;
   weekly_hours: number;
   skills: string[];
   preferences: Record<string, number>;

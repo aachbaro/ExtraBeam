@@ -7,7 +7,7 @@ from rest_framework import serializers
 from rest_framework.decorators import api_view
 from rest_framework.exceptions import ValidationError, NotFound
 from rest_framework.response import Response
-from .models import ServiceTemplate, RestaurantService, RestaurantShift, POSITION_CHOICES
+from .models import ServiceTemplate, RestaurantService, RestaurantShift, ServiceCancellation, POSITION_CHOICES
 from .serializers import RestaurantShiftSerializer
 from . import scheduling
 from .views import _get_restaurant, _require_auth, _require_manager, _require_team
@@ -87,8 +87,21 @@ def serialize_service(service):
                 customized=bool(service.template_id and current_definition(service) != service.template_snapshot))
 
 
+def definition_on(template,day):
+    versions=[v for v in template.definition_versions if v['from']<=day.isoformat()]
+    return deepcopy(max(versions,key=lambda v:v['from'])['definition'] if versions else template.definition)
+
+
+def change_template(template,data,day):
+    versions=template.definition_versions or [{'from':(template.starts_on or day).isoformat(),'definition':deepcopy(template.definition)}]
+    template.definition_versions=[v for v in versions if v['from']<day.isoformat()]+[{'from':day.isoformat(),'definition':deepcopy(data)}]
+    template.definition=deepcopy(data)
+    template.name=data['title']
+    template.save()
+
+
 def serialize_template(template):
-    return dict(id=template.id,name=template.name,weekday=template.weekday,definition=template.definition)
+    return dict(id=template.id,name=template.name,weekday=template.weekday,definition=template.definition,starts_on=template.starts_on,ends_on=template.ends_on)
 
 
 def validate_assignments(slot):
@@ -177,7 +190,7 @@ def templates(request,slug):
     data=definition(request.data.get('definition',{}))
     weekday=serializers.IntegerField(min_value=0,max_value=6).run_validation(request.data.get('weekday',0))
     data['tasks']=[{**t,'done':False} for t in data['tasks']]
-    template=ServiceTemplate.objects.create(restaurant=restaurant,name=data['title'],weekday=weekday,definition=data)
+    template=ServiceTemplate.objects.create(restaurant=restaurant,name=data['title'],weekday=weekday,definition=data,starts_on=parse_date(request.data.get('starts_on',timezone.localdate())))
     return Response(serialize_template(template),status=201)
 
 
@@ -201,7 +214,8 @@ def template_detail(request,slug,template_id):
             if service.slots.filter(status='published').exists(): continue
             apply_definition(service,data,merge=True)
             updated+=1
-    template.definition=data;template.name=data['title'];template.weekday=weekday;template.save()
+    template.weekday=weekday
+    change_template(template,data,timezone.localdate())
     return Response(dict(**serialize_template(template),updated_services=updated))
 
 
@@ -223,6 +237,9 @@ def services(request,slug):
         template=restaurant.service_templates.filter(pk=request.data['template_id']).first()
         if not template:raise NotFound('Modèle introuvable.')
     data=definition(request.data.get('definition') or (template.definition if template else {}))
+    recurring=serializers.BooleanField().run_validation(request.data.get('recurring',False))
+    if recurring and not template:
+        template=ServiceTemplate.objects.create(restaurant=restaurant,name=data['title'],weekday=when.weekday(),definition={**deepcopy(data),'tasks':[{**t,'done':False} for t in data['tasks']]},starts_on=when)
     count=serializers.IntegerField(min_value=1,max_value=26).run_validation(request.data.get('repeat_weeks',1))
     interval=serializers.IntegerField(min_value=1,max_value=4).run_validation(request.data.get('repeat_interval',1))
     result=[]
@@ -254,11 +271,66 @@ def service_detail(request,slug,service_id):
         task['done']=done;service.tasks=tasks;service.save(update_fields=['tasks'])
         return Response(serialize_service(service))
     _require_manager(restaurant,profile)
+    scope=serializers.ChoiceField(choices=['this','future']).run_validation(request.query_params.get('scope',request.data.get('scope','this')))
     if request.method=='DELETE':
-        if service.slots.filter(assignments__isnull=False).exists():
-            raise ValidationError('Retirez les affectations avant de supprimer ce service.')
+        if service.template_id:
+            ServiceCancellation.objects.get_or_create(template=service.template,date=service.date)
+            if scope=='future':
+                service.template.ends_on=service.date-timedelta(days=1)
+                service.template.save(update_fields=['ends_on'])
+                service.template.occurrences.filter(date__gte=service.date).delete()
+                return Response(status=204)
         service.delete()
         return Response(status=204)
     data=definition(request.data.get('definition',{}))
+    recurring=serializers.BooleanField().run_validation(request.data.get('recurring',False))
+    if recurring and not service.template_id:
+        template=ServiceTemplate.objects.create(restaurant=restaurant,name=data['title'],weekday=service.date.weekday(),starts_on=service.date,
+            definition={**deepcopy(data),'tasks':[{**t,'done':False} for t in data['tasks']]})
+        service.template=template
+        service.template_snapshot=deepcopy(template.definition)
+        service.save(update_fields=['template','template_snapshot'])
+    if scope=='future' and service.template_id:
+        template=service.template
+        clean={**deepcopy(data),'tasks':[{**t,'done':False} for t in data['tasks']]}
+        for other in template.occurrences.filter(date__gt=service.date):
+            if not other.slots.filter(status='published').exists():
+                apply_definition(other,clean,merge=True)
+        change_template(template,clean,service.date)
+        service.template_snapshot=deepcopy(clean)
+        service.save(update_fields=['template_snapshot'])
     apply_definition(service,data)
     return Response(serialize_service(service))
+
+
+def materialize(restaurant, start, end):
+    """Expand a permanent weekly rule only over a bounded requested interval."""
+    if end < start or (end-start).days>93:
+        raise ValidationError('Choisissez une période de 94 jours maximum.')
+    count=0
+    for template in restaurant.service_templates.all():
+        beginning=max(start,template.starts_on or timezone.localdate())
+        finish=min(end,template.ends_on) if template.ends_on else end
+        day=beginning+timedelta(days=(template.weekday-beginning.weekday())%7)
+        cancelled=set(template.cancellations.filter(date__gte=beginning,date__lte=finish).values_list('date',flat=True))
+        while day<=finish:
+            if day not in cancelled and not template.occurrences.filter(date=day).exists():
+                data=definition_on(template,day)
+                data['tasks']=[{**t,'done':False} for t in data['tasks']]
+                instance=RestaurantService.objects.create(restaurant=restaurant,template=template,date=day,
+                    template_snapshot=deepcopy(data),**{k:data[k] for k in FIELDS})
+                apply_definition(instance,data)
+                count+=1
+            day+=timedelta(days=7)
+    return count
+
+
+@api_view(['POST'])
+@transaction.atomic
+def prepare_services(request,slug):
+    restaurant=_get_restaurant(slug)
+    _require_team(restaurant,_require_auth(request))
+    start=parse_date(request.data.get('from'))
+    end=parse_date(request.data.get('to'))
+    count=materialize(restaurant,start,end)
+    return Response({'created':count})

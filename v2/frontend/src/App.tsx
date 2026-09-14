@@ -11,6 +11,7 @@ const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? "";
 
 const LuluApp = lazy(() => import("./lulu/LuluApp"));
 const LuluDeveloperPage = lazy(() => import("./lulu/LuluDeveloperPage"));
+const RestaurantAccess = lazy(() => import("./resto/RestaurantAccess"));
 const RestoPage = lazy(() => import("./resto/RestoPage"));
 const RestoListPage = lazy(() => import("./resto/RestoListPage"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
@@ -65,6 +66,7 @@ export default function App() {
             path="/resto/:slug"
             element={<Suspense fallback={<Loading />}><RestoPage /></Suspense>}
           />
+          <Route path="/resto/:slug/acces" element={<Suspense fallback={<Loading />}><RestaurantAccess /></Suspense>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>

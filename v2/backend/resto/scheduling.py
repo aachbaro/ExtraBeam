@@ -1,6 +1,7 @@
 """Restaurant scheduling: availability, eligibility, hours and draft generation."""
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
+import unicodedata
 from django.db.models import Q
 from .models import ShiftAssignment
 
@@ -42,11 +43,15 @@ def bookings(member, shift):
     if member.profile_id: query |= Q(member__profile_id=member.profile_id)
     return [a.shift for a in ShiftAssignment.objects.filter(query).exclude(status="declined").exclude(shift=shift).select_related("shift")]
 
+def has_skills(member, required):
+    normalize=lambda s:unicodedata.normalize('NFKC',s.strip()).casefold()
+    return {normalize(s) for s in required}.issubset({normalize(s) for s in member.skills})
+
 def reasons(member, shift, existing=None):
     result=[]
     if not member.is_active: result.append("Membre inactif")
     if shift.position not in {member.position, *member.skills}: result.append("Poste non habilité")
-    if not set(shift.required_skills).issubset(member.skills): result.append("Compétence requise manquante")
+    if not has_skills(member,shift.required_skills): result.append("Compétence requise manquante")
     if availability(member,shift)=="unavailable": result.append("Indisponible")
     a,b=interval(shift); rows=bookings(member,shift) if existing is None else existing
     week=shift.date-timedelta(days=shift.date.weekday())

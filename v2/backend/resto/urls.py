@@ -1,7 +1,15 @@
 from django.urls import path
-from . import views, services
+from . import views, services, access
 
 urlpatterns = [
+    path("restaurants/<slug:slug>/prepare/", services.prepare_services),
+    path("restaurants/<slug:slug>/skills/", access.skills),
+    path("restaurants/<slug:slug>/members/<int:member_id>/pin/", access.set_pin),
+    path("restaurants/<slug:slug>/access/people/", access.people),
+    path("restaurants/<slug:slug>/access/login/", access.login),
+    path("restaurants/<slug:slug>/access/board/", access.board),
+    path("restaurants/<slug:slug>/access/availability/", access.availability),
+    path("restaurants/<slug:slug>/access/logout/", access.logout),
     path("restaurants/<slug:slug>/service-templates/", services.templates),
     path("restaurants/<slug:slug>/service-templates/<int:template_id>/", services.template_detail),
     path("restaurants/<slug:slug>/services/", services.services),

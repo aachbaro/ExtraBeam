@@ -22,6 +22,8 @@ DEBUG = env("DEBUG")
 SECRET_KEY = env("SECRET_KEY")
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS")
 CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS")
+from corsheaders.defaults import default_headers
+CORS_ALLOW_HEADERS = (*default_headers, "x-resto-session")
 CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS")
 FRONTEND_URL = env("FRONTEND_URL")
 OIDC_ISSUER_URL = env("OIDC_ISSUER_URL").rstrip("/")

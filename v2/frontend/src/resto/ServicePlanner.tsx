@@ -8,7 +8,8 @@ import type {
 import {
   fetchServices,
   fetchServiceTemplates,
-  createService,
+  prepareServices,
+  fetchMembers,
   editService,
   deleteService,
   deleteServiceTemplate,
@@ -29,10 +30,12 @@ export default function ServicePlanner({
   restaurant,
   members,
   token,
+  onMembersChanged,
 }: {
   restaurant: Restaurant;
   members: RestaurantMember[];
   token: string;
+  onMembersChanged: (members: RestaurantMember[]) => void;
 }) {
   const slug = restaurant.slug,
     manager = !!restaurant.is_manager;
@@ -64,6 +67,8 @@ export default function ServicePlanner({
   const from = days[0],
     to = days[6],
     viewMonth = month || from.slice(0, 7);
+  const [deleting, setDeleting] = useState<RestaurantService | null>(null);
+  const [deleteScope, setDeleteScope] = useState<"this" | "future">("this");
   const active = services.find((s) => s.id === selected);
   const reload = () => setRefresh((n) => n + 1);
   useEffect(() => {
@@ -71,7 +76,9 @@ export default function ServicePlanner({
     setLoading(true);
     setError("");
     Promise.all([
-      fetchServices(slug, from, to, token),
+      prepareServices(slug, from, to, token).then(() =>
+        fetchServices(slug, from, to, token),
+      ),
       manager ? fetchServiceTemplates(slug, token) : Promise.resolve([]),
     ])
       .then(([s, t]) => {
@@ -117,17 +124,11 @@ export default function ServicePlanner({
   }
   async function prepare() {
     await action(async () => {
-      let count = 0;
-      for (const t of templates) {
-        const result = await createService(
-          slug,
-          { template_id: t.id, date: days[t.weekday], repeat_weeks: weeks },
-          token,
-        );
-        count += result.length;
-      }
+      const end = new Date(to + "T12:00:00");
+      end.setDate(end.getDate() + (weeks - 1) * 7);
+      const result = await prepareServices(slug, from, localDay(end), token);
       setNotice(
-        `${count} service(s) créé(s). Les occurrences déjà présentes ont été conservées.`,
+        `${result.created} service(s) préparé(s). Les services hebdomadaires apparaissent automatiquement en consultant chaque semaine.`,
       );
     });
   }
@@ -246,8 +247,7 @@ export default function ServicePlanner({
           </div>
           {!templates.length && (
             <p className="text-sm">
-              Créez un service et cochez « Enregistrer aussi comme modèle
-              hebdomadaire ».
+              Créez ou modifiez un service et cochez « Service hebdomadaire ».
             </p>
           )}
         </details>
@@ -378,15 +378,8 @@ export default function ServicePlanner({
                   <button
                     disabled={busy}
                     onClick={() => {
-                      if (
-                        confirm(
-                          "Supprimer ce service ? Les affectations doivent être retirées au préalable.",
-                        )
-                      )
-                        void action(async () => {
-                          await deleteService(slug, active.id, token);
-                          setSelected(null);
-                        });
+                      setDeleting(active);
+                      setDeleteScope("this");
                     }}
                   >
                     Supprimer
@@ -497,12 +490,76 @@ export default function ServicePlanner({
             />
           ))}
       </section>
+      {deleting && (
+        <div
+          className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Supprimer le service"
+        >
+          <div className="bg-white rounded-xl p-6 max-w-md space-y-4">
+            <h2 className="font-semibold">
+              Supprimer {deleting.title} du {deleting.date} ?
+            </h2>
+            <p className="text-sm">
+              Les postes, affectations, réponses de disponibilité, notes et
+              tâches des services supprimés seront retirés.
+            </p>
+            {deleting.template_id && (
+              <label className="block text-sm">
+                Portée de la suppression
+                <select
+                  className="w-full border rounded p-2 mt-2"
+                  value={deleteScope}
+                  onChange={(e) =>
+                    setDeleteScope(e.target.value as typeof deleteScope)
+                  }
+                >
+                  <option value="this">Cette date uniquement</option>
+                  <option value="future">
+                    Cette date et les suivantes : arrêter la récurrence
+                  </option>
+                </select>
+              </label>
+            )}
+            {error && (
+              <p role="alert" className="text-red-700 text-sm">
+                {error}
+              </p>
+            )}
+            <div className="flex justify-end gap-3">
+              <button disabled={busy} onClick={() => setDeleting(null)}>
+                Annuler
+              </button>
+              <button
+                className="bg-red-700 text-white rounded px-3 py-2"
+                disabled={busy}
+                onClick={() =>
+                  void action(async () => {
+                    await deleteService(slug, deleting.id, token, deleteScope);
+                    setDeleting(null);
+                    setSelected(null);
+                  })
+                }
+              >
+                Confirmer la suppression
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {editor && (
         <ServiceEditor
           slug={slug}
           token={token}
           {...editor}
           templates={templates}
+          members={members}
+          onSkillsChanged={() => {
+            void fetchMembers(slug, token)
+              .then(onMembersChanged)
+              .catch((e) => setError(String(e)));
+          }}
           onClose={() => setEditor(null)}
           onSaved={() => {
             setEditor(null);

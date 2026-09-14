@@ -74,3 +74,33 @@ Migration `0004` : regroupement des anciens postes par restaurant/date/type de s
 Le formulaire propose les clients déjà présents dans l’historique privé des factures, avec les données de la facture la plus récemment créée par client (SIRET/SIREN, sinon nom et adresse). Ce choix copie uniquement les coordonnées, jamais le paiement ou la mission. Il s’agit d’un accès aux clients déjà facturés, pas d’un carnet client indépendant : supprimer toutes les factures d’un client le retire de cette liste.
 
 Le raccourci date/début/fin remplace la description par la prestation datée et calcule sa durée brute, y compris après minuit. Les heures restent modifiables pour déduire les pauses. L’enregistrement et le téléchargement restent des actions explicites de l’utilisateur.
+
+## Révision du 14 septembre 2026 : récurrence permanente et accès employés
+
+Cette section remplace les indications précédentes sur les récurrences finies, la suppression bloquée par des affectations et la saisie des disponibilités par le responsable.
+
+- Dans le formulaire, Entrée dans un champ simple confirme/quitte ce champ sans soumettre le service. Les retours à la ligne d’une note restent possibles ; « Enregistrer » valide le service.
+- Les compétences requises utilisent un catalogue partagé et des tags. La création demande de choisir les employés habilités, puis enregistre la compétence et leurs habilitations atomiquement. Une sélection existante ne modifie pas les habilitations. La comparaison des compétences ignore la casse Unicode. Le contrat et les compétences restent gérés par le responsable.
+- « Service hebdomadaire, sans date de fin » est disponible à la création et pour convertir un service ponctuel. Le nombre d’occurrences a disparu de l’interface. Les anciens paramètres de création sont encore acceptés par l’API pour compatibilité.
+- La règle hebdomadaire est permanente ; ses occurrences sont matérialisées sur une période bornée (94 jours maximum par appel), automatiquement lorsque le responsable ou l’employé consulte une semaine. La génération matérialise aussi la période avant de traiter ses postes. Les tâches repartent décochées. Aucune affectation n’est faite automatiquement par cette préparation.
+- Un changement sur un service peut concerner cette date seule ou cette date et les prochains brouillons. Les versions datées de la définition empêchent cette seconde option de changer rétroactivement des semaines antérieures pas encore matérialisées. Les ajustements locaux et les cases déjà cochées sont conservés ; les autres services publiés ne sont pas réécrits.
+- La suppression présente un choix « cette date » ou « cette date et les suivantes ». Après confirmation, elle retire les postes, affectations, disponibilités, tâches et notes des services concernés. Une annulation datée empêche de recréer l’occurrence supprimée. L’arrêt de récurrence fixe sa dernière date autorisée ; les services antérieurs restent présents. Aucun service réel n’a été supprimé automatiquement lors du déploiement.
+
+### Compte employé propre au restaurant
+
+Page : `/resto/:slug/acces`. L’employé sélectionne son nom et entre son PIN ; il consulte les horaires des postes correspondant à ses rôles et compétences, répond sur chaque poste ou définit sa disponibilité habituelle. Ses affectations ne sont affichées comme telles que lorsqu’elles sont publiées. Les disponibilités du profil relié restent prioritaires lorsqu’elles constituent une indisponibilité.
+
+Le propriétaire configure les PIN dans l’onglet Équipe, section « Accès des employés ». Les autres responsables ne peuvent pas réinitialiser les PIN. Seuls les employés actifs avec un PIN configuré figurent sur la page publique ; seules leurs identités d’affichage (id, nom) y sont exposées. Aucun PIN initial n’est attribué automatiquement.
+
+Les PIN de 4 à 8 chiffres sont hachés par Django. Les sessions sont aléatoires, stockées hachées en base, limitées à un restaurant et expirent après 7 jours ; le navigateur conserve la session dans `sessionStorage` par restaurant. Cinq échecs verrouillent le compte pendant 15 minutes, avec compteur persistant en base. Un changement de PIN révoque toutes les sessions PIN de l’employé. Ces sessions ne donnent pas accès au compte central, à l’administration, aux compétences ou aux contrats.
+
+Le responsable ne peut plus renseigner la disponibilité d’un autre employé depuis le détail d’un service ni modifier sa disponibilité habituelle. Le serveur refuse aussi ces opérations, indépendamment de l’interface. Les données de disponibilité déjà présentes sont conservées ; aucune réponse n’est réinitialisée par la migration.
+
+Nouveaux endpoints (préfixe `/api/resto/restaurants/:slug/`) :
+
+- `prepare/` POST : matérialisation bornée et idempotente des règles hebdomadaires pour l’équipe authentifiée.
+- `skills/` GET/POST : catalogue et création avec `member_ids`, accès responsable.
+- `members/:id/pin/` POST : attribution/réinitialisation, propriétaire uniquement.
+- `access/people/` GET, `access/login/` POST, `access/board/` POST, `access/availability/` POST, `access/logout/` POST. Les trois derniers utilisent `X-Resto-Session`, sans privilège central. Les requêtes de disponibilité agissent toujours sur le membre de la session, jamais sur un identifiant d’employé fourni par le client.
+
+Validation : 18 tests Django couvrant aussi les annulations, l’arrêt de récurrence, les versions datées, les droits des responsables, le catalogue, les sessions PIN, leur révocation et le verrouillage des tentatives. Scénario navigateur isolé : Entrée, tags, choix des habilitations, hebdomadaire, portée des modifications/suppressions, configuration et connexion PIN, disponibilité personnelle et viewport mobile.

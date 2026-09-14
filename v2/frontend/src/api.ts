@@ -794,14 +794,14 @@ export function setMemberShiftAvailability(slug: string, shiftId: number, member
 export function fetchServices(slug: string, from: string, to: string, token: string) {
   return getJson<import('./types').RestaurantService[]>(`${RESTO}/restaurants/${slug}/services/?from=${from}&to=${to}`, token);
 }
-export function createService(slug: string, data: { date: string; definition?: import('./types').ServiceDefinition; template_id?: number; repeat_weeks?: number; repeat_interval?: number }, token: string) {
+export function createService(slug: string, data: { date: string; definition?: import('./types').ServiceDefinition; template_id?: number; repeat_weeks?: number; repeat_interval?: number; recurring?: boolean }, token: string) {
   return postJson<import('./types').RestaurantService[]>(`${RESTO}/restaurants/${slug}/services/`, data, token);
 }
-export function editService(slug: string, id: number, data: { definition: import('./types').ServiceDefinition } | { task_key: string; done: boolean }, token: string) {
+export function editService(slug: string, id: number, data: { definition: import('./types').ServiceDefinition; recurring?: boolean; scope?: "this" | "future" } | { task_key: string; done: boolean }, token: string) {
   return patchJson<import('./types').RestaurantService>(`${RESTO}/restaurants/${slug}/services/${id}/`, data, token);
 }
-export function deleteService(slug: string, id: number, token: string) {
-  return deleteReq(`${RESTO}/restaurants/${slug}/services/${id}/`, token);
+export function deleteService(slug: string, id: number, token: string, scope: "this" | "future" = "this") {
+  return deleteReq(`${RESTO}/restaurants/${slug}/services/${id}/?scope=${scope}`, token);
 }
 export function fetchServiceTemplates(slug: string, token: string) {
   return getJson<import('./types').ServiceTemplate[]>(`${RESTO}/restaurants/${slug}/service-templates/`, token);
@@ -812,4 +812,24 @@ export function saveServiceTemplate(slug: string, id: number | null, data: { def
 }
 export function deleteServiceTemplate(slug: string, id: number, token: string) {
   return deleteReq(`${RESTO}/restaurants/${slug}/service-templates/${id}/`, token);
+}
+
+export function prepareServices(slug:string,from:string,to:string,token:string) {
+  return postJson<{created:number}>(`${RESTO}/restaurants/${slug}/prepare/`,{from,to},token);
+}
+export function fetchRestaurantSkills(slug:string,token:string) {
+  return getJson<string[]>(`${RESTO}/restaurants/${slug}/skills/`,token);
+}
+export function createRestaurantSkill(slug:string,name:string,member_ids:number[],token:string) {
+  return postJson<{name:string;created:boolean}>(`${RESTO}/restaurants/${slug}/skills/`,{name,member_ids},token);
+}
+export function setEmployeePin(slug:string,id:number,pin:string,token:string) {
+  return postJson<{configured:boolean}>(`${RESTO}/restaurants/${slug}/members/${id}/pin/`,{pin},token);
+}
+export async function employeeApi<T>(slug:string,action:string,token:string|null,data?:object):Promise<T> {
+  const response=await fetch(`${API_URL}${RESTO}/restaurants/${slug}/access/${action}/`,{
+    method:data===undefined?'GET':'POST',headers:{'Content-Type':'application/json',...(token?{'X-Resto-Session':token}:{})},...(data===undefined?{}:{body:JSON.stringify(data)})
+  });
+  if(!response.ok)throw new Error(await readErrorMessage(response));
+  return response.status===204?undefined as T:response.json();
 }

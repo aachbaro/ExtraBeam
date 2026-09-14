@@ -6,6 +6,8 @@ import type { Restaurant, RestaurantMember } from "../types";
 import RestoTeamSection from "./RestoTeamSection";
 import MemberPlanningEditor from "./MemberPlanningEditor";
 import ServicePlanner from "./ServicePlanner";
+import EmployeeAccessSettings from "./EmployeeAccessSettings";
+import { Link } from "react-router-dom";
 
 export default function RestoPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -38,6 +40,18 @@ export default function RestoPage() {
       alive = false;
     };
   }, [slug, token]);
+  if (!token)
+    return (
+      <main className="p-8 space-y-4">
+        <h1 className="text-xl">Accès au restaurant</h1>
+        <Link className="block underline" to={`/resto/${slug}/acces`}>
+          Connexion employé par PIN
+        </Link>
+        <Link className="block underline" to="/login">
+          Connexion responsable Rivebelle
+        </Link>
+      </main>
+    );
   if (loading) return <p className="p-8">Chargement…</p>;
   if (error || !restaurant)
     return (
@@ -85,7 +99,23 @@ export default function RestoPage() {
             restaurant={restaurant}
             members={members}
             token={token}
+            onMembersChanged={setMembers}
           />
+        )}
+        {tab === "equipe" && token && restaurant.is_owner && (
+          <EmployeeAccessSettings
+            slug={restaurant.slug}
+            token={token}
+            members={members}
+          />
+        )}
+        {tab === "equipe" && (
+          <Link
+            className="text-sm underline"
+            to={`/resto/${restaurant.slug}/acces`}
+          >
+            Connexion des employés par PIN
+          </Link>
         )}
         {tab === "equipe" && (
           <>

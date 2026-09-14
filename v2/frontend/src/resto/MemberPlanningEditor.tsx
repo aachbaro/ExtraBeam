@@ -43,7 +43,7 @@ function MemberRow({
 }) {
   const [hours, setHours] = useState(member.weekly_hours);
   const [skills, setSkills] = useState(member.skills.join(", "));
-  const [availability, setAvailability] = useState(member.default_availability);
+
   const [prefs, setPrefs] = useState(member.preferences);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
@@ -65,7 +65,6 @@ function MemberRow({
                 .map((s) => s.trim())
                 .filter(Boolean),
               preferences: prefs,
-              default_availability: availability,
             });
             setMessage("Enregistré.");
           } catch (err) {
@@ -88,19 +87,9 @@ function MemberRow({
             onChange={(e) => setHours(Number(e.target.value))}
           />
         </label>
-        <label>
-          Disponibilité habituelle
-          <select
-            className="border rounded p-2 w-full"
-            value={availability}
-            onChange={(e) => setAvailability(e.target.value)}
-          >
-            <option value="unknown">À confirmer</option>
-            <option value="available">Disponible</option>
-            <option value="maybe">De préférence non</option>
-            <option value="unavailable">Indisponible</option>
-          </select>
-        </label>
+        <p className="text-xs text-eb-secondary">
+          Disponibilités renseignées par l’employé depuis son accès PIN.
+        </p>
         <label>
           Autres postes et compétences
           <input

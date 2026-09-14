@@ -150,3 +150,97 @@ class ServiceTests(PlanningTests):
         self.assertEqual(self.client.get(self.base+'services/').status_code,403)
         self.assertEqual(self.client.get(self.base+'service-templates/').status_code,403)
         self.assertEqual(self.client.patch(f"{self.base}services/{row['id']}/",{'task_key':'opening','done':True},format='json').status_code,403)
+
+class EmployeeAndRecurrenceTests(APITestCase):
+    setUp=PlanningTests.setUp
+    definition=ServiceTests.definition
+
+    def weekly(self):
+        r=self.client.post(self.base+'services/',{'date':'2027-09-01','definition':self.definition(),'recurring':True},format='json')
+        self.assertEqual(r.status_code,201,r.data)
+        return r.data[0]
+
+    def test_permanent_weekly_creation_deletion_and_stop(self):
+        from .models import RestaurantService,ServiceTemplate
+        first=self.weekly()
+        r=self.client.post(self.base+'prepare/',{'from':'2028-09-01','to':'2028-09-30'},format='json')
+        self.assertEqual(r.status_code,200,r.data)
+        future=RestaurantService.objects.filter(date__year=2028)
+        self.assertEqual(future.count(),4)
+        deleted=future.order_by('date').first();deleted_day=deleted.date
+        deleted.slots.first().assignments.create(member=self.member)
+        self.assertEqual(self.client.delete(f'{self.base}services/{deleted.id}/').status_code,204)
+        self.client.post(self.base+'prepare/',{'from':'2028-09-01','to':'2028-09-30'},format='json')
+        self.assertFalse(RestaurantService.objects.filter(template_id=first['template_id'],date=deleted_day).exists())
+        stop=future.order_by('date').first();stop_day=stop.date
+        self.assertEqual(self.client.delete(f'{self.base}services/{stop.id}/?scope=future').status_code,204)
+        self.client.post(self.base+'prepare/',{'from':'2029-09-01','to':'2029-09-30'},format='json')
+        self.assertFalse(RestaurantService.objects.filter(template_id=first['template_id'],date__gte=stop_day).exists())
+
+    def test_convert_existing_and_scope_versioning(self):
+        from .models import RestaurantService
+        r=self.client.post(self.base+'services/',{'date':'2027-09-01','definition':self.definition()},format='json')
+        original=r.data[0]
+        r=self.client.patch(f"{self.base}services/{original['id']}/",{'definition':self.definition(),'recurring':True},format='json')
+        self.assertEqual(r.status_code,200,r.data);self.assertIsNotNone(r.data['template_id'])
+        self.client.post(self.base+'prepare/',{'from':'2027-10-01','to':'2027-10-07'},format='json')
+        later=RestaurantService.objects.filter(date__month=10).first()
+        edited=self.definition();edited['slots'][0]['positions_needed']=4
+        r=self.client.patch(f'{self.base}services/{later.id}/',{'definition':edited,'scope':'future'},format='json')
+        self.assertEqual(r.status_code,200,r.data)
+        # September dates not yet materialized retain the previous weekly definition.
+        self.client.post(self.base+'prepare/',{'from':'2027-09-01','to':'2027-10-31'},format='json')
+        self.assertEqual(RestaurantService.objects.get(date='2027-09-08').slots.get(position='serveur').positions_needed,3)
+        self.assertEqual(RestaurantService.objects.get(date='2027-10-13').slots.get(position='serveur').positions_needed,4)
+        one=RestaurantService.objects.get(date='2027-10-13');edited['slots'][0]['positions_needed']=5
+        self.client.patch(f'{self.base}services/{one.id}/',{'definition':edited,'scope':'this'},format='json')
+        self.assertEqual(RestaurantService.objects.get(date='2027-10-20').slots.get(position='serveur').positions_needed,4)
+
+    def test_skill_catalog_deduplication_and_assignment(self):
+        other=RestaurantMember.objects.create(restaurant=self.restaurant,name='Bob')
+        r=self.client.post(self.base+'skills/',{'name':'Clés','member_ids':[self.member.id]},format='json')
+        self.assertEqual(r.status_code,201,r.data)
+        self.member.refresh_from_db();self.assertIn('Clés',self.member.skills)
+        r=self.client.post(self.base+'skills/',{'name':'clés','member_ids':[other.id]},format='json')
+        self.assertEqual(r.status_code,200,r.data);self.assertFalse(r.data['created'])
+        other.refresh_from_db();self.assertEqual(other.skills,[])
+        self.assertEqual(self.client.get(self.base+'skills/').data,['Clés'])
+        r=self.client.post(self.base+'skills/',{'name':'Fermeture','member_ids':[99999]},format='json')
+        self.assertEqual(r.status_code,400)
+        self.assertEqual(self.client.get(self.base+'skills/').data,['Clés'])
+
+    def test_pin_sessions_permissions_and_revocation(self):
+        from .models import EmployeeSession
+        row=self.weekly();shift=RestaurantShift.objects.get(pk=row['shifts'][0]['id'])
+        endpoint=f'{self.base}members/{self.member.id}/pin/'
+        self.assertEqual(self.client.post(endpoint,{'pin':'1234'}).status_code,200)
+        self.member.refresh_from_db();self.assertNotEqual(self.member.pin_hash,'1234')
+        r=self.client.put(f'{self.base}shifts/{shift.id}/availability/',{'member_id':self.member.id,'status':'unavailable'},format='json')
+        self.assertEqual(r.status_code,403)
+        self.assertEqual(self.client.patch(f'{self.base}members/{self.member.id}/',{'default_availability':'available'},format='json').status_code,403)
+        self.client.force_authenticate(None)
+        r=self.client.post(self.base+'access/login/',{'member_id':self.member.id,'pin':'1234'})
+        self.assertEqual(r.status_code,200,r.data);token=r.data['token']
+        headers={'HTTP_X_RESTO_SESSION':token}
+        r=self.client.post(self.base+'access/board/',{'from':'2027-09-01','to':'2027-09-07'},**headers)
+        self.assertEqual(r.status_code,200,r.data);self.assertEqual(len(r.data['slots']),1)
+        self.assertEqual(self.client.post(self.base+'access/availability/',{'shift_id':shift.id,'status':'unavailable'},**headers).status_code,200)
+        self.assertEqual(shift.availabilities.get(member=self.member).status,'unavailable')
+        self.assertEqual(self.client.post(self.base+'services/',{'date':'2027-09-01'},**headers).status_code,403)
+        other=Restaurant.objects.create(slug='other-resto',name='Other',owner=self.profile)
+        self.assertEqual(self.client.post('/api/resto/restaurants/other-resto/access/board/',{'from':'2027-09-01','to':'2027-09-07'},**headers).status_code,403)
+        self.client.force_authenticate(self.user)
+        self.client.post(endpoint,{'pin':'5678'})
+        self.client.force_authenticate(None)
+        self.assertEqual(self.client.post(self.base+'access/board/',{'from':'2027-09-01','to':'2027-09-07'},**headers).status_code,403)
+        self.assertFalse(EmployeeSession.objects.exists())
+
+    def test_pin_failures_are_persisted_and_public_data_minimal(self):
+        self.client.post(f'{self.base}members/{self.member.id}/pin/',{'pin':'1234'})
+        self.client.force_authenticate(None)
+        r=self.client.get(self.base+'access/people/')
+        self.assertEqual(set(r.data['people'][0]),{'id','name'})
+        for _ in range(5):
+            self.assertEqual(self.client.post(self.base+'access/login/',{'member_id':self.member.id,'pin':'9999'}).status_code,400)
+        self.assertEqual(self.client.post(self.base+'access/login/',{'member_id':self.member.id,'pin':'1234'}).status_code,429)
+        self.member.refresh_from_db();self.assertEqual(self.member.pin_failures,5)

@@ -4,12 +4,7 @@ import type {
   RestaurantShift,
   AvailabilityStatus,
 } from "../types";
-import {
-  updateShift,
-  updateAssignment,
-  removeAssignment,
-  setMemberShiftAvailability,
-} from "../api";
+import { updateShift, updateAssignment, removeAssignment } from "../api";
 
 const STATUS_COLORS: Record<string, string> = {
   draft: "bg-amber-100 text-amber-700",
@@ -338,39 +333,6 @@ export default function RestoShiftCard({
                           {candidate.reasons.join(", ")}
                         </span>
                       ) : null}
-                      <select
-                        aria-label={`Disponibilité de ${m.name}`}
-                        defaultValue=""
-                        onChange={async (e) => {
-                          if (!token || !e.target.value) return;
-                          try {
-                            const av = await setMemberShiftAvailability(
-                              restaurantSlug,
-                              shift.id,
-                              m.id,
-                              e.target.value as AvailabilityStatus,
-                              token,
-                            );
-                            onUpdated({
-                              ...shift,
-                              availabilities: [
-                                ...shift.availabilities.filter(
-                                  (a) => a.member_id !== m.id,
-                                ),
-                                av,
-                              ],
-                            });
-                          } catch (err) {
-                            setError(String(err));
-                          }
-                        }}
-                        className="border rounded p-1"
-                      >
-                        <option value="">Renseigner pour ces horaires</option>
-                        <option value="available">Disponible</option>
-                        <option value="maybe">De préférence non</option>
-                        <option value="unavailable">Indisponible</option>
-                      </select>
                     </div>
                   );
                 })}

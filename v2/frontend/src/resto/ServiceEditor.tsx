@@ -1,10 +1,12 @@
 import { useState } from "react";
 import type {
   RestaurantService,
+  RestaurantMember,
   ServiceDefinition,
   ServiceTemplate,
   ServiceSlot,
 } from "../types";
+import SkillsPicker from "./SkillsPicker";
 import { createService, editService, saveServiceTemplate } from "../api";
 import type { TimeRange } from "../components/agenda/WeekTimeGrid";
 export const weekdays = [
@@ -57,6 +59,8 @@ export default function ServiceEditor({
   service,
   template,
   templates,
+  members,
+  onSkillsChanged,
   onClose,
   onSaved,
 }: {
@@ -66,6 +70,8 @@ export default function ServiceEditor({
   service?: RestaurantService;
   template?: ServiceTemplate;
   templates: ServiceTemplate[];
+  members: RestaurantMember[];
+  onSkillsChanged: () => void;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -88,14 +94,15 @@ export default function ServiceEditor({
           },
   );
   const [templateId, setTemplateId] = useState<number | undefined>();
-  const [saveModel, setSaveModel] = useState(false);
+  const [recurring, setRecurring] = useState(!!service?.template_id);
+  const [scope, setScope] = useState<"this" | "future">("this");
   const [weekday, setWeekday] = useState(
     template?.weekday ?? (new Date(day + "T12:00:00").getDay() + 6) % 7,
   );
-  const [repeat, setRepeat] = useState(1);
-  const [interval, setInterval] = useState(1);
+
   const [applyFuture, setApplyFuture] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [skillBusy, setSkillBusy] = useState(false);
   const [error, setError] = useState("");
   function field<K extends keyof ServiceDefinition>(
     name: K,
@@ -122,35 +129,18 @@ export default function ServiceEditor({
           token,
         );
       else if (service)
-        await editService(slug, service.id, { definition }, token);
-      else {
-        let id = templateId;
-        if (saveModel && !id) {
-          const t = await saveServiceTemplate(
-            slug,
-            null,
-            {
-              definition,
-              weekday: (new Date(day + "T12:00:00").getDay() + 6) % 7,
-            },
-            token,
-          );
-          id = t.id;
-          setTemplateId(id);
-          setSaveModel(false);
-        }
-        await createService(
+        await editService(
           slug,
-          {
-            date: day,
-            definition,
-            template_id: id,
-            repeat_weeks: repeat,
-            repeat_interval: interval,
-          },
+          service.id,
+          { definition, recurring, scope },
           token,
         );
-      }
+      else
+        await createService(
+          slug,
+          { date: day, definition, template_id: templateId, recurring },
+          token,
+        );
       onSaved();
     } catch (e) {
       setError(String(e));
@@ -168,6 +158,16 @@ export default function ServiceEditor({
       aria-labelledby="service-editor-title"
     >
       <form
+        onKeyDown={(e) => {
+          if (
+            e.key === "Enter" &&
+            e.target instanceof HTMLInputElement &&
+            e.target.type !== "submit"
+          ) {
+            e.preventDefault();
+            e.target.blur();
+          }
+        }}
         onSubmit={submit}
         className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[92vh] overflow-y-auto p-5 space-y-5"
       >
@@ -179,7 +179,7 @@ export default function ServiceEditor({
                 ? "Modifier ce service"
                 : "Nouveau service"}
           </h2>
-          <button type="button" disabled={busy} onClick={onClose}>
+          <button type="button" disabled={busy || skillBusy} onClick={onClose}>
             Fermer
           </button>
         </div>
@@ -194,6 +194,7 @@ export default function ServiceEditor({
                   (t) => t.id === Number(e.target.value),
                 );
                 setTemplateId(t?.id);
+                setRecurring(!!t);
                 if (t) setDefinition(serviceDefinition(t.definition));
               }}
             >
@@ -375,26 +376,20 @@ export default function ServiceEditor({
                     onChange={(e) => updateSlot(i, { title: e.target.value })}
                   />
                 </label>
-                <label>
-                  Compétences requises
-                  <input
-                    className={input}
-                    placeholder="clés, fermeture…"
-                    value={s.required_skills.join(", ")}
-                    onChange={(e) =>
-                      updateSlot(i, {
-                        required_skills: e.target.value
-                          .split(",")
-                          .map((v) => v.trim()),
-                      })
+                <div>
+                  <p className="mb-1">Compétences requises</p>
+                  <SkillsPicker
+                    slug={slug}
+                    token={token}
+                    members={members}
+                    value={s.required_skills}
+                    onChange={(required_skills) =>
+                      updateSlot(i, { required_skills })
                     }
-                    onBlur={() =>
-                      updateSlot(i, {
-                        required_skills: s.required_skills.filter(Boolean),
-                      })
-                    }
+                    onCreated={onSkillsChanged}
+                    onBusy={setSkillBusy}
                   />
-                </label>
+                </div>
               </div>
             </div>
           ))}
@@ -486,43 +481,41 @@ export default function ServiceEditor({
             onChange={(e) => field("notes", e.target.value)}
           />
         </label>
-        {!service && !template && (
-          <div className="space-y-3 border-t pt-3">
-            {!templateId && (
-              <label className="flex gap-2">
-                <input
-                  type="checkbox"
-                  checked={saveModel}
-                  onChange={(e) => setSaveModel(e.target.checked)}
-                />
-                Enregistrer aussi comme modèle hebdomadaire
+        {!template && (
+          <section className="border-t pt-3 space-y-3">
+            <label className="flex gap-2">
+              <input
+                type="checkbox"
+                checked={recurring}
+                disabled={!!service?.template_id || !!templateId}
+                onChange={(e) => setRecurring(e.target.checked)}
+              />
+              Service hebdomadaire, sans date de fin
+            </label>
+            {recurring && (
+              <p className="text-xs text-eb-secondary">
+                Ce service sera proposé chaque semaine le même jour. Chaque date
+                garde ses tâches et ses ajustements.
+              </p>
+            )}
+            {service?.template_id && (
+              <label className="block text-sm">
+                Appliquer les modifications
+                <select
+                  className={input}
+                  value={scope}
+                  onChange={(e) => setScope(e.target.value as typeof scope)}
+                >
+                  <option value="this">
+                    Seulement à ce service, à cette date
+                  </option>
+                  <option value="future">
+                    À ce service et aux suivants (brouillons)
+                  </option>
+                </select>
               </label>
             )}
-            <div className="flex gap-4">
-              <label>
-                Nombre d’occurrences
-                <input
-                  className={input}
-                  type="number"
-                  min={1}
-                  max={26}
-                  value={repeat}
-                  onChange={(e) => setRepeat(Number(e.target.value))}
-                />
-              </label>
-              <label>
-                Intervalle (semaines)
-                <input
-                  className={input}
-                  type="number"
-                  min={1}
-                  max={4}
-                  value={interval}
-                  onChange={(e) => setInterval(Number(e.target.value))}
-                />
-              </label>
-            </div>
-          </div>
+          </section>
         )}
         {template && (
           <label className="block border rounded p-3 text-sm">
@@ -541,11 +534,11 @@ export default function ServiceEditor({
           </p>
         )}
         <div className="flex justify-end gap-3">
-          <button type="button" disabled={busy} onClick={onClose}>
+          <button type="button" disabled={busy || skillBusy} onClick={onClose}>
             Annuler
           </button>
           <button
-            disabled={busy}
+            disabled={busy || skillBusy}
             className="rounded-lg bg-eb-primary text-white px-4 py-2"
           >
             {busy ? "Enregistrement…" : "Enregistrer"}

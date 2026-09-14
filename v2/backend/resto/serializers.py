@@ -3,6 +3,11 @@ from .models import Restaurant, RestaurantMember, RestaurantShift, ShiftAvailabi
 
 
 class RestaurantMemberSerializer(serializers.ModelSerializer):
+    pin_configured = serializers.SerializerMethodField()
+
+    def get_pin_configured(self, obj):
+        return bool(obj.pin_hash)
+
     avatar_url = serializers.SerializerMethodField()
     extra_slug = serializers.SerializerMethodField()
 
@@ -10,7 +15,7 @@ class RestaurantMemberSerializer(serializers.ModelSerializer):
         model = RestaurantMember
         fields = [
             "id", "name", "position", "is_active", "is_manager",
-            "email", "joined_at", "avatar_url", "extra_slug", "weekly_hours", "skills", "preferences", "default_availability",
+            "pin_configured", "email", "joined_at", "avatar_url", "extra_slug", "weekly_hours", "skills", "preferences", "default_availability",
         ]
         read_only_fields = ["id", "joined_at", "avatar_url", "extra_slug"]
 
