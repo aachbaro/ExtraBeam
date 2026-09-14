@@ -58,6 +58,7 @@ export default function ServiceEditor({
   initial,
   service,
   template,
+  prefill,
   templates,
   members,
   onSkillsChanged,
@@ -69,6 +70,7 @@ export default function ServiceEditor({
   initial?: TimeRange;
   service?: RestaurantService;
   template?: ServiceTemplate;
+  prefill?: ServiceDefinition;
   templates: ServiceTemplate[];
   members: RestaurantMember[];
   onSkillsChanged: () => void;
@@ -83,15 +85,17 @@ export default function ServiceEditor({
       ? serviceDefinition(service)
       : template
         ? serviceDefinition(template.definition)
-        : {
-            title: "Service du midi",
-            start_time: initial?.start_time || "12:00",
-            kitchen_end_time: initial?.end_time || "14:30",
-            end_time: initial?.end_time || "15:30",
-            notes: "",
-            tasks: [],
-            slots: [{ ...slot(), positions_needed: 3 }],
-          },
+        : prefill
+          ? serviceDefinition(prefill)
+          : {
+              title: "Service du midi",
+              start_time: initial?.start_time || "12:00",
+              kitchen_end_time: initial?.end_time || "14:30",
+              end_time: initial?.end_time || "15:30",
+              notes: "",
+              tasks: [],
+              slots: [{ ...slot(), positions_needed: 3 }],
+            },
   );
   const [templateId, setTemplateId] = useState<number | undefined>();
   const [recurring, setRecurring] = useState(!!service?.template_id);
@@ -177,7 +181,9 @@ export default function ServiceEditor({
               ? "Modifier le modèle"
               : service
                 ? "Modifier ce service"
-                : "Nouveau service"}
+                : prefill
+                  ? "Dupliquer ce service"
+                  : "Nouveau service"}
           </h2>
           <button type="button" disabled={busy || skillBusy} onClick={onClose}>
             Fermer

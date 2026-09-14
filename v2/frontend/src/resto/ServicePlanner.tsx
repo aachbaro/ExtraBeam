@@ -3,6 +3,7 @@ import type {
   Restaurant,
   RestaurantMember,
   RestaurantService,
+  ServiceDefinition,
   ServiceTemplate,
 } from "../types";
 import {
@@ -22,7 +23,7 @@ import WeekTimeGrid, {
 } from "../components/agenda/WeekTimeGrid";
 import HoursGauge from "../components/HoursGauge";
 import RestoShiftGrid from "./RestoShiftGrid";
-import ServiceEditor, { weekdays } from "./ServiceEditor";
+import ServiceEditor, { weekdays, serviceDefinition } from "./ServiceEditor";
 function localDay(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
@@ -49,6 +50,7 @@ export default function ServicePlanner({
     initial?: TimeRange;
     service?: RestaurantService;
     template?: ServiceTemplate;
+    prefill?: ServiceDefinition;
   } | null>(null);
   const [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
@@ -374,6 +376,12 @@ export default function ServicePlanner({
                     className="underline"
                   >
                     Modifier ce service
+                  </button>
+                  <button
+                    onClick={() => setEditor({ prefill: serviceDefinition(active) })}
+                    className="underline"
+                  >
+                    Dupliquer
                   </button>
                   <button
                     disabled={busy}
