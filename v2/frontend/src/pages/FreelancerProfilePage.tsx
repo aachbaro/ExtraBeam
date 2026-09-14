@@ -13,7 +13,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 
-import { fetchProfileOverview, getDefaultAppPath, getOidcLoginUrl } from "../api";
+import { fetchProfileOverview, fetchMyRestaurants, getDefaultAppPath, getOidcLoginUrl } from "../api";
+import type { Restaurant } from "../types";
 import AccountRoleCard from "../components/AccountRoleCard";
 import Agenda from "../components/agenda/Agenda";
 import ExperiencesSection from "../components/experiences/ExperiencesSection";
@@ -26,7 +27,7 @@ import AccountSettingsSection from "../components/settings/AccountSettingsSectio
 import Topbar from "../components/Topbar";
 import UnavailabilitySection from "../components/unavailabilities/UnavailabilitySection";
 import { useUserContext } from "../context/UserContext";
-import type { FreelancerProfile, Mission, ProfileOverview, Slot, Unavailability } from "../types";
+import type { FreelancerProfile, Mission, ProfileOverview, Restaurant, Slot, Unavailability } from "../types";
 
 const REFRESH_KEY = "eb_profile_refresh_attempted";
 
@@ -45,6 +46,7 @@ export default function FreelancerProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [pendingSlot, setPendingSlot] = useState<{ date: string; start: string; end: string } | null>(null);
   const [experiencesOpen, setExperiencesOpen] = useState(false);
+  const [myRestaurants, setMyRestaurants] = useState<Restaurant[]>([]);
 
   // Évite la boucle 404 → OIDC → 404 si le backend échoue quand même.
   const alreadyTriedRefresh = useRef(sessionStorage.getItem(REFRESH_KEY) === slug);
@@ -69,6 +71,13 @@ export default function FreelancerProfilePage() {
       .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false));
   }, [slug, user?.token, previewPublic]);
+
+  useEffect(() => {
+    if (!user?.token || !isOwner) return;
+    fetchMyRestaurants(user.token)
+      .then(setMyRestaurants)
+      .catch(() => { /* silent */ });
+  }, [user?.token, isOwner]);
 
   function switchPreviewMode(nextPreviewPublic: boolean) {
     if (nextPreviewPublic === previewPublic) {
@@ -346,6 +355,28 @@ export default function FreelancerProfilePage() {
               missions={missions}
               profile={profile}
             />
+
+            {myRestaurants.length > 0 && (
+              <section className="rounded-eb-card border border-eb-layout bg-white p-4">
+                <p className="text-[12px] font-medium uppercase tracking-[0.12em] text-eb-muted">Mes restaurants</p>
+                <p className="mt-1 text-[13px] text-eb-secondary">Établissements auxquels votre compte est lié.</p>
+                <div className="mt-4 space-y-2">
+                  {myRestaurants.map((r) => (
+                    <Link
+                      key={r.slug}
+                      to={`/resto/${r.slug}`}
+                      className="flex items-center justify-between rounded-eb border border-eb-layout bg-eb-page px-4 py-3 hover:bg-white transition-colors"
+                    >
+                      <div>
+                        <p className="text-[14px] font-medium text-eb-text">{r.name}</p>
+                        {r.city && <p className="text-[12px] text-eb-muted">{r.city}</p>}
+                      </div>
+                      <span className="text-[12px] text-eb-primary">→</span>
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            )}
 
             <AccountSettingsSection
               profile={profile}

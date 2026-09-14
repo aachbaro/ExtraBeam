@@ -155,3 +155,87 @@ def logout(request,slug):
     token=request.headers.get('X-Resto-Session','')
     EmployeeSession.objects.filter(token_hash=hashlib.sha256(token.encode()).hexdigest(),member__restaurant=restaurant).delete()
     return Response(status=204)
+
+
+@api_view(['POST'])
+@transaction.atomic
+def link_account(request, slug):
+    """Link an employee PIN session to the logged-in Rivebelle account."""
+    profile = _require_auth(request)
+    restaurant = _get_restaurant(slug)
+    employee_token = request.data.get('employee_token', '')
+    if not employee_token:
+        raise ValidationError('employee_token requis.')
+    session = EmployeeSession.objects.select_related('member').filter(
+        token_hash=hashlib.sha256(employee_token.encode()).hexdigest(),
+        member__restaurant=restaurant,
+        member__is_active=True,
+        expires_at__gt=timezone.now(),
+    ).first()
+    if not session:
+        raise ValidationError('Session employé invalide ou expirée.')
+    member = session.member
+    if member.profile_id and member.profile_id != profile.id:
+        raise ValidationError('Ce profil employé est déjà lié à un autre compte Rivebelle.')
+    member.profile = profile
+    member.save(update_fields=['profile'])
+    return Response({'linked': True, 'member_name': member.name})
+
+
+@api_view(['POST'])
+@transaction.atomic
+def my_board(request, slug):
+    """Board for a Rivebelle-authenticated member."""
+    profile = _require_auth(request)
+    restaurant = _get_restaurant(slug)
+    member = RestaurantMember.objects.filter(
+        restaurant=restaurant, profile=profile, is_active=True
+    ).first()
+    if not member:
+        raise NotFound('Vous n\'êtes pas membre de ce restaurant ou votre compte n\'est pas lié.')
+    start = parse_date(request.data.get('from'))
+    end = parse_date(request.data.get('to'))
+    materialize(restaurant, start, end)
+    rows = []
+    for shift in restaurant.shifts.filter(date__gte=start, date__lte=end).select_related('service_instance'):
+        av = shift.availabilities.filter(member=member).first()
+        mine = shift.assignments.filter(member=member).exclude(status='declined').exists()
+        rows.append({
+            'id': shift.id, 'date': shift.date,
+            'title': shift.service_instance.title if shift.service_instance_id else shift.title,
+            'start': shift.start_time, 'end': shift.end_time,
+            'role': shift.position, 'required': shift.required_skills,
+            'response': av.status if av else '',
+            'effective': scheduling.availability(member, shift),
+            'assigned': mine and shift.status == 'published',
+            'break_minutes': shift.break_minutes,
+        })
+    return Response({'name': member.name, 'default_availability': member.default_availability, 'slots': rows})
+
+
+@api_view(['POST'])
+@transaction.atomic
+def my_availability(request, slug):
+    """Set availability for a Rivebelle-authenticated member."""
+    profile = _require_auth(request)
+    restaurant = _get_restaurant(slug)
+    member = RestaurantMember.objects.filter(
+        restaurant=restaurant, profile=profile, is_active=True
+    ).first()
+    if not member:
+        raise NotFound('Vous n\'êtes pas membre de ce restaurant ou votre compte n\'est pas lié.')
+    status = serializers.ChoiceField(choices=['unknown', 'available', 'maybe', 'unavailable']).run_validation(
+        request.data.get('status')
+    )
+    if request.data.get('shift_id') is None:
+        member.default_availability = status
+        member.save(update_fields=['default_availability'])
+    else:
+        shift = restaurant.shifts.filter(pk=request.data['shift_id']).first()
+        if not shift:
+            raise NotFound()
+        if status == 'unknown':
+            shift.availabilities.filter(member=member).delete()
+        else:
+            shift.availabilities.update_or_create(member=member, defaults={'status': status})
+    return Response({'saved': True})

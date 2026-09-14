@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { employeeApi } from "../api";
+import { employeeApi, linkRivebelleAccount } from "../api";
+import { useUserContext } from "../context/UserContext";
 type StaffSlot = {
   id: number;
   date: string;
@@ -26,6 +27,7 @@ function date(d: Date) {
 }
 export default function RestaurantAccess() {
   const { slug = "" } = useParams();
+  const { user } = useUserContext();
   const storage = `resto-pin:${slug}`;
   const [token, setToken] = useState(
       () => sessionStorage.getItem(storage) || "",
@@ -39,7 +41,8 @@ export default function RestaurantAccess() {
     [board, setBoard] = useState<Board | null>(null),
     [offset, setOffset] = useState(0),
     [refresh, setRefresh] = useState(0),
-    [notice, setNotice] = useState("");
+    [notice, setNotice] = useState(""),
+    [linked, setLinked] = useState(false);
   const monday = new Date();
   monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7) + offset * 7);
   const end = new Date(monday);
@@ -113,6 +116,21 @@ export default function RestaurantAccess() {
       setBusy(false);
     }
   }
+  async function linkAccount() {
+    if (!user?.token) return;
+    setBusy(true);
+    setError("");
+    try {
+      const r = await linkRivebelleAccount(slug, token, user.token);
+      setLinked(true);
+      setNotice(`Compte lié : ${r.member_name} ↔ ${user.display_name ?? user.token.slice(0, 8)}`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erreur lors de la liaison.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function logout() {
     setBusy(true);
     try {
@@ -208,6 +226,27 @@ export default function RestaurantAccess() {
                 Se déconnecter
               </button>
             </div>
+            {user?.token && !linked && (
+              <div className="bg-white border rounded-xl p-4 text-sm space-y-2">
+                <p className="font-medium">Lier avec mon compte Rivebelle</p>
+                <p className="text-eb-secondary">
+                  Connecté en tant que <strong>{user.display_name ?? "Rivebelle"}</strong>.
+                  La liaison permet d&apos;accéder à votre planning directement depuis votre compte.
+                </p>
+                <button
+                  disabled={busy}
+                  onClick={() => void linkAccount()}
+                  className="bg-eb-primary text-white rounded-lg px-4 py-2"
+                >
+                  {busy ? "Liaison…" : "Lier ce compte"}
+                </button>
+              </div>
+            )}
+            {linked && (
+              <p className="bg-green-50 border border-green-200 rounded-xl p-4 text-sm text-green-800">
+                Compte Rivebelle lié. Vous pouvez maintenant accéder à vos disponibilités depuis l&apos;onglet &quot;Mes disponibilités&quot; du restaurant.
+              </p>
+            )}
             <div className="flex items-center justify-between gap-2">
               <button
                 className="border rounded p-2"

@@ -7,6 +7,7 @@ import RestoTeamSection from "./RestoTeamSection";
 import MemberPlanningEditor from "./MemberPlanningEditor";
 import ServicePlanner from "./ServicePlanner";
 import EmployeeAccessSettings from "./EmployeeAccessSettings";
+import MyAvailabilityBoard from "./MyAvailabilityBoard";
 import { Link } from "react-router-dom";
 
 export default function RestoPage() {
@@ -15,7 +16,7 @@ export default function RestoPage() {
   const token = user?.token ?? null;
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [members, setMembers] = useState<RestaurantMember[]>([]);
-  const [tab, setTab] = useState<"planning" | "equipe">("planning");
+  const [tab, setTab] = useState<"planning" | "equipe" | "mes-dispos">("planning");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   useEffect(() => {
@@ -82,18 +83,21 @@ export default function RestoPage() {
       </header>
       <nav className="border-b bg-white">
         <div className="max-w-6xl mx-auto flex gap-4 px-4">
-          {(["planning", "equipe"] as const).map((t) => (
+          {(["planning", "mes-dispos", "equipe"] as const).map((t) => (
             <button
               key={t}
               className={`py-3 border-b-2 ${tab === t ? "border-eb-primary font-medium" : "border-transparent"}`}
               onClick={() => setTab(t)}
             >
-              {t === "planning" ? "Planning" : "Équipe"}
+              {t === "planning" ? "Planning" : t === "mes-dispos" ? "Mes disponibilités" : "Équipe"}
             </button>
           ))}
         </div>
       </nav>
       <main className="max-w-6xl mx-auto px-3 sm:px-5 py-6">
+        {tab === "mes-dispos" && token && (
+          <MyAvailabilityBoard slug={restaurant.slug} token={token} />
+        )}
         {tab === "planning" && token && (
           <ServicePlanner
             restaurant={restaurant}

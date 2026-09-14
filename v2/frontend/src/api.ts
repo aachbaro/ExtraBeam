@@ -833,3 +833,23 @@ export async function employeeApi<T>(slug:string,action:string,token:string|null
   if(!response.ok)throw new Error(await readErrorMessage(response));
   return response.status===204?undefined as T:response.json();
 }
+
+export type StaffSlot = {
+  id: number; date: string; title: string;
+  start: string; end: string; role: string;
+  required: string[]; response: string; effective: string;
+  assigned: boolean; break_minutes: number;
+};
+export type MemberBoard = { name: string; default_availability: string; slots: StaffSlot[] };
+
+export async function fetchMyBoard(slug: string, token: string, from: string, to: string): Promise<MemberBoard> {
+  return postJson<MemberBoard>(`${RESTO}/restaurants/${slug}/access/my-board/`, { from, to }, token);
+}
+
+export async function setMyAvailability(slug: string, token: string, status: string, shiftId?: number): Promise<void> {
+  await postJson(`${RESTO}/restaurants/${slug}/access/my-availability/`, { status, shift_id: shiftId ?? null }, token);
+}
+
+export async function linkRivebelleAccount(slug: string, employeeToken: string, token: string): Promise<{ linked: boolean; member_name: string }> {
+  return postJson(`${RESTO}/restaurants/${slug}/access/link-account/`, { employee_token: employeeToken }, token);
+}
