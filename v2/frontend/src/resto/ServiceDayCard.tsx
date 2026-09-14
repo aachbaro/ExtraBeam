@@ -28,7 +28,6 @@ interface Props {
   service: RestaurantService;
   members: RestaurantMember[];
   manager: boolean;
-  myMemberId: number | null;
   token: string;
   slug: string;
   onEdit: () => void;
@@ -41,7 +40,6 @@ export default function ServiceDayCard({
   service,
   members,
   manager,
-  myMemberId,
   token,
   slug,
   onEdit,

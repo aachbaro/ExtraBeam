@@ -298,7 +298,6 @@ export default function ServicePlanner({
                     service={active}
                     members={members}
                     manager={manager}
-                    myMemberId={restaurant.my_member_id ?? null}
                     token={token}
                     slug={slug}
                     onEdit={() => setEditor({ service: active })}
@@ -349,7 +348,6 @@ export default function ServicePlanner({
                         service={service}
                         members={members}
                         manager={manager}
-                        myMemberId={restaurant.my_member_id ?? null}
                         token={token}
                         slug={slug}
                         onEdit={() => setEditor({ service })}
