@@ -18,12 +18,10 @@ import {
   fetchRestaurantHours,
   type MonthlyMemberHours,
 } from "../api";
-import WeekTimeGrid, {
-  type TimeRange,
-} from "../components/agenda/WeekTimeGrid";
+import WeekTimeGrid, { type TimeRange } from "../components/agenda/WeekTimeGrid";
 import HoursGauge from "../components/HoursGauge";
-import RestoShiftGrid from "./RestoShiftGrid";
 import ServiceEditor, { weekdays, serviceDefinition } from "./ServiceEditor";
+import ServiceDayCard from "./ServiceDayCard";
 function localDay(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
@@ -60,6 +58,7 @@ export default function ServicePlanner({
     [month, setMonth] = useState(""),
     [hours, setHours] = useState<MonthlyMemberHours[]>([]);
   const [mode, setMode] = useState<"services" | "modeles">("services");
+  const [view, setView] = useState<"planning" | "agenda">("planning");
   const monday = new Date();
   monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7) + offset * 7);
   const days = Array.from({ length: 7 }, (_, i) => {
@@ -192,6 +191,18 @@ export default function ServicePlanner({
                   ))}
                 </select>
               </label>
+              {/* View toggle */}
+              <div className="inline-flex rounded border border-eb-layout overflow-hidden">
+                {(["planning", "agenda"] as const).map((v) => (
+                  <button
+                    key={v}
+                    onClick={() => setView(v)}
+                    className={`px-3 py-1.5 text-sm transition-colors ${view === v ? "bg-eb-primary text-white" : "bg-white text-eb-secondary hover:bg-eb-page"}`}
+                  >
+                    {v === "planning" ? "Planning" : "Agenda"}
+                  </button>
+                ))}
+              </div>
               {manager && (
                 <>
                   <button className="border rounded px-3 py-2 text-sm" disabled={busy} onClick={() => void generate()}>
@@ -212,31 +223,35 @@ export default function ServicePlanner({
           {notice && <p role="status" className="text-sm">{notice}</p>}
           {loading && <p role="status" className="text-sm">Chargement du planning…</p>}
 
-          <WeekTimeGrid
-            days={days}
-            editable={manager && !busy}
-            events={services
-              .filter((s) => !filter || s.shifts.some((p) => p.assignments.some((a) => a.member_id === Number(filter) && a.status !== "declined")))
-              .map((s) => ({
-                id: s.id,
-                date: s.date,
-                start: s.start_time,
-                end: s.end_time,
-                label: s.title,
-                detail: `${s.shifts.reduce((n, p) => n + p.assigned_count, 0)}/${s.shifts.reduce((n, p) => n + p.positions_needed, 0)} postes · ${s.tasks.filter((t) => t.done).length}/${s.tasks.length} tâches`,
-                draft: s.shifts.some((p) => p.status === "draft") || !s.shifts.length,
-              }))}
-            onSelect={(initial) => setEditor({ initial })}
-            onOpen={setSelected}
-          />
+          {/* ── Vue Agenda (WeekTimeGrid) ── */}
+          {view === "agenda" && (
+            <WeekTimeGrid
+              days={days}
+              editable={manager && !busy}
+              events={services
+                .filter((s) => !filter || s.shifts.some((p) => p.assignments.some((a) => a.member_id === Number(filter) && a.status !== "declined")))
+                .map((s) => ({
+                  id: s.id,
+                  date: s.date,
+                  start: s.start_time,
+                  end: s.end_time,
+                  label: s.title,
+                  detail: `${s.shifts.reduce((n, p) => n + p.assigned_count, 0)}/${s.shifts.reduce((n, p) => n + p.positions_needed, 0)} postes · ${s.tasks.filter((t) => t.done).length}/${s.tasks.length} tâches`,
+                  draft: s.shifts.some((p) => p.status === "draft") || !s.shifts.length,
+                }))}
+              onSelect={(initial) => setEditor({ initial })}
+              onOpen={setSelected}
+            />
+          )}
 
-          {active && (
+          {/* Active service detail (agenda view) */}
+          {view === "agenda" && active && (
             <section className="bg-white rounded-xl border p-4 space-y-4">
               <div className="flex flex-wrap justify-between gap-3">
                 <div>
                   <h2 className="font-semibold">{active.title} · {active.date}</h2>
                   <p className="text-sm text-eb-secondary">
-                    Clients : {active.start_time} · Cuisine jusqu’à {active.kitchen_end_time} · Rangement jusqu’à {active.end_time}
+                    Clients : {active.start_time} · Cuisine jusqu'à {active.kitchen_end_time} · Rangement jusqu'à {active.end_time}
                   </p>
                   {active.template_id && (
                     <p className="text-xs text-eb-muted">
@@ -255,11 +270,9 @@ export default function ServicePlanner({
                   <button onClick={() => setSelected(null)}>Fermer</button>
                 </div>
               </div>
-
               {active.notes && (
                 <p className="bg-amber-50 border border-amber-100 rounded-lg p-3 text-sm whitespace-pre-wrap">{active.notes}</p>
               )}
-
               {active.tasks.length > 0 && (
                 <div className="grid sm:grid-cols-3 gap-4">
                   {(["opening", "during", "closing"] as const).map((phase, i) => (
@@ -267,13 +280,8 @@ export default function ServicePlanner({
                       <h3 className="text-sm font-medium mb-2">{["Début de service", "Pendant le service", "Fin de service"][i]}</h3>
                       {active.tasks.filter((t) => t.phase === phase).map((t) => (
                         <label key={t.key} className="flex gap-2 items-start text-sm py-1">
-                          <input
-                            className="mt-1"
-                            type="checkbox"
-                            disabled={busy}
-                            checked={t.done}
-                            onChange={(e) => void action(() => editService(slug, active.id, { task_key: t.key, done: e.target.checked }, token))}
-                          />
+                          <input className="mt-1" type="checkbox" disabled={busy} checked={t.done}
+                            onChange={(e) => void action(() => editService(slug, active.id, { task_key: t.key, done: e.target.checked }, token))} />
                           <span className={t.done ? "line-through text-eb-secondary" : ""}>{t.label}</span>
                         </label>
                       ))}
@@ -281,27 +289,101 @@ export default function ServicePlanner({
                   ))}
                 </div>
               )}
-
               <div>
                 <h3 className="font-medium mb-3">Postes et affectations</h3>
                 {!active.shifts.length ? (
                   <p className="text-sm text-eb-secondary">Aucun poste défini. Modifiez ce service pour ajouter les rôles nécessaires.</p>
                 ) : (
-                  <RestoShiftGrid
-                    shifts={active.shifts}
+                  <ServiceDayCard
+                    service={active}
                     members={members}
-                    week={{ from: active.date, to: active.date }}
-                    isManager={manager}
+                    manager={manager}
                     myMemberId={restaurant.my_member_id ?? null}
                     token={token}
-                    restaurantSlug={slug}
-                    onShiftUpdated={reload}
-                    onShiftDeleted={reload}
+                    slug={slug}
+                    onEdit={() => setEditor({ service: active })}
+                    onDuplicate={(prefill) => setEditor({ prefill })}
+                    onDelete={() => { setDeleting(active); setDeleteScope("this"); }}
+                    onReload={reload}
                   />
                 )}
               </div>
             </section>
           )}
+
+          {/* ── Vue Planning (colonnes par jour) ── */}
+          {view === "planning" && (<div className="overflow-x-auto -mx-1 px-1 pb-2">
+            <div className="flex gap-3" style={{ minWidth: `${days.length * 210}px` }}>
+              {days.map((day) => {
+                const dayServices = services.filter(
+                  (s) =>
+                    s.date === day &&
+                    (!filter ||
+                      s.shifts.some((p) =>
+                        p.assignments.some(
+                          (a) => a.member_id === Number(filter) && a.status !== "declined",
+                        ),
+                      )),
+                );
+                const jsDay = new Date(day + "T12:00:00").getDay();
+                const dayLabel = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"][jsDay];
+                const isToday = day === localDay(new Date());
+                return (
+                  <div key={day} className="flex-1 min-w-[200px] space-y-2">
+                    {/* Day header */}
+                    <div
+                      className={`rounded-lg py-2 text-center text-sm ${
+                        isToday
+                          ? "bg-eb-primary text-white"
+                          : "bg-white border text-eb-secondary"
+                      }`}
+                    >
+                      <p className="text-[11px] font-medium uppercase tracking-wide">{dayLabel}</p>
+                      <p className={`font-semibold ${isToday ? "" : "text-eb-text"}`}>{day.slice(8)}</p>
+                    </div>
+
+                    {/* Services */}
+                    {dayServices.map((service) => (
+                      <ServiceDayCard
+                        key={service.id}
+                        service={service}
+                        members={members}
+                        manager={manager}
+                        myMemberId={restaurant.my_member_id ?? null}
+                        token={token}
+                        slug={slug}
+                        onEdit={() => setEditor({ service })}
+                        onDuplicate={(prefill) => setEditor({ prefill })}
+                        onDelete={() => { setDeleting(service); setDeleteScope("this"); }}
+                        onReload={reload}
+                      />
+                    ))}
+
+                    {/* Empty day */}
+                    {dayServices.length === 0 && !manager && (
+                      <div className="rounded-lg border border-dashed py-6 text-center text-xs text-eb-muted">
+                        Aucun service
+                      </div>
+                    )}
+
+                    {/* Add service */}
+                    {manager && (
+                      <button
+                        className="w-full rounded-lg border border-dashed py-2 text-xs text-eb-secondary hover:border-eb-primary hover:text-eb-primary transition-colors"
+                        onClick={() =>
+                          setEditor({
+                            initial: { date: day, start_time: "12:00", end_time: "15:30" },
+                          })
+                        }
+                      >
+                        + Service
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>)}
 
           <section className="bg-white rounded-xl border p-4 space-y-3">
             <div className="flex justify-between gap-3">
