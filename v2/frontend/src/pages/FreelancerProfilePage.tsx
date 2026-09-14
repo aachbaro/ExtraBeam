@@ -14,7 +14,6 @@ import { useEffect, useRef, useState } from "react";
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 
 import { fetchProfileOverview, fetchMyRestaurants, getDefaultAppPath, getOidcLoginUrl } from "../api";
-import type { Restaurant } from "../types";
 import AccountRoleCard from "../components/AccountRoleCard";
 import Agenda from "../components/agenda/Agenda";
 import ExperiencesSection from "../components/experiences/ExperiencesSection";
