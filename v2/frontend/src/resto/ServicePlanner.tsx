@@ -59,6 +59,7 @@ export default function ServicePlanner({
   const [weeks, setWeeks] = useState(1),
     [month, setMonth] = useState(""),
     [hours, setHours] = useState<MonthlyMemberHours[]>([]);
+  const [mode, setMode] = useState<"services" | "modeles">("services");
   const monday = new Date();
   monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7) + offset * 7);
   const days = Array.from({ length: 7 }, (_, i) => {
@@ -154,350 +155,257 @@ export default function ServicePlanner({
   }
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex gap-2 items-center">
-          <button
-            className="border rounded p-2"
-            onClick={() => {
-              setOffset((n) => n - 1);
-              setSelected(null);
-            }}
-          >
-            ←
-          </button>
-          <span className="text-sm">
-            {from} → {to}
-          </span>
-          <button
-            className="border rounded p-2"
-            onClick={() => {
-              setOffset((n) => n + 1);
-              setSelected(null);
-            }}
-          >
-            →
-          </button>
-          {offset !== 0 && (
-            <button onClick={() => setOffset(0)} className="text-sm underline">
-              Aujourd’hui
-            </button>
-          )}
-        </div>
-        {manager && (
-          <button
-            className="bg-eb-primary text-white px-4 py-2 rounded-lg"
-            onClick={() =>
-              setEditor({
-                initial: { date: from, start_time: "12:00", end_time: "15:30" },
-              })
-            }
-          >
-            + Nouveau service
-          </button>
-        )}
-      </div>
+      {/* Mode toggle */}
       {manager && (
-        <details className="bg-white border rounded-xl p-4">
-          <summary className="cursor-pointer font-medium">
-            Modèles de la semaine · {templates.length}
-          </summary>
-          <p className="text-sm text-eb-secondary my-3">
-            Définissez les besoins habituels, puis préparez les semaines. Chaque
-            service daté peut ensuite être ajusté.
-          </p>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {templates.map((t) => (
-              <div key={t.id} className="border rounded-lg p-3">
-                <p className="text-xs text-eb-secondary">
-                  {weekdays[t.weekday]}
-                </p>
-                <h3 className="font-medium">{t.name}</h3>
-                <p className="text-sm">
-                  {t.definition.start_time}–{t.definition.end_time} ·{" "}
-                  {t.definition.slots.reduce(
-                    (n, s) => n + s.positions_needed,
-                    0,
-                  )}{" "}
-                  postes · {t.definition.tasks.length} tâches
-                </p>
-                <div className="flex gap-3 text-sm mt-2">
-                  <button
-                    className="underline"
-                    onClick={() => setEditor({ template: t })}
-                  >
-                    Modifier le modèle
-                  </button>
-                  <button
-                    disabled={busy}
-                    className="text-red-700"
-                    onClick={() => {
-                      if (
-                        confirm(
-                          "Supprimer ce modèle ? Les services déjà créés seront conservés.",
-                        )
-                      )
-                        void action(() =>
-                          deleteServiceTemplate(slug, t.id, token),
-                        );
-                    }}
-                  >
-                    Supprimer
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-          {!templates.length && (
-            <p className="text-sm">
-              Créez ou modifiez un service et cochez « Service hebdomadaire ».
-            </p>
-          )}
-        </details>
-      )}
-      <div className="flex flex-wrap items-center gap-3">
-        <label className="text-sm">
-          Afficher{" "}
-          <select
-            className="border rounded p-2"
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-          >
-            <option value="">Toute l’équipe</option>
-            {members.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        {manager && (
-          <>
-            <label className="text-sm">
-              Période{" "}
-              <select
-                className="border rounded p-2"
-                value={weeks}
-                onChange={(e) => setWeeks(Number(e.target.value))}
-              >
-                {[1, 2, 3, 4, 5, 6].map((n) => (
-                  <option key={n} value={n}>
-                    {n} semaine(s)
-                  </option>
-                ))}
-              </select>
-            </label>
+        <div className="inline-flex rounded-lg border border-eb-layout bg-eb-page p-1 gap-1">
+          {(["services", "modeles"] as const).map((m) => (
             <button
-              className="border rounded p-2 text-sm"
-              disabled={busy || !templates.length}
-              onClick={() => void prepare()}
+              key={m}
+              className={`px-4 py-1.5 rounded text-sm font-medium transition-colors ${mode === m ? "bg-white shadow-sm text-eb-text" : "text-eb-secondary hover:text-eb-text"}`}
+              onClick={() => { setMode(m); setSelected(null); setNotice(""); }}
             >
-              Préparer depuis les modèles
+              {m === "services" ? "Services" : "Modèles"}
             </button>
-            <button
-              className="border rounded p-2 text-sm"
-              disabled={busy}
-              onClick={() => void generate()}
-            >
-              Générer les affectations
-            </button>
-          </>
-        )}
-      </div>
-      <p className="text-xs text-eb-secondary">
-        L’agenda affiche les services, de l’ouverture aux clients à la fin
-        estimée du rangement. Ouvrez un service pour gérer les postes, leurs
-        horaires et les tâches.
-      </p>
-      {error && (
-        <p role="alert" className="text-red-700">
-          {error}
-        </p>
+          ))}
+        </div>
       )}
-      {notice && (
-        <p role="status" className="text-sm">
-          {notice}
-        </p>
-      )}
-      {loading && (
-        <p role="status" className="text-sm">
-          Chargement du planning…
-        </p>
-      )}
-      <WeekTimeGrid
-        days={days}
-        editable={manager && !busy}
-        events={services
-          .filter(
-            (s) =>
-              !filter ||
-              s.shifts.some((p) =>
-                p.assignments.some(
-                  (a) =>
-                    a.member_id === Number(filter) && a.status !== "declined",
-                ),
-              ),
-          )
-          .map((s) => ({
-            id: s.id,
-            date: s.date,
-            start: s.start_time,
-            end: s.end_time,
-            label: s.title,
-            detail: `${s.shifts.reduce((n, p) => n + p.assigned_count, 0)}/${s.shifts.reduce((n, p) => n + p.positions_needed, 0)} postes · ${s.tasks.filter((t) => t.done).length}/${s.tasks.length} tâches`,
-            draft:
-              s.shifts.some((p) => p.status === "draft") || !s.shifts.length,
-          }))}
-        onSelect={(initial) => setEditor({ initial })}
-        onOpen={setSelected}
-      />
-      {active && (
-        <section className="bg-white rounded-xl border p-4 space-y-4">
-          <div className="flex flex-wrap justify-between gap-3">
-            <div>
-              <h2 className="font-semibold">
-                {active.title} · {active.date}
-              </h2>
-              <p className="text-sm text-eb-secondary">
-                Clients : {active.start_time} · Cuisine jusqu’à{" "}
-                {active.kitchen_end_time} · Rangement jusqu’à {active.end_time}
-              </p>
-              {active.template_id && (
-                <p className="text-xs">
-                  Modèle hebdomadaire
-                  {active.customized ? " · Ajustements sur cette date" : ""}
-                </p>
+
+      {/* ── MODE SERVICES ── */}
+      {mode === "services" && (
+        <>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex gap-2 items-center">
+              <button className="border rounded p-2" onClick={() => { setOffset((n) => n - 1); setSelected(null); }}>←</button>
+              <span className="text-sm">{from} → {to}</span>
+              <button className="border rounded p-2" onClick={() => { setOffset((n) => n + 1); setSelected(null); }}>→</button>
+              {offset !== 0 && (
+                <button onClick={() => setOffset(0)} className="text-sm underline">Aujourd’hui</button>
               )}
             </div>
-            <div className="flex gap-3 text-sm">
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="text-sm">
+                Afficher{" "}
+                <select className="border rounded p-2" value={filter} onChange={(e) => setFilter(e.target.value)}>
+                  <option value="">Toute l’équipe</option>
+                  {members.map((m) => (
+                    <option key={m.id} value={m.id}>{m.name}</option>
+                  ))}
+                </select>
+              </label>
               {manager && (
                 <>
-                  <button
-                    onClick={() => setEditor({ service: active })}
-                    className="underline"
-                  >
-                    Modifier ce service
+                  <button className="border rounded px-3 py-2 text-sm" disabled={busy} onClick={() => void generate()}>
+                    Générer les affectations
                   </button>
                   <button
-                    onClick={() => setEditor({ prefill: serviceDefinition(active) })}
-                    className="underline"
+                    className="bg-eb-primary text-white px-4 py-2 rounded-lg text-sm"
+                    onClick={() => setEditor({ initial: { date: from, start_time: "12:00", end_time: "15:30" } })}
                   >
-                    Dupliquer
-                  </button>
-                  <button
-                    disabled={busy}
-                    onClick={() => {
-                      setDeleting(active);
-                      setDeleteScope("this");
-                    }}
-                  >
-                    Supprimer
+                    + Nouveau service
                   </button>
                 </>
               )}
-              <button onClick={() => setSelected(null)}>Fermer</button>
             </div>
           </div>
-          {active.notes && (
-            <p className="bg-amber-50 border border-amber-100 rounded-lg p-3 text-sm whitespace-pre-wrap">
-              {active.notes}
-            </p>
-          )}
-          <div className="grid sm:grid-cols-3 gap-4">
-            {(["opening", "during", "closing"] as const).map((phase, i) => (
-              <section key={phase}>
-                <h3 className="text-sm font-medium mb-2">
-                  {
-                    [
-                      "Début de service",
-                      "Pendant le service",
-                      "Fin de service",
-                    ][i]
-                  }
-                </h3>
-                {active.tasks
-                  .filter((t) => t.phase === phase)
-                  .map((t) => (
-                    <label
-                      key={t.key}
-                      className="flex gap-2 items-start text-sm py-1"
-                    >
-                      <input
-                        className="mt-1"
-                        type="checkbox"
-                        disabled={busy}
-                        checked={t.done}
-                        onChange={(e) =>
-                          void action(() =>
-                            editService(
-                              slug,
-                              active.id,
-                              { task_key: t.key, done: e.target.checked },
-                              token,
-                            ),
-                          )
-                        }
-                      />
-                      <span
-                        className={
-                          t.done ? "line-through text-eb-secondary" : ""
-                        }
-                      >
-                        {t.label}
-                      </span>
-                    </label>
-                  ))}
-              </section>
-            ))}
-          </div>
-          <h3 className="font-medium">Postes et affectations</h3>
-          {!active.shifts.length && (
-            <p className="text-sm">
-              Aucun poste défini. Modifiez ce service pour ajouter les rôles
-              nécessaires.
-            </p>
-          )}
-          {active.shifts.length > 0 && (
-            <RestoShiftGrid
-              shifts={active.shifts}
-              members={members}
-              week={{ from: active.date, to: active.date }}
-              isManager={manager}
-              myMemberId={restaurant.my_member_id ?? null}
-              token={token}
-              restaurantSlug={slug}
-              onShiftUpdated={reload}
-              onShiftDeleted={reload}
-            />
-          )}
-        </section>
-      )}
-      <section className="bg-white rounded-xl border p-4 space-y-3">
-        <div className="flex justify-between gap-3">
-          <h2 className="font-medium">Heures prévues dans le mois</h2>
-          <input
-            aria-label="Mois des heures"
-            type="month"
-            value={viewMonth}
-            onChange={(e) => setMonth(e.target.value)}
+
+          {error && <p role="alert" className="text-red-700">{error}</p>}
+          {notice && <p role="status" className="text-sm">{notice}</p>}
+          {loading && <p role="status" className="text-sm">Chargement du planning…</p>}
+
+          <WeekTimeGrid
+            days={days}
+            editable={manager && !busy}
+            events={services
+              .filter((s) => !filter || s.shifts.some((p) => p.assignments.some((a) => a.member_id === Number(filter) && a.status !== "declined")))
+              .map((s) => ({
+                id: s.id,
+                date: s.date,
+                start: s.start_time,
+                end: s.end_time,
+                label: s.title,
+                detail: `${s.shifts.reduce((n, p) => n + p.assigned_count, 0)}/${s.shifts.reduce((n, p) => n + p.positions_needed, 0)} postes · ${s.tasks.filter((t) => t.done).length}/${s.tasks.length} tâches`,
+                draft: s.shifts.some((p) => p.status === "draft") || !s.shifts.length,
+              }))}
+            onSelect={(initial) => setEditor({ initial })}
+            onOpen={setSelected}
           />
-        </div>
-        <p className="text-xs text-eb-secondary">
-          Foncé : publié · clair : brouillon. Calcul sur les horaires des
-          postes, pauses déduites. Objectif : contrat hebdomadaire × jours du
-          mois ÷ 7.
-        </p>
-        {hours
-          .filter((r) => !filter || r.member_id === Number(filter))
-          .map((r) => (
-            <HoursGauge
-              key={r.member_id}
-              name={r.name}
-              published={r.published_minutes}
-              draft={r.draft_minutes}
-              target={r.target_minutes}
-            />
-          ))}
-      </section>
+
+          {active && (
+            <section className="bg-white rounded-xl border p-4 space-y-4">
+              <div className="flex flex-wrap justify-between gap-3">
+                <div>
+                  <h2 className="font-semibold">{active.title} · {active.date}</h2>
+                  <p className="text-sm text-eb-secondary">
+                    Clients : {active.start_time} · Cuisine jusqu’à {active.kitchen_end_time} · Rangement jusqu’à {active.end_time}
+                  </p>
+                  {active.template_id && (
+                    <p className="text-xs text-eb-muted">
+                      Modèle hebdomadaire{active.customized ? " · Ajustements sur cette date" : ""}
+                    </p>
+                  )}
+                </div>
+                <div className="flex gap-3 text-sm flex-wrap">
+                  {manager && (
+                    <>
+                      <button onClick={() => setEditor({ service: active })} className="underline">Modifier</button>
+                      <button onClick={() => setEditor({ prefill: serviceDefinition(active) })} className="underline">Dupliquer</button>
+                      <button disabled={busy} className="text-red-700" onClick={() => { setDeleting(active); setDeleteScope("this"); }}>Supprimer</button>
+                    </>
+                  )}
+                  <button onClick={() => setSelected(null)}>Fermer</button>
+                </div>
+              </div>
+
+              {active.notes && (
+                <p className="bg-amber-50 border border-amber-100 rounded-lg p-3 text-sm whitespace-pre-wrap">{active.notes}</p>
+              )}
+
+              {active.tasks.length > 0 && (
+                <div className="grid sm:grid-cols-3 gap-4">
+                  {(["opening", "during", "closing"] as const).map((phase, i) => (
+                    <section key={phase}>
+                      <h3 className="text-sm font-medium mb-2">{["Début de service", "Pendant le service", "Fin de service"][i]}</h3>
+                      {active.tasks.filter((t) => t.phase === phase).map((t) => (
+                        <label key={t.key} className="flex gap-2 items-start text-sm py-1">
+                          <input
+                            className="mt-1"
+                            type="checkbox"
+                            disabled={busy}
+                            checked={t.done}
+                            onChange={(e) => void action(() => editService(slug, active.id, { task_key: t.key, done: e.target.checked }, token))}
+                          />
+                          <span className={t.done ? "line-through text-eb-secondary" : ""}>{t.label}</span>
+                        </label>
+                      ))}
+                    </section>
+                  ))}
+                </div>
+              )}
+
+              <div>
+                <h3 className="font-medium mb-3">Postes et affectations</h3>
+                {!active.shifts.length ? (
+                  <p className="text-sm text-eb-secondary">Aucun poste défini. Modifiez ce service pour ajouter les rôles nécessaires.</p>
+                ) : (
+                  <RestoShiftGrid
+                    shifts={active.shifts}
+                    members={members}
+                    week={{ from: active.date, to: active.date }}
+                    isManager={manager}
+                    myMemberId={restaurant.my_member_id ?? null}
+                    token={token}
+                    restaurantSlug={slug}
+                    onShiftUpdated={reload}
+                    onShiftDeleted={reload}
+                  />
+                )}
+              </div>
+            </section>
+          )}
+
+          <section className="bg-white rounded-xl border p-4 space-y-3">
+            <div className="flex justify-between gap-3">
+              <h2 className="font-medium">Heures prévues dans le mois</h2>
+              <input aria-label="Mois des heures" type="month" value={viewMonth} onChange={(e) => setMonth(e.target.value)} />
+            </div>
+            <p className="text-xs text-eb-secondary">
+              Foncé : publié · clair : brouillon. Calcul sur les horaires des postes, pauses déduites. Objectif : contrat hebdomadaire × jours du mois ÷ 7.
+            </p>
+            {hours.filter((r) => !filter || r.member_id === Number(filter)).map((r) => (
+              <HoursGauge key={r.member_id} name={r.name} published={r.published_minutes} draft={r.draft_minutes} target={r.target_minutes} />
+            ))}
+          </section>
+        </>
+      )}
+
+      {/* ── MODE MODÈLES ── */}
+      {mode === "modeles" && manager && (
+        <>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="font-semibold text-eb-text">Modèles de service</h2>
+              <p className="text-sm text-eb-secondary mt-0.5">
+                Définissez les besoins habituels par jour de la semaine. Préparez ensuite les semaines à venir en un clic.
+              </p>
+            </div>
+            <button
+              className="bg-eb-primary text-white px-4 py-2 rounded-lg text-sm shrink-0"
+              onClick={() => setEditor({ initial: { date: from, start_time: "12:00", end_time: "15:30" } })}
+            >
+              + Créer un modèle
+            </button>
+          </div>
+
+          {error && <p role="alert" className="text-red-700">{error}</p>}
+          {notice && <p role="status" className="text-sm">{notice}</p>}
+
+          {templates.length === 0 ? (
+            <div className="bg-white border rounded-xl p-10 text-center space-y-2">
+              <p className="text-eb-secondary text-sm">Aucun modèle pour l’instant.</p>
+              <p className="text-xs text-eb-muted">
+                Cliquez sur "+ Créer un modèle", définissez les postes et tâches, puis cochez "Service hebdomadaire".
+              </p>
+            </div>
+          ) : (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {templates.map((t) => (
+                <div key={t.id} className="bg-white border rounded-xl p-4 space-y-3">
+                  <div>
+                    <p className="text-xs font-medium text-eb-primary uppercase tracking-wide">{weekdays[t.weekday]}</p>
+                    <h3 className="font-semibold text-eb-text mt-0.5">{t.name}</h3>
+                    <p className="text-sm text-eb-secondary">{t.definition.start_time} – {t.definition.end_time}</p>
+                  </div>
+                  <div className="flex gap-2 flex-wrap">
+                    <span className="bg-eb-page border rounded-full px-2.5 py-0.5 text-xs">
+                      {t.definition.slots.reduce((n, s) => n + s.positions_needed, 0)} postes
+                    </span>
+                    <span className="bg-eb-page border rounded-full px-2.5 py-0.5 text-xs">
+                      {t.definition.tasks.length} tâches
+                    </span>
+                  </div>
+                  <div className="flex gap-3 text-sm border-t pt-2">
+                    <button className="underline text-eb-primary" onClick={() => setEditor({ template: t })}>Modifier</button>
+                    <button
+                      disabled={busy}
+                      className="text-red-600"
+                      onClick={() => {
+                        if (confirm("Supprimer ce modèle ? Les services déjà créés seront conservés."))
+                          void action(() => deleteServiceTemplate(slug, t.id, token));
+                      }}
+                    >
+                      Supprimer
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="bg-white border rounded-xl p-4 space-y-3">
+            <h3 className="font-medium">Préparer les services</h3>
+            <p className="text-sm text-eb-secondary">
+              Génère les services datés à partir des modèles. Les services déjà créés ne sont pas dupliqués.
+            </p>
+            <div className="flex flex-wrap gap-3 items-center">
+              <label className="text-sm">
+                Période{" "}
+                <select className="border rounded p-2" value={weeks} onChange={(e) => setWeeks(Number(e.target.value))}>
+                  {[1, 2, 3, 4, 5, 6].map((n) => (
+                    <option key={n} value={n}>{n} semaine(s)</option>
+                  ))}
+                </select>
+              </label>
+              <button
+                className="border rounded px-3 py-2 text-sm"
+                disabled={busy || !templates.length}
+                onClick={() => void prepare()}
+              >
+                Préparer depuis les modèles
+              </button>
+            </div>
+          </div>
+        </>
+      )}
       {deleting && (
         <div
           className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
