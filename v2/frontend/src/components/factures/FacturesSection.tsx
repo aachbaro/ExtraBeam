@@ -123,6 +123,10 @@ export default function FacturesSection({
     {},
   );
 
+  const pendingTotal = factures
+    .filter((f) => f.status === "pending_payment")
+    .reduce((sum, f) => sum + (parseFloat(f.montant_ttc) || 0), 0);
+
   const shown = statusFilter
     ? factures.filter((facture) => facture.status === statusFilter)
     : factures;
@@ -147,6 +151,11 @@ export default function FacturesSection({
                 </span>
               ))}
           </div>
+          {pendingTotal > 0 && (
+            <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold text-amber-700">
+              {pendingTotal.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} € en attente
+            </span>
+          )}
         </div>
         <button
           type="button"
