@@ -14,7 +14,12 @@ import {
   type FacturePayload,
 } from "../../api";
 import { downloadFacturePdf } from "../../lib/facturePdf";
-import type { Facture, FactureStatus, FreelancerProfile, Mission } from "../../types";
+import type {
+  Facture,
+  FactureStatus,
+  FreelancerProfile,
+  Mission,
+} from "../../types";
 import FactureCard from "./FactureCard";
 import FactureForm from "./FactureForm";
 
@@ -55,12 +60,18 @@ interface Props {
   profile: FreelancerProfile;
 }
 
-export default function FacturesSection({ slug, token, missions, profile }: Props) {
+export default function FacturesSection({
+  slug,
+  token,
+  missions,
+  profile,
+}: Props) {
   const [factures, setFactures] = useState<Facture[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<FactureStatus | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [reusing, setReusing] = useState<Facture | undefined>();
   const [editing, setEditing] = useState<Facture | null>(null);
 
   useEffect(() => {
@@ -80,27 +91,37 @@ export default function FacturesSection({ slug, token, missions, profile }: Prop
   async function handleUpdate(factureId: number, data: FacturePayload) {
     const updated = await updateFacture(slug, factureId, data, token);
     setFactures((previous) =>
-      previous.map((facture) => (facture.id === factureId ? updated : facture))
+      previous.map((facture) => (facture.id === factureId ? updated : facture)),
     );
   }
 
   async function handleDelete(factureId: number) {
     if (!window.confirm("Supprimer cette facture ?")) return;
     await deleteFacture(slug, factureId, token);
-    setFactures((previous) => previous.filter((facture) => facture.id !== factureId));
-  }
-
-  async function handleMarkPaid(factureId: number) {
-    const updated = await updateFacture(slug, factureId, { status: "paid" }, token);
     setFactures((previous) =>
-      previous.map((facture) => (facture.id === factureId ? updated : facture))
+      previous.filter((facture) => facture.id !== factureId),
     );
   }
 
-  const counts = factures.reduce<Record<string, number>>((accumulator, facture) => {
-    accumulator[facture.status] = (accumulator[facture.status] ?? 0) + 1;
-    return accumulator;
-  }, {});
+  async function handleMarkPaid(factureId: number) {
+    const updated = await updateFacture(
+      slug,
+      factureId,
+      { status: "paid" },
+      token,
+    );
+    setFactures((previous) =>
+      previous.map((facture) => (facture.id === factureId ? updated : facture)),
+    );
+  }
+
+  const counts = factures.reduce<Record<string, number>>(
+    (accumulator, facture) => {
+      accumulator[facture.status] = (accumulator[facture.status] ?? 0) + 1;
+      return accumulator;
+    },
+    {},
+  );
 
   const shown = statusFilter
     ? factures.filter((facture) => facture.status === statusFilter)
@@ -131,6 +152,7 @@ export default function FacturesSection({ slug, token, missions, profile }: Prop
           type="button"
           onClick={() => {
             setEditing(null);
+            setReusing(undefined);
             setShowForm(true);
           }}
           className="eb-btn-primary px-3 py-1.5 text-[12px]"
@@ -146,22 +168,30 @@ export default function FacturesSection({ slug, token, missions, profile }: Prop
             type="button"
             onClick={() => setStatusFilter(value)}
             className={`eb-chip cursor-pointer transition-all ${
-              statusFilter === value ? "bg-eb-primary text-white" : "hover:bg-[#e5e7eb]"
+              statusFilter === value
+                ? "bg-eb-primary text-white"
+                : "hover:bg-[#e5e7eb]"
             }`}
           >
             {label}
-            {value && counts[value] ? <span className="ml-1 opacity-70">{counts[value]}</span> : null}
+            {value && counts[value] ? (
+              <span className="ml-1 opacity-70">{counts[value]}</span>
+            ) : null}
           </button>
         ))}
       </div>
 
       {loading ? (
-        <p className="py-4 text-center text-[13px] text-eb-muted">Chargement...</p>
+        <p className="py-4 text-center text-[13px] text-eb-muted">
+          Chargement...
+        </p>
       ) : error ? (
         <p className="py-4 text-center text-[13px] text-eb-google">{error}</p>
       ) : shown.length === 0 ? (
         <p className="py-6 text-center text-[13px] text-eb-muted">
-          {statusFilter ? "Aucune facture dans ce statut." : "Aucune facture pour l'instant."}
+          {statusFilter
+            ? "Aucune facture dans ce statut."
+            : "Aucune facture pour l'instant."}
         </p>
       ) : (
         <div className="space-y-3">
@@ -171,6 +201,12 @@ export default function FacturesSection({ slug, token, missions, profile }: Prop
               facture={facture}
               onClick={() => {
                 setEditing(facture);
+                setReusing(undefined);
+                setShowForm(true);
+              }}
+              onReuse={() => {
+                setEditing(null);
+                setReusing(facture);
                 setShowForm(true);
               }}
               onDelete={() => handleDelete(facture.id)}
@@ -184,13 +220,18 @@ export default function FacturesSection({ slug, token, missions, profile }: Prop
       {showForm ? (
         <FactureForm
           initial={editing ?? undefined}
+          reuse={reusing}
+          previousFactures={factures}
           missions={missions}
           profile={profile}
           suggestedNumero={editing ? undefined : suggestedNumero}
-          onSave={(data) => (editing ? handleUpdate(editing.id, data) : handleCreate(data))}
+          onSave={(data) =>
+            editing ? handleUpdate(editing.id, data) : handleCreate(data)
+          }
           onClose={() => {
             setShowForm(false);
             setEditing(null);
+            setReusing(undefined);
           }}
         />
       ) : null}

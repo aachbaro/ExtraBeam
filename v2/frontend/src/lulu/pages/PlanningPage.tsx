@@ -18,6 +18,7 @@ import {
 } from "../types";
 import { NavLink } from "react-router-dom";
 import { Stat, Empty } from "../ui";
+import MonthlyHoursGauges from "../MonthlyHoursGauges";
 
 type AddCtx = { date: string; service: string; role: string };
 type AssignCtx = { shift: Shift; posIdx: number };
@@ -325,6 +326,7 @@ export default function PlanningPage({ board, week, act }: PageProps) {
         )}
       </div>
 
+      {manager && <MonthlyHoursGauges board={board} start={week.start} employeeId={employeeId} />}
       {manager && (
         <div className="lulu-bottom-grid">
           <div className="lulu-panel">

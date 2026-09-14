@@ -385,6 +385,10 @@ export interface Restaurant {
 }
 
 export interface RestaurantMember {
+  weekly_hours: number;
+  skills: string[];
+  preferences: Record<string, number>;
+  default_availability: string;
   id: number;
   name: string;
   position: RestaurantPosition;
@@ -406,6 +410,7 @@ export interface ShiftAvailability {
 }
 
 export interface ShiftAssignment {
+  locked: boolean;
   id: number;
   member_id: number;
   member_name: string;
@@ -417,6 +422,10 @@ export interface ShiftAssignment {
 }
 
 export interface RestaurantShift {
+  break_minutes: number;
+  required_skills: string[];
+  series_id: string | null;
+  candidates: { member_id: number; status: string; reasons: string[] }[];
   id: number;
   title: string;
   date: string;
@@ -434,3 +443,8 @@ export interface RestaurantShift {
   assigned_count: number;
   available_count: number;
 }
+export type ServiceTask = { key: string; label: string; phase: 'opening' | 'during' | 'closing'; done: boolean };
+export type ServiceSlot = { key: string; title: string; position: string; positions_needed: number; start_time: string; end_time: string; break_minutes: number; required_skills: string[] };
+export type ServiceDefinition = { title: string; start_time: string; kitchen_end_time: string; end_time: string; notes: string; tasks: ServiceTask[]; slots: ServiceSlot[] };
+export type ServiceTemplate = { id: number; name: string; weekday: number; definition: ServiceDefinition };
+export type RestaurantService = ServiceDefinition & { id: number; date: string; template_id: number | null; shifts: RestaurantShift[]; customized: boolean };

@@ -10,7 +10,7 @@ class RestaurantMemberSerializer(serializers.ModelSerializer):
         model = RestaurantMember
         fields = [
             "id", "name", "position", "is_active", "is_manager",
-            "email", "joined_at", "avatar_url", "extra_slug",
+            "email", "joined_at", "avatar_url", "extra_slug", "weekly_hours", "skills", "preferences", "default_availability",
         ]
         read_only_fields = ["id", "joined_at", "avatar_url", "extra_slug"]
 
@@ -45,7 +45,7 @@ class ShiftAssignmentSerializer(serializers.ModelSerializer):
         model = ShiftAssignment
         fields = [
             "id", "member_id", "member_name", "member_position",
-            "avatar_url", "status", "note", "created_at",
+            "avatar_url", "status", "note", "created_at", "locked",
         ]
         read_only_fields = ["id", "member_id", "member_name", "member_position", "avatar_url", "created_at"]
 
@@ -56,6 +56,12 @@ class ShiftAssignmentSerializer(serializers.ModelSerializer):
 
 
 class RestaurantShiftSerializer(serializers.ModelSerializer):
+    candidates = serializers.SerializerMethodField()
+
+    def get_candidates(self, obj):
+        from .scheduling import candidate_details
+        return candidate_details(obj)
+
     availabilities = ShiftAvailabilitySerializer(many=True, read_only=True)
     assignments = ShiftAssignmentSerializer(many=True, read_only=True)
     assigned_count = serializers.SerializerMethodField()
@@ -64,10 +70,10 @@ class RestaurantShiftSerializer(serializers.ModelSerializer):
     class Meta:
         model = RestaurantShift
         fields = [
-            "id", "title", "date", "start_time", "end_time",
+            "id", "service_instance_id", "title", "date", "start_time", "end_time",
             "service", "positions_needed", "position", "notes", "status",
             "created_at", "updated_at",
-            "availabilities", "assignments",
+            "availabilities", "assignments", "candidates", "break_minutes", "required_skills", "series_id",
             "assigned_count", "available_count",
         ]
         read_only_fields = ["id", "created_at", "updated_at"]
@@ -86,7 +92,7 @@ class RestaurantShiftListSerializer(serializers.ModelSerializer):
     class Meta:
         model = RestaurantShift
         fields = [
-            "id", "title", "date", "start_time", "end_time",
+            "id", "service_instance_id", "title", "date", "start_time", "end_time",
             "service", "positions_needed", "position", "notes", "status",
             "assigned_count", "available_count",
         ]
@@ -106,7 +112,7 @@ class RestaurantSerializer(serializers.ModelSerializer):
         model = Restaurant
         fields = [
             "id", "slug", "name", "description", "address", "city",
-            "cuisine_type", "logo_url", "cover_url",
+            "cuisine_type", "logo_url", "cover_url", "planning_rules",
             "created_at", "updated_at", "member_count", "is_owner",
         ]
         read_only_fields = ["id", "created_at", "updated_at", "member_count", "is_owner"]
@@ -141,37 +147,51 @@ class RestaurantUpdateSerializer(serializers.ModelSerializer):
         fields = ["name", "description", "address", "city", "cuisine_type", "logo_url", "cover_url"]
 
 
-class RestaurantMemberCreateSerializer(serializers.ModelSerializer):
+class MemberPlanningValidation(serializers.ModelSerializer):
+    weekly_hours = serializers.FloatField(min_value=0, max_value=60, required=False)
+    skills = serializers.ListField(child=serializers.CharField(max_length=40), max_length=20, required=False)
+    default_availability = serializers.ChoiceField(choices=["unknown", "available", "maybe", "unavailable"], required=False)
+    def validate_preferences(self, value):
+        if not isinstance(value, dict) or any(k not in {"compact", "split", "weekends", "evenings", "lunches", "stable", "variety"} or type(v) is not int or v not in (0,1,2) for k,v in value.items()):
+            raise serializers.ValidationError("Préférences invalides (0, 1 ou 2).")
+        return value
+
+class RestaurantMemberCreateSerializer(MemberPlanningValidation):
     class Meta:
         model = RestaurantMember
-        fields = ["name", "position", "email", "is_manager"]
+        fields = ["name", "position", "email", "is_manager", "weekly_hours", "skills", "preferences", "default_availability"]
 
 
-class RestaurantMemberUpdateSerializer(serializers.ModelSerializer):
+class RestaurantMemberUpdateSerializer(MemberPlanningValidation):
     class Meta:
         model = RestaurantMember
-        fields = ["name", "position", "is_active", "is_manager"]
+        fields = ["name", "position", "is_active", "is_manager", "weekly_hours", "skills", "preferences", "default_availability"]
 
 
 class RestaurantShiftCreateSerializer(serializers.ModelSerializer):
+    fixed_member_id = serializers.IntegerField(min_value=1, required=False, write_only=True)
+    positions_needed = serializers.IntegerField(min_value=1, max_value=50, required=False)
+    break_minutes = serializers.IntegerField(min_value=0, max_value=180, required=False)
+    required_skills = serializers.ListField(child=serializers.CharField(max_length=40), max_length=20, required=False)
+    repeat_weeks = serializers.IntegerField(min_value=1, max_value=26, required=False, write_only=True)
+    repeat_interval = serializers.IntegerField(min_value=1, max_value=4, required=False, write_only=True)
+
     class Meta:
         model = RestaurantShift
-        fields = ["title", "date", "start_time", "end_time", "service", "positions_needed", "position", "notes"]
+        fields = ["title", "date", "start_time", "end_time", "service", "positions_needed", "position", "notes", "break_minutes", "required_skills", "repeat_weeks", "repeat_interval", "fixed_member_id"]
 
     def validate(self, attrs):
-        if attrs["end_time"] <= attrs["start_time"]:
-            raise serializers.ValidationError("L'heure de fin doit être postérieure à l'heure de début.")
+        from datetime import datetime, date, timedelta
+        start = attrs.get("start_time", getattr(self.instance, "start_time", None))
+        end = attrs.get("end_time", getattr(self.instance, "end_time", None))
+        if start and end:
+            length = ((datetime.combine(date.today(), end)-datetime.combine(date.today(), start)).total_seconds()/60) % 1440
+            pause = attrs.get("break_minutes", getattr(self.instance, "break_minutes", 30))
+            if not length or pause >= length:
+                raise serializers.ValidationError("La durée du service doit dépasser celle de la pause.")
         return attrs
 
-
-class RestaurantShiftUpdateSerializer(serializers.ModelSerializer):
+class RestaurantShiftUpdateSerializer(RestaurantShiftCreateSerializer):
     class Meta:
         model = RestaurantShift
-        fields = ["title", "date", "start_time", "end_time", "service", "positions_needed", "position", "notes", "status"]
-
-    def validate(self, attrs):
-        start = attrs.get("start_time", self.instance.start_time if self.instance else None)
-        end = attrs.get("end_time", self.instance.end_time if self.instance else None)
-        if start and end and end <= start:
-            raise serializers.ValidationError("L'heure de fin doit être postérieure à l'heure de début.")
-        return attrs
+        fields = ["title", "date", "start_time", "end_time", "service", "positions_needed", "position", "notes", "status", "break_minutes", "required_skills"]

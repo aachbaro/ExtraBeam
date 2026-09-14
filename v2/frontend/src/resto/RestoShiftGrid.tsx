@@ -29,23 +29,41 @@ function getWeekDays(from: string, to: string): string[] {
 const DAY_LABELS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 
 export default function RestoShiftGrid({
-  shifts, members, week, isManager, myMemberId, token, restaurantSlug,
-  onShiftUpdated, onShiftDeleted,
+  shifts,
+  members,
+  week,
+  isManager,
+  myMemberId,
+  token,
+  restaurantSlug,
+  onShiftUpdated,
+  onShiftDeleted,
 }: Props) {
+  const [error, setError] = useState("");
   const [busy, setBusy] = useState<number | null>(null);
 
   const days = getWeekDays(week.from, week.to);
 
-  async function handleSetAvailability(shiftId: number, status: "available" | "unavailable" | "maybe") {
+  async function handleSetAvailability(
+    shiftId: number,
+    status: "available" | "unavailable" | "maybe",
+  ) {
     if (!token) return;
     setBusy(shiftId);
     try {
-      const updated = await setAvailability(restaurantSlug, shiftId, status, token);
+      const updated = await setAvailability(
+        restaurantSlug,
+        shiftId,
+        status,
+        token,
+      );
       const shift = shifts.find((s) => s.id === shiftId);
       if (!shift) return;
       const avs = shift.availabilities.filter((a) => a.id !== updated.id);
       onShiftUpdated({ ...shift, availabilities: [...avs, updated] });
-    } catch { /* ignore */ } finally {
+    } catch (e) {
+      setError(String(e));
+    } finally {
       setBusy(null);
     }
   }
@@ -54,7 +72,12 @@ export default function RestoShiftGrid({
     if (!token) return;
     setBusy(shiftId);
     try {
-      const assignment = await assignMember(restaurantSlug, shiftId, memberId, token);
+      const assignment = await assignMember(
+        restaurantSlug,
+        shiftId,
+        memberId,
+        token,
+      );
       const shift = shifts.find((s) => s.id === shiftId);
       if (!shift) return;
       onShiftUpdated({
@@ -62,24 +85,28 @@ export default function RestoShiftGrid({
         assignments: [...shift.assignments, assignment],
         assigned_count: shift.assigned_count + 1,
       });
-    } catch { /* ignore */ } finally {
+    } catch (e) {
+      setError(String(e));
+    } finally {
       setBusy(null);
     }
   }
 
   async function handleDelete(shiftId: number) {
-    if (!token || !window.confirm("Supprimer ce shift ?")) return;
+    if (!token || !window.confirm("Supprimer cette ligne de postes ?")) return;
     setBusy(shiftId);
     try {
       await deleteShift(restaurantSlug, shiftId, token);
       onShiftDeleted(shiftId);
-    } catch { /* ignore */ } finally {
+    } catch (e) {
+      setError(String(e));
+    } finally {
       setBusy(null);
     }
   }
 
   const shiftsByDay = Object.fromEntries(
-    days.map((d) => [d, shifts.filter((s) => s.date === d)])
+    days.map((d) => [d, shifts.filter((s) => s.date === d)]),
   );
 
   const hasAny = shifts.length > 0;
@@ -87,10 +114,10 @@ export default function RestoShiftGrid({
   if (!hasAny) {
     return (
       <div className="rounded-eb-card border border-eb-layout bg-white p-8 text-center">
-        <p className="text-eb-secondary text-sm">Aucun shift cette semaine.</p>
+        <p className="text-eb-secondary text-sm">Aucun poste défini.</p>
         {isManager && (
           <p className="mt-1 text-[12px] text-eb-secondary">
-            Créez des shifts avec le bouton "Nouveau shift".
+            Modifiez le service pour ajouter des postes.
           </p>
         )}
       </div>
@@ -98,36 +125,43 @@ export default function RestoShiftGrid({
   }
 
   return (
-    <div className="grid grid-cols-7 gap-2">
-      {days.map((day, idx) => (
-        <div key={day} className="min-w-0">
-          <div className="mb-2 text-center">
-            <p className="text-[11px] font-medium text-eb-secondary">{DAY_LABELS[idx]}</p>
-            <p className="text-[12px] text-eb-primary">{day.slice(8)}</p>
+    <div className="grid gap-2">
+      {error && <p role="alert">{error}</p>}
+      {days.map((day) =>
+        shiftsByDay[day]?.length ? (
+          <div key={day} className="min-w-0">
+            <div className="mb-2 text-center">
+              <p className="text-[11px] font-medium text-eb-secondary">
+                {DAY_LABELS[(new Date(day + "T12:00:00").getDay() + 6) % 7]}
+              </p>
+              <p className="text-[12px] text-eb-primary">{day.slice(8)}</p>
+            </div>
+            <div className="flex flex-col gap-2">
+              {shiftsByDay[day]?.length === 0 && (
+                <div className="rounded-lg border border-dashed border-eb-layout h-12" />
+              )}
+              {shiftsByDay[day]?.map((shift) => (
+                <RestoShiftCard
+                  key={shift.id}
+                  shift={shift}
+                  members={members}
+                  isManager={isManager}
+                  myMemberId={myMemberId}
+                  busy={busy === shift.id}
+                  onSetAvailability={(status) =>
+                    void handleSetAvailability(shift.id, status)
+                  }
+                  onAssign={(memberId) => void handleAssign(shift.id, memberId)}
+                  onDelete={() => void handleDelete(shift.id)}
+                  onUpdated={onShiftUpdated}
+                  token={token}
+                  restaurantSlug={restaurantSlug}
+                />
+              ))}
+            </div>
           </div>
-          <div className="flex flex-col gap-2">
-            {shiftsByDay[day]?.length === 0 && (
-              <div className="rounded-lg border border-dashed border-eb-layout h-12" />
-            )}
-            {shiftsByDay[day]?.map((shift) => (
-              <RestoShiftCard
-                key={shift.id}
-                shift={shift}
-                members={members}
-                isManager={isManager}
-                myMemberId={myMemberId}
-                busy={busy === shift.id}
-                onSetAvailability={(status) => void handleSetAvailability(shift.id, status)}
-                onAssign={(memberId) => void handleAssign(shift.id, memberId)}
-                onDelete={() => void handleDelete(shift.id)}
-                onUpdated={onShiftUpdated}
-                token={token}
-                restaurantSlug={restaurantSlug}
-              />
-            ))}
-          </div>
-        </div>
-      ))}
+        ) : null,
+      )}
     </div>
   );
 }

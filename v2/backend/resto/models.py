@@ -11,6 +11,7 @@ class Restaurant(models.Model):
     cuisine_type = models.CharField(max_length=60, blank=True)
     logo_url = models.URLField(blank=True)
     cover_url = models.URLField(blank=True)
+    planning_rules = models.JSONField(default=dict, blank=True)
     owner = models.ForeignKey(
         AccountProfile, on_delete=models.CASCADE, related_name="owned_restaurants"
     )
@@ -48,6 +49,10 @@ class RestaurantMember(models.Model):
     is_active = models.BooleanField(default=True)
     is_manager = models.BooleanField(default=False)
     email = models.EmailField(blank=True)
+    weekly_hours = models.FloatField(default=35)
+    skills = models.JSONField(default=list, blank=True)
+    preferences = models.JSONField(default=dict, blank=True)
+    default_availability = models.CharField(max_length=20, default="unknown")
     joined_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -72,6 +77,8 @@ SHIFT_STATUS_CHOICES = [
 
 
 class RestaurantShift(models.Model):
+    service_instance = models.ForeignKey("RestaurantService", null=True, blank=True, on_delete=models.CASCADE, related_name="slots")
+    template_slot_key = models.CharField(max_length=80, blank=True)
     restaurant = models.ForeignKey(
         Restaurant, on_delete=models.CASCADE, related_name="shifts"
     )
@@ -81,6 +88,9 @@ class RestaurantShift(models.Model):
     end_time = models.TimeField()
     service = models.CharField(max_length=20, choices=SERVICE_CHOICES, default="soir")
     positions_needed = models.PositiveSmallIntegerField(default=1)
+    break_minutes = models.PositiveSmallIntegerField(default=30)
+    required_skills = models.JSONField(default=list, blank=True)
+    series_id = models.UUIDField(null=True, blank=True, editable=False)
     position = models.CharField(max_length=40, choices=POSITION_CHOICES, default="serveur")
     notes = models.TextField(blank=True)
     status = models.CharField(max_length=20, choices=SHIFT_STATUS_CHOICES, default="draft")
@@ -133,6 +143,7 @@ class ShiftAssignment(models.Model):
     member = models.ForeignKey(
         RestaurantMember, on_delete=models.CASCADE, related_name="assignments"
     )
+    locked = models.BooleanField(default=True)
     assigned_by = models.ForeignKey(
         AccountProfile, on_delete=models.SET_NULL, null=True, blank=True
     )
@@ -145,3 +156,29 @@ class ShiftAssignment(models.Model):
 
     def __str__(self):
         return f"{self.member.name} assigné à {self.shift}"
+
+
+class ServiceTemplate(models.Model):
+    restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE, related_name="service_templates")
+    name = models.CharField(max_length=120)
+    weekday = models.PositiveSmallIntegerField(default=0)
+    definition = models.JSONField(default=dict)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
+class RestaurantService(models.Model):
+    restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE, related_name="services")
+    template = models.ForeignKey(ServiceTemplate, null=True, blank=True, on_delete=models.SET_NULL, related_name="occurrences")
+    date = models.DateField()
+    title = models.CharField(max_length=120)
+    start_time = models.TimeField()
+    kitchen_end_time = models.TimeField()
+    end_time = models.TimeField()
+    notes = models.TextField(blank=True)
+    tasks = models.JSONField(default=list)
+    template_snapshot = models.JSONField(default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["date", "start_time", "id"]
+        constraints = [models.UniqueConstraint(fields=["template", "date"], name="resto_template_date_unique")]

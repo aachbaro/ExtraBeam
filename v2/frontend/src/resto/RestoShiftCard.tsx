@@ -1,6 +1,15 @@
 import { useState } from "react";
-import type { RestaurantMember, RestaurantShift, AvailabilityStatus } from "../types";
-import { updateShift, updateAssignment, removeAssignment } from "../api";
+import type {
+  RestaurantMember,
+  RestaurantShift,
+  AvailabilityStatus,
+} from "../types";
+import {
+  updateShift,
+  updateAssignment,
+  removeAssignment,
+  setMemberShiftAvailability,
+} from "../api";
 
 const STATUS_COLORS: Record<string, string> = {
   draft: "bg-amber-100 text-amber-700",
@@ -34,25 +43,44 @@ interface Props {
 }
 
 export default function RestoShiftCard({
-  shift, members, isManager, myMemberId, busy, token, restaurantSlug,
-  onSetAvailability, onAssign, onDelete, onUpdated,
+  shift,
+  members,
+  isManager,
+  myMemberId,
+  busy,
+  token,
+  restaurantSlug,
+  onSetAvailability,
+  onAssign,
+  onDelete,
+  onUpdated,
 }: Props) {
-  const [expanded, setExpanded] = useState(false);
+  const [error, setError] = useState("");
+  const [expanded, setExpanded] = useState(true);
   const [assignMenuOpen, setAssignMenuOpen] = useState(false);
 
   const myAv = myMemberId
     ? shift.availabilities.find((a) => a.member_id === myMemberId)
     : null;
 
-  const assignedCount = shift.assignments.filter((a) => a.status !== "declined").length;
+  const assignedCount = shift.assignments.filter(
+    (a) => a.status !== "declined",
+  ).length;
   const isFull = assignedCount >= shift.positions_needed;
 
   async function handlePublish() {
     if (!token) return;
     try {
-      const updated = await updateShift(restaurantSlug, shift.id, { status: "published" }, token);
+      const updated = await updateShift(
+        restaurantSlug,
+        shift.id,
+        { status: "published" },
+        token,
+      );
       onUpdated(updated);
-    } catch { /* ignore */ }
+    } catch (e) {
+      setError(String(e));
+    }
   }
 
   async function handleRemoveAssignment(assignmentId: number) {
@@ -64,28 +92,52 @@ export default function RestoShiftCard({
         assignments: shift.assignments.filter((a) => a.id !== assignmentId),
         assigned_count: Math.max(0, shift.assigned_count - 1),
       });
-    } catch { /* ignore */ }
+    } catch (e) {
+      setError(String(e));
+    }
   }
 
-  async function handleMemberResponse(assignmentId: number, status: "confirmed" | "declined") {
+  async function handleMemberResponse(
+    assignmentId: number,
+    status: "confirmed" | "declined",
+  ) {
     if (!token) return;
     try {
-      const updated = await updateAssignment(restaurantSlug, shift.id, assignmentId, status, token);
+      const updated = await updateAssignment(
+        restaurantSlug,
+        shift.id,
+        assignmentId,
+        status,
+        token,
+      );
       onUpdated({
         ...shift,
-        assignments: shift.assignments.map((a) => (a.id === assignmentId ? updated : a)),
+        assignments: shift.assignments.map((a) =>
+          a.id === assignmentId ? updated : a,
+        ),
       });
-    } catch { /* ignore */ }
+    } catch (e) {
+      setError(String(e));
+    }
   }
 
   const unassignedMembers = members.filter(
-    (m) => m.is_active && !shift.assignments.some((a) => a.member_id === m.id && a.status !== "declined")
+    (m) =>
+      m.is_active &&
+      !shift.assignments.some(
+        (a) => a.member_id === m.id && a.status !== "declined",
+      ),
   );
 
   return (
     <div
       className={`rounded-lg border border-eb-layout bg-white overflow-hidden transition-shadow ${busy ? "opacity-60" : ""}`}
     >
+      {error && (
+        <p role="alert" className="p-2 text-red-600">
+          {error}
+        </p>
+      )}
       {/* Card header */}
       <button
         type="button"
@@ -101,7 +153,9 @@ export default function RestoShiftCard({
               {shift.start_time.slice(0, 5)}–{shift.end_time.slice(0, 5)}
             </p>
           </div>
-          <span className={`shrink-0 rounded px-1 py-0.5 text-[9px] font-medium ${STATUS_COLORS[shift.status]}`}>
+          <span
+            className={`shrink-0 rounded px-1 py-0.5 text-[9px] font-medium ${STATUS_COLORS[shift.status]}`}
+          >
             {shift.status === "published" ? "Pub." : "Brouill."}
           </span>
         </div>
@@ -124,23 +178,36 @@ export default function RestoShiftCard({
           <div className="h-1 flex-1 rounded-full bg-eb-layout overflow-hidden">
             <div
               className={`h-1 rounded-full transition-all ${isFull ? "bg-green-500" : "bg-eb-primary"}`}
-              style={{ width: `${Math.min(100, (assignedCount / shift.positions_needed) * 100)}%` }}
+              style={{
+                width: `${Math.min(100, (assignedCount / shift.positions_needed) * 100)}%`,
+              }}
             />
           </div>
-          <span className="text-[10px] text-eb-secondary">{assignedCount}/{shift.positions_needed}</span>
+          <span className="text-[10px] text-eb-secondary">
+            {assignedCount}/{shift.positions_needed}
+          </span>
         </div>
       </button>
 
       {/* Expanded detail */}
-      <div style={{ maxHeight: expanded ? "999px" : "0", overflow: "hidden", transition: "max-height 0.3s ease" }}>
+      <div
+        style={{
+          maxHeight: expanded ? "999px" : "0",
+          overflow: "hidden",
+          transition: "max-height 0.3s ease",
+        }}
+      >
         <div className="border-t border-eb-layout p-2 space-y-2">
-
           {/* My availability (non-manager member) */}
           {myMemberId && !isManager && (
             <div>
-              <p className="text-[10px] font-medium text-eb-secondary mb-1">Ma dispo</p>
+              <p className="text-[10px] font-medium text-eb-secondary mb-1">
+                Ma dispo
+              </p>
               <div className="flex gap-1">
-                {(["available", "maybe", "unavailable"] as AvailabilityStatus[]).map((s) => (
+                {(
+                  ["available", "maybe", "unavailable"] as AvailabilityStatus[]
+                ).map((s) => (
                   <button
                     key={s}
                     type="button"
@@ -148,9 +215,11 @@ export default function RestoShiftCard({
                     onClick={() => onSetAvailability(s)}
                     className={`flex-1 rounded py-1 text-[10px] font-medium transition-colors ${
                       myAv?.status === s
-                        ? s === "available" ? "bg-green-500 text-white"
-                          : s === "unavailable" ? "bg-red-400 text-white"
-                          : "bg-amber-400 text-white"
+                        ? s === "available"
+                          ? "bg-green-500 text-white"
+                          : s === "unavailable"
+                            ? "bg-red-400 text-white"
+                            : "bg-amber-400 text-white"
                         : "bg-eb-page text-eb-secondary hover:bg-eb-layout"
                     }`}
                   >
@@ -164,39 +233,59 @@ export default function RestoShiftCard({
           {/* Assignments */}
           {shift.assignments.length > 0 && (
             <div>
-              <p className="text-[10px] font-medium text-eb-secondary mb-1">Assignés</p>
+              <p className="text-[10px] font-medium text-eb-secondary mb-1">
+                Assignés
+              </p>
               <div className="space-y-1">
                 {shift.assignments.map((a) => {
                   const isMe = a.member_id === myMemberId;
                   return (
                     <div key={a.id} className="flex items-center gap-1">
                       {a.avatar_url ? (
-                        <img src={a.avatar_url} alt="" className="h-4 w-4 rounded-full object-cover" />
+                        <img
+                          src={a.avatar_url}
+                          alt=""
+                          className="h-4 w-4 rounded-full object-cover"
+                        />
                       ) : (
                         <div className="h-4 w-4 rounded-full bg-eb-layout flex items-center justify-center text-[8px] text-eb-secondary">
                           {a.member_name.charAt(0)}
                         </div>
                       )}
-                      <span className="flex-1 text-[10px] text-eb-primary truncate">{a.member_name}</span>
-                      <span className={`text-[9px] rounded px-1 ${
-                        a.status === "confirmed" ? "bg-green-100 text-green-700"
-                          : a.status === "declined" ? "bg-red-100 text-red-600"
-                          : "bg-amber-100 text-amber-700"
-                      }`}>
-                        {a.status === "confirmed" ? "✓" : a.status === "declined" ? "✗" : "?"}
+                      <span className="flex-1 text-[10px] text-eb-primary truncate">
+                        {a.member_name}
+                      </span>
+                      <span
+                        className={`text-[9px] rounded px-1 ${
+                          a.status === "confirmed"
+                            ? "bg-green-100 text-green-700"
+                            : a.status === "declined"
+                              ? "bg-red-100 text-red-600"
+                              : "bg-amber-100 text-amber-700"
+                        }`}
+                      >
+                        {a.status === "confirmed"
+                          ? "✓"
+                          : a.status === "declined"
+                            ? "✗"
+                            : "?"}
                       </span>
                       {isMe && a.status === "proposed" && (
                         <>
                           <button
                             type="button"
-                            onClick={() => void handleMemberResponse(a.id, "confirmed")}
+                            onClick={() =>
+                              void handleMemberResponse(a.id, "confirmed")
+                            }
                             className="text-[10px] rounded bg-green-500 text-white px-1"
                           >
                             OK
                           </button>
                           <button
                             type="button"
-                            onClick={() => void handleMemberResponse(a.id, "declined")}
+                            onClick={() =>
+                              void handleMemberResponse(a.id, "declined")
+                            }
                             className="text-[10px] rounded bg-red-400 text-white px-1"
                           >
                             Non
@@ -220,6 +309,73 @@ export default function RestoShiftCard({
             </div>
           )}
 
+          {/* Availability and constraints are separate from qualifications. */}
+          {isManager && (
+            <div className="space-y-2 border-t pt-2">
+              {members
+                .filter((m) => m.is_active)
+                .map((m) => {
+                  const candidate = shift.candidates?.find(
+                    (c) => c.member_id === m.id,
+                  );
+                  return (
+                    <div
+                      key={m.id}
+                      className="flex gap-2 flex-wrap items-center text-xs"
+                    >
+                      <strong>{m.name}</strong>
+                      <span>
+                        {candidate?.status === "available"
+                          ? "Disponible"
+                          : candidate?.status === "maybe"
+                            ? "De préférence non"
+                            : candidate?.status === "unavailable"
+                              ? "Indisponible"
+                              : "À confirmer"}
+                      </span>
+                      {candidate?.reasons.length ? (
+                        <span className="text-red-600">
+                          {candidate.reasons.join(", ")}
+                        </span>
+                      ) : null}
+                      <select
+                        aria-label={`Disponibilité de ${m.name}`}
+                        defaultValue=""
+                        onChange={async (e) => {
+                          if (!token || !e.target.value) return;
+                          try {
+                            const av = await setMemberShiftAvailability(
+                              restaurantSlug,
+                              shift.id,
+                              m.id,
+                              e.target.value as AvailabilityStatus,
+                              token,
+                            );
+                            onUpdated({
+                              ...shift,
+                              availabilities: [
+                                ...shift.availabilities.filter(
+                                  (a) => a.member_id !== m.id,
+                                ),
+                                av,
+                              ],
+                            });
+                          } catch (err) {
+                            setError(String(err));
+                          }
+                        }}
+                        className="border rounded p-1"
+                      >
+                        <option value="">Renseigner pour ces horaires</option>
+                        <option value="available">Disponible</option>
+                        <option value="maybe">De préférence non</option>
+                        <option value="unavailable">Indisponible</option>
+                      </select>
+                    </div>
+                  );
+                })}
+            </div>
+          )}
           {/* Manager actions */}
           {isManager && (
             <div className="flex flex-wrap gap-1 pt-1 border-t border-eb-layout">
@@ -239,11 +395,25 @@ export default function RestoShiftCard({
                       <button
                         key={m.id}
                         type="button"
-                        onClick={() => { onAssign(m.id); setAssignMenuOpen(false); }}
+                        disabled={
+                          !!shift.candidates?.find((c) => c.member_id === m.id)
+                            ?.reasons.length
+                        }
+                        title={shift.candidates
+                          ?.find((c) => c.member_id === m.id)
+                          ?.reasons.join(", ")}
+                        onClick={() => {
+                          onAssign(m.id);
+                          setAssignMenuOpen(false);
+                        }}
                         className="flex w-full items-center gap-2 px-3 py-2 text-[11px] hover:bg-eb-page text-left"
                       >
                         {m.avatar_url ? (
-                          <img src={m.avatar_url} alt="" className="h-5 w-5 rounded-full object-cover" />
+                          <img
+                            src={m.avatar_url}
+                            alt=""
+                            className="h-5 w-5 rounded-full object-cover"
+                          />
                         ) : (
                           <div className="h-5 w-5 rounded-full bg-eb-layout flex items-center justify-center text-[9px]">
                             {m.name.charAt(0)}
@@ -253,7 +423,9 @@ export default function RestoShiftCard({
                       </button>
                     ))}
                     {unassignedMembers.length === 0 && (
-                      <p className="px-3 py-2 text-[11px] text-eb-secondary">Aucun membre dispo</p>
+                      <p className="px-3 py-2 text-[11px] text-eb-secondary">
+                        Aucun membre dispo
+                      </p>
                     )}
                   </div>
                 )}

@@ -6,7 +6,10 @@
 
 import type { Facture, FactureStatus } from "../../types";
 
-const STATUS_STYLE: Record<FactureStatus, { label: string; bg: string; color: string }> = {
+const STATUS_STYLE: Record<
+  FactureStatus,
+  { label: string; bg: string; color: string }
+> = {
   pending_payment: { label: "En attente", bg: "#fef3c7", color: "#b45309" },
   paid: { label: "Payée", bg: "#dcfce7", color: "#166534" },
   canceled: { label: "Annulée", bg: "#fee2e2", color: "#b91c1c" },
@@ -29,9 +32,17 @@ interface Props {
   onDelete: () => void;
   onDownload: () => void;
   onMarkPaid?: () => void;
+  onReuse?: () => void;
 }
 
-export default function FactureCard({ facture, onClick, onDelete, onDownload, onMarkPaid }: Props) {
+export default function FactureCard({
+  facture,
+  onClick,
+  onDelete,
+  onDownload,
+  onMarkPaid,
+  onReuse,
+}: Props) {
   const style = STATUS_STYLE[facture.status];
 
   return (
@@ -58,9 +69,17 @@ export default function FactureCard({ facture, onClick, onDelete, onDownload, on
 
       <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-eb-muted">
         <span>{formatDate(facture.date_emission)}</span>
-        {facture.date_echeance ? <span>Échéance : {formatDate(facture.date_echeance)}</span> : null}
-        <span className="font-medium text-eb-text">{formatAmount(facture.montant_ttc)}</span>
-        {facture.mission_title ? <span>Mission : {facture.mission_title}</span> : <span>Facture manuelle</span>}
+        {facture.date_echeance ? (
+          <span>Échéance : {formatDate(facture.date_echeance)}</span>
+        ) : null}
+        <span className="font-medium text-eb-text">
+          {formatAmount(facture.montant_ttc)}
+        </span>
+        {facture.mission_title ? (
+          <span>Mission : {facture.mission_title}</span>
+        ) : (
+          <span>Facture manuelle</span>
+        )}
       </div>
 
       {facture.description ? (
@@ -69,7 +88,19 @@ export default function FactureCard({ facture, onClick, onDelete, onDownload, on
         </p>
       ) : null}
 
-      <div className="mt-3 flex items-center gap-2">
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        {onReuse && (
+          <button
+            type="button"
+            className="border rounded px-3 py-2 text-xs hover:bg-eb-page"
+            onClick={(e) => {
+              e.stopPropagation();
+              onReuse();
+            }}
+          >
+            Réutiliser
+          </button>
+        )}
         <button
           type="button"
           onClick={(event) => {
