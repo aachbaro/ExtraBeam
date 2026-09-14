@@ -124,7 +124,7 @@ def board(request,slug):
             'start':shift.start_time,'end':shift.end_time,'role':shift.position,'required':shift.required_skills,
             'response':av.status if av else '', 'effective':scheduling.availability(member,shift),
             'assigned':mine and shift.status=='published','break_minutes':shift.break_minutes})
-    return Response({'name':member.name,'default_availability':member.default_availability,'slots':rows})
+    return Response({'name':member.name,'default_availability':member.default_availability,'slots':rows,'profile_linked':bool(member.profile_id)})
 
 
 @api_view(['POST'])

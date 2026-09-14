@@ -15,7 +15,7 @@ type StaffSlot = {
   assigned: boolean;
   break_minutes: number;
 };
-type Board = { name: string; default_availability: string; slots: StaffSlot[] };
+type Board = { name: string; default_availability: string; slots: StaffSlot[]; profile_linked: boolean };
 const statuses: Record<string, string> = {
   unknown: "À confirmer",
   available: "Disponible",
@@ -76,7 +76,7 @@ export default function RestaurantAccess() {
     setBoard(null);
     employeeApi<Board>(slug, "board", token, { from, to })
       .then((r) => {
-        if (alive) setBoard(r);
+        if (alive) { setBoard(r); if (r.profile_linked) setLinked(true); }
       })
       .catch((e) => {
         if (alive) setError(String(e));
