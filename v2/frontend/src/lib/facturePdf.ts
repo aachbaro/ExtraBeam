@@ -214,5 +214,16 @@ export function downloadFacturePdf(
     }
   }
 
-  doc.save(`facture-${facture.numero}.pdf`);
+  const namePart = profile.display_name
+    ? profile.display_name
+        .normalize("NFD")
+        .replace(/[̀-ͯ]/g, "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "")
+    : "";
+  const filename = namePart
+    ? `facture-${namePart}-${facture.numero}.pdf`
+    : `facture-${facture.numero}.pdf`;
+  doc.save(filename);
 }
