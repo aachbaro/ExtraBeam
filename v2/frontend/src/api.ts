@@ -17,6 +17,7 @@ import type {
   AvailabilityStatus,
   ClientContact,
   ClientDashboardResponse,
+  ContactProfile,
   Experience,
   Facture,
   FactureStatus,
@@ -26,6 +27,7 @@ import type {
   MissionTemplate,
   MissionTemplateMode,
   MissionStatus,
+  ProfileContact,
   ProfileOverview,
   Restaurant,
   RestaurantMember,
@@ -265,6 +267,33 @@ export async function createClientContact(profileSlug: string, token: string): P
 
 export async function deleteClientContact(contactId: number, token: string): Promise<void> {
   return deleteReq(`/client/contacts/${contactId}/`, token);
+}
+
+// ---------------------------------------------------------------------------
+// Contacts mutuels
+// ---------------------------------------------------------------------------
+
+export async function fetchContacts(token: string): Promise<ProfileContact[]> {
+  return getJson<ProfileContact[]>("/contacts/", token);
+}
+
+export async function addContact(profileSlug: string, token: string): Promise<ProfileContact> {
+  return postJson<ProfileContact>("/contacts/", { profile_slug: profileSlug }, token);
+}
+
+export async function removeContact(profileSlug: string, token: string): Promise<void> {
+  return deleteReq(`/contacts/${profileSlug}/`, token);
+}
+
+export async function fetchContactStatus(profileSlug: string, token: string): Promise<boolean> {
+  const res = await getJson<{ is_contact: boolean }>(`/contacts/status/${profileSlug}/`, token);
+  return res.is_contact;
+}
+
+export async function searchProfiles(q: string, token: string, role?: string): Promise<ContactProfile[]> {
+  const params = new URLSearchParams({ q });
+  if (role) params.set("role", role);
+  return getJson<ContactProfile[]>(`/profiles/search/?${params.toString()}`, token);
 }
 
 // ---------------------------------------------------------------------------
@@ -852,4 +881,30 @@ export async function setMyAvailability(slug: string, token: string, status: str
 
 export async function linkRivebelleAccount(slug: string, employeeToken: string, token: string): Promise<{ linked: boolean; member_name: string }> {
   return postJson(`${RESTO}/restaurants/${slug}/access/link-account/`, { employee_token: employeeToken }, token);
+}
+
+// ---------------------------------------------------------------------------
+// Dev auth — uniquement en mode développement
+// ---------------------------------------------------------------------------
+
+export interface DevAccount {
+  id: string;
+  slug: string | null;
+  email: string;
+  display_name: string;
+  role: string;
+  token: string | null;
+  username: string;
+}
+
+export async function devListAccounts(): Promise<DevAccount[]> {
+  return getJson<DevAccount[]>("/dev/accounts/");
+}
+
+export async function devLogin(username: string, displayName: string, role: string): Promise<{ user: AuthUser; access_token: string }> {
+  return postJson<{ user: AuthUser; access_token: string }>("/dev/login/", { username, display_name: displayName, role });
+}
+
+export async function devDeleteAccount(username: string): Promise<void> {
+  await fetch(`${API_URL}/dev/accounts/${encodeURIComponent(username)}/`, { method: "DELETE" });
 }

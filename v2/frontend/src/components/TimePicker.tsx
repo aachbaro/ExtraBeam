@@ -155,7 +155,7 @@ export default function TimePicker({
         aria-label={ariaLabel ?? `Heure : ${pad(hour)}:${pad(minute)}`}
         className={`${className} flex w-full items-center gap-0.5`}
         onClick={() => setOpen((v) => !v)}
-        required={required}
+        data-required={required}
       >
         <span className="flex items-center">
           <span

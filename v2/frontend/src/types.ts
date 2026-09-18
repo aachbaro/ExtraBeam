@@ -230,6 +230,27 @@ export interface MissionTemplate {
   updated_at: string;
 }
 
+// ---------------------------------------------------------------------------
+// Contacts mutuels
+// ---------------------------------------------------------------------------
+
+export interface ContactProfile {
+  id: string;
+  slug: string;
+  display_name: string;
+  avatar_url: string | null;
+  job_title: string;
+  location: string;
+  role: string;
+}
+
+export interface ProfileContact {
+  link_id: number;
+  profile: ContactProfile;
+  i_initiated: boolean;
+  created_at: string;
+}
+
 export interface ClientContactProfile {
   id: string;
   slug: string;

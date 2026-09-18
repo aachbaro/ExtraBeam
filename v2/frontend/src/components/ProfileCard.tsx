@@ -22,7 +22,7 @@ import type { FreelancerProfile, Skill } from "../types";
 interface Props {
   profile: FreelancerProfile;
   isOwner: boolean;
-  onProfileUpdated: (updated: FreelancerProfile) => void;
+  onProfileUpdated?: (updated: FreelancerProfile) => void;
   noCard?: boolean;
 }
 
@@ -229,7 +229,7 @@ export default function ProfileCard({ profile, isOwner, onProfileUpdated, noCard
       }
 
       const updated = await updateProfile(profile.slug, payload, user.token);
-      onProfileUpdated({ ...profile, ...updated, skills });
+      onProfileUpdated?.({ ...profile, ...updated, skills });
       setUser({
         ...user,
         display_name: updated.display_name,
