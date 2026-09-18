@@ -551,7 +551,7 @@ export default function ServiceDayCard({
             <div style={{ overflow: "hidden" }}>
               <div
                 className={`pt-2 pb-1 space-y-2 rounded-lg transition-colors ${dropActive ? "bg-blue-50/60 ring-1 ring-eb-primary/30" : ""}`}
-                onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setDropActive(true); }}
+                onDragOver={(e) => { if (e.dataTransfer.types.includes("application/x-eb-item")) { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setDropActive(true); } }}
                 onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDropActive(false); }}
                 onDrop={(e) => void handleDrop(e)}
               >

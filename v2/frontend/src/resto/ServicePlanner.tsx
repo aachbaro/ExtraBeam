@@ -465,9 +465,17 @@ export default function ServicePlanner({
                     e.preventDefault();
                     setDragOverDay(null);
                     if (e.dataTransfer.types.includes("application/x-eb-item")) return;
-                    const sourceDay = e.dataTransfer.getData("application/x-eb-service");
-                    if (sourceDay && sourceDay === day) return;
-                    void pasteToDay(day);
+                    const raw = e.dataTransfer.getData("application/x-eb-service");
+                    if (!raw) return;
+                    const payload = JSON.parse(raw) as { day: string; def: ServiceDefinition; title: string };
+                    if (payload.day === day) return;
+                    if (!manager) return;
+                    setBusy(true);
+                    const dropDef: ServiceDefinition = { ...payload.def, tasks: payload.def.tasks.map((t) => ({ ...t, done: false })) };
+                    createService(slug, { date: day, definition: dropDef }, token)
+                      .then(reload)
+                      .catch((err) => setError(String(err)))
+                      .finally(() => setBusy(false));
                   }}
                 >
                   {/* Day header */}
@@ -519,8 +527,9 @@ export default function ServicePlanner({
                       }}
                       onDragStart={(e) => {
                         e.dataTransfer.effectAllowed = "copy";
-                        e.dataTransfer.setData("application/x-eb-service", service.date);
-                        setCopiedDef(serviceDefinition(service));
+                        const def = serviceDefinition(service);
+                        e.dataTransfer.setData("application/x-eb-service", JSON.stringify({ day: service.date, def, title: service.title }));
+                        setCopiedDef(def);
                         setCopiedTitle(service.title);
                         setSelectedId(service.id);
                       }}
