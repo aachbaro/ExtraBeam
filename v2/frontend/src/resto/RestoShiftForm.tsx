@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { createShift } from "../api";
 import type { RestaurantShift } from "../types";
+import TimePicker from "../components/TimePicker";
 
 const POSITIONS = [
   { value: "serveur", label: "Serveur·se" },
@@ -190,11 +191,10 @@ export default function RestoShiftForm({
               <label className="block text-[12px] font-medium text-eb-secondary mb-1">
                 Début
               </label>
-              <input
-                type="time"
+              <TimePicker
                 required
                 value={form.start_time}
-                onChange={(e) => set("start_time", e.target.value)}
+                onChange={(v) => set("start_time", v)}
                 className="w-full rounded-lg border border-eb-layout px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-eb-primary/30"
               />
             </div>
@@ -202,11 +202,10 @@ export default function RestoShiftForm({
               <label className="block text-[12px] font-medium text-eb-secondary mb-1">
                 Fin
               </label>
-              <input
-                type="time"
+              <TimePicker
                 required
                 value={form.end_time}
-                onChange={(e) => set("end_time", e.target.value)}
+                onChange={(v) => set("end_time", v)}
                 className="w-full rounded-lg border border-eb-layout px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-eb-primary/30"
               />
             </div>

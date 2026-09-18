@@ -16,6 +16,7 @@ const POSITIONS = [
 ];
 
 const POSITION_LABELS = Object.fromEntries(POSITIONS.map((p) => [p.value, p.label]));
+const POSITION_VALUES = new Set(POSITIONS.map((p) => p.value));
 
 interface Props {
   restaurantSlug: string;
@@ -28,6 +29,7 @@ interface Props {
 interface AddForm {
   name: string;
   position: string;
+  skills: string[];
   email: string;
   is_manager: boolean;
   extra_slug: string;
@@ -38,12 +40,12 @@ export default function RestoTeamSection({
 }: Props) {
   const [showAdd, setShowAdd] = useState(false);
   const [addForm, setAddForm] = useState<AddForm>({
-    name: "", position: "serveur", email: "", is_manager: false, extra_slug: "",
+    name: "", position: "serveur", skills: [], email: "", is_manager: false, extra_slug: "",
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  function setAdd(field: keyof AddForm, value: string | boolean) {
+  function setAdd(field: keyof AddForm, value: string | boolean | string[]) {
     setAddForm((f) => ({ ...f, [field]: value }));
   }
 
@@ -57,13 +59,14 @@ export default function RestoTeamSection({
         name: addForm.name.trim(),
         position: addForm.position,
         is_manager: addForm.is_manager,
+        skills: addForm.skills,
       };
       if (addForm.email.trim()) payload.email = addForm.email.trim();
       if (addForm.extra_slug.trim()) payload.extra_slug = addForm.extra_slug.trim();
       const member = await addMember(restaurantSlug, payload, token);
       onMembersChanged([...members, member]);
       setShowAdd(false);
-      setAddForm({ name: "", position: "serveur", email: "", is_manager: false, extra_slug: "" });
+      setAddForm({ name: "", position: "serveur", skills: [], email: "", is_manager: false, extra_slug: "" });
     } catch (err: unknown) {
       setError(String(err));
     } finally {
@@ -83,6 +86,19 @@ export default function RestoTeamSection({
     if (!token) return;
     try {
       const updated = await updateMember(restaurantSlug, member.id, { is_manager: !member.is_manager }, token);
+      onMembersChanged(members.map((m) => (m.id === updated.id ? updated : m)));
+    } catch { /* ignore */ }
+  }
+
+  async function handleTogglePosition(member: RestaurantMember, position: string) {
+    if (!token) return;
+    const positionSkills = member.skills.filter((s) => POSITION_VALUES.has(s));
+    const otherSkills = member.skills.filter((s) => !POSITION_VALUES.has(s));
+    const newPositionSkills = positionSkills.includes(position)
+      ? positionSkills.filter((p) => p !== position)
+      : [...positionSkills, position];
+    try {
+      const updated = await updateMember(restaurantSlug, member.id, { skills: [...otherSkills, ...newPositionSkills] }, token);
       onMembersChanged(members.map((m) => (m.id === updated.id ? updated : m)));
     } catch { /* ignore */ }
   }
@@ -137,7 +153,9 @@ export default function RestoTeamSection({
               <label className="block text-[12px] text-eb-secondary mb-1">Poste</label>
               <select
                 value={addForm.position}
-                onChange={(e) => setAdd("position", e.target.value)}
+                onChange={(e) =>
+                  setAddForm((f) => ({ ...f, position: e.target.value, skills: f.skills.filter((s) => s !== e.target.value) }))
+                }
                 className="w-full rounded-lg border border-eb-layout px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-eb-primary/30"
               >
                 {POSITIONS.map((p) => (
@@ -146,6 +164,39 @@ export default function RestoTeamSection({
               </select>
             </div>
           </div>
+          {/* Postes supplémentaires */}
+          <div>
+            <label className="block text-[12px] text-eb-secondary mb-1.5">
+              Postes supplémentaires (opt.)
+            </label>
+            <div className="flex flex-wrap gap-1.5">
+              {POSITIONS.filter((p) => p.value !== addForm.position).map((p) => {
+                const active = addForm.skills.includes(p.value);
+                return (
+                  <button
+                    key={p.value}
+                    type="button"
+                    onClick={() =>
+                      setAdd(
+                        "skills",
+                        active
+                          ? addForm.skills.filter((s) => s !== p.value)
+                          : [...addForm.skills, p.value],
+                      )
+                    }
+                    className={`rounded-full px-3 py-1 text-[11px] font-medium border transition-colors ${
+                      active
+                        ? "bg-eb-primary text-white border-eb-primary"
+                        : "border-eb-layout text-eb-secondary hover:border-eb-primary hover:text-eb-primary"
+                    }`}
+                  >
+                    {active ? "✓ " : ""}{p.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-[12px] text-eb-secondary mb-1">Email (opt.)</label>
@@ -210,6 +261,7 @@ export default function RestoTeamSection({
               onToggleActive={() => void handleToggleActive(member)}
               onToggleManager={() => void handleToggleManager(member)}
               onRemove={() => void handleRemove(member)}
+              onTogglePosition={(pos) => void handleTogglePosition(member, pos)}
             />
           ))
         )}
@@ -231,6 +283,7 @@ export default function RestoTeamSection({
                 onToggleActive={() => void handleToggleActive(member)}
                 onToggleManager={() => void handleToggleManager(member)}
                 onRemove={() => void handleRemove(member)}
+                onTogglePosition={(pos) => void handleTogglePosition(member, pos)}
               />
             ))}
           </div>
@@ -242,7 +295,7 @@ export default function RestoTeamSection({
 
 function MemberRow({
   member, isManager, positionLabel,
-  onToggleActive, onToggleManager, onRemove,
+  onToggleActive, onToggleManager, onRemove, onTogglePosition,
 }: {
   member: RestaurantMember;
   isManager: boolean;
@@ -250,60 +303,115 @@ function MemberRow({
   onToggleActive: () => void;
   onToggleManager: () => void;
   onRemove: () => void;
+  onTogglePosition: (position: string) => void;
 }) {
+  const [showPositions, setShowPositions] = useState(false);
+  const secondaryPositions = member.skills.filter((s) => POSITION_VALUES.has(s));
+
   return (
-    <div className="flex items-center gap-3 px-4 py-3">
-      {member.avatar_url ? (
-        <img src={member.avatar_url} alt="" className="h-8 w-8 rounded-full object-cover" />
-      ) : (
-        <div className="h-8 w-8 rounded-full bg-eb-layout flex items-center justify-center text-[13px] font-medium text-eb-secondary">
-          {member.name.charAt(0)}
+    <div>
+      <div className="flex items-center gap-3 px-4 py-3">
+        {member.avatar_url ? (
+          <img src={member.avatar_url} alt="" className="h-8 w-8 rounded-full object-cover" />
+        ) : (
+          <div className="h-8 w-8 rounded-full bg-eb-layout flex items-center justify-center text-[13px] font-medium text-eb-secondary">
+            {member.name.charAt(0)}
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <p className="text-[13px] font-medium text-eb-primary truncate">{member.name}</p>
+          <div className="flex flex-wrap items-center gap-1 mt-0.5">
+            <span className="text-[11px] text-eb-secondary">{positionLabel}</span>
+            {secondaryPositions.map((p) => (
+              <span key={p} className="rounded-full bg-eb-page border border-eb-layout px-1.5 py-px text-[10px] text-eb-muted">
+                {POSITION_LABELS[p] ?? p}
+              </span>
+            ))}
+          </div>
         </div>
-      )}
-      <div className="flex-1 min-w-0">
-        <p className="text-[13px] font-medium text-eb-primary truncate">{member.name}</p>
-        <p className="text-[11px] text-eb-secondary">{positionLabel}</p>
+        {member.is_manager && (
+          <span className="rounded-full bg-eb-primary/10 px-2 py-0.5 text-[10px] font-medium text-eb-primary">
+            Manager
+          </span>
+        )}
+        {member.extra_slug && (
+          <a
+            href={`/extras/${member.extra_slug}`}
+            target="_blank"
+            rel="noreferrer"
+            className="text-[11px] text-eb-secondary hover:text-eb-primary underline"
+          >
+            Profil
+          </a>
+        )}
+        {isManager && (
+          <div className="flex gap-1">
+            <button
+              type="button"
+              onClick={() => setShowPositions((v) => !v)}
+              title="Gérer les postes"
+              className={`rounded px-2 py-1 text-[10px] transition-colors ${
+                showPositions ? "bg-eb-primary/10 text-eb-primary" : "text-eb-secondary hover:bg-eb-layout"
+              }`}
+            >
+              Postes
+            </button>
+            <button
+              type="button"
+              onClick={onToggleActive}
+              title={member.is_active ? "Désactiver" : "Réactiver"}
+              className="rounded px-2 py-1 text-[10px] text-eb-secondary hover:bg-eb-layout transition-colors"
+            >
+              {member.is_active ? "Désact." : "Réact."}
+            </button>
+            <button
+              type="button"
+              onClick={onToggleManager}
+              title={member.is_manager ? "Retirer le rôle manager" : "Passer manager"}
+              className="rounded px-2 py-1 text-[10px] text-eb-secondary hover:bg-eb-layout transition-colors"
+            >
+              {member.is_manager ? "Retirer mgr" : "→ Mgr"}
+            </button>
+            <button
+              type="button"
+              onClick={onRemove}
+              className="rounded px-2 py-1 text-[10px] text-red-500 hover:bg-red-50 transition-colors"
+            >
+              Retirer
+            </button>
+          </div>
+        )}
       </div>
-      {member.is_manager && (
-        <span className="rounded-full bg-eb-primary/10 px-2 py-0.5 text-[10px] font-medium text-eb-primary">
-          Manager
-        </span>
-      )}
-      {member.extra_slug && (
-        <a
-          href={`/extras/${member.extra_slug}`}
-          target="_blank"
-          rel="noreferrer"
-          className="text-[11px] text-eb-secondary hover:text-eb-primary underline"
-        >
-          Profil
-        </a>
-      )}
-      {isManager && (
-        <div className="flex gap-1">
-          <button
-            type="button"
-            onClick={onToggleActive}
-            title={member.is_active ? "Désactiver" : "Réactiver"}
-            className="rounded px-2 py-1 text-[10px] text-eb-secondary hover:bg-eb-layout transition-colors"
-          >
-            {member.is_active ? "Désact." : "Réact."}
-          </button>
-          <button
-            type="button"
-            onClick={onToggleManager}
-            title={member.is_manager ? "Retirer le rôle manager" : "Passer manager"}
-            className="rounded px-2 py-1 text-[10px] text-eb-secondary hover:bg-eb-layout transition-colors"
-          >
-            {member.is_manager ? "Retirer mgr" : "→ Mgr"}
-          </button>
-          <button
-            type="button"
-            onClick={onRemove}
-            className="rounded px-2 py-1 text-[10px] text-red-500 hover:bg-red-50 transition-colors"
-          >
-            Retirer
-          </button>
+
+      {/* Panel postes supplémentaires */}
+      {showPositions && isManager && (
+        <div className="px-4 pb-3 border-t border-eb-layout/50 pt-3">
+          <p className="text-[11px] font-medium text-eb-muted uppercase tracking-[0.1em] mb-2">
+            Postes supplémentaires
+          </p>
+          <p className="text-[11px] text-eb-secondary mb-3">
+            Cochez les postes qu'il peut couvrir en plus de son poste principal
+            (<span className="font-medium">{positionLabel}</span>).
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {POSITIONS.filter((p) => p.value !== member.position).map((p) => {
+              const active = secondaryPositions.includes(p.value);
+              return (
+                <button
+                  key={p.value}
+                  type="button"
+                  onClick={() => onTogglePosition(p.value)}
+                  className={`rounded-full px-3 py-1 text-[12px] font-medium transition-colors border ${
+                    active
+                      ? "bg-eb-primary text-white border-eb-primary"
+                      : "border-eb-layout text-eb-secondary hover:border-eb-primary hover:text-eb-primary"
+                  }`}
+                >
+                  {active ? "✓ " : ""}{p.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>

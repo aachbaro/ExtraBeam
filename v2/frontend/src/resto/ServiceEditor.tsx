@@ -7,6 +7,7 @@ import type {
   ServiceSlot,
 } from "../types";
 import SkillsPicker from "./SkillsPicker";
+import TimePicker from "../components/TimePicker";
 import { createService, editService, saveServiceTemplate } from "../api";
 import type { TimeRange } from "../components/agenda/WeekTimeGrid";
 export const weekdays = [
@@ -263,12 +264,11 @@ export default function ServiceEditor({
           ).map(([k, label]) => (
             <label key={k}>
               {label}
-              <input
-                type="time"
+              <TimePicker
                 required
                 className={input}
                 value={definition[k]}
-                onChange={(e) => field(k, e.target.value)}
+                onChange={(v) => field(k, v)}
               />
             </label>
           ))}
@@ -334,26 +334,20 @@ export default function ServiceEditor({
               <div className="grid grid-cols-3 gap-2">
                 <label>
                   Début
-                  <input
-                    type="time"
+                  <TimePicker
                     required
                     className={input}
                     value={s.start_time}
-                    onChange={(e) =>
-                      updateSlot(i, { start_time: e.target.value })
-                    }
+                    onChange={(v) => updateSlot(i, { start_time: v })}
                   />
                 </label>
                 <label>
                   Fin
-                  <input
-                    type="time"
+                  <TimePicker
                     required
                     className={input}
                     value={s.end_time}
-                    onChange={(e) =>
-                      updateSlot(i, { end_time: e.target.value })
-                    }
+                    onChange={(v) => updateSlot(i, { end_time: v })}
                   />
                 </label>
                 <label>

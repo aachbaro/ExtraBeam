@@ -1,8 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { fetchMyRestaurants, createRestaurant } from "../api";
+import { createRestaurant, fetchMyRestaurants } from "../api";
+import AppShell, { type NavItem } from "../components/AppShell";
 import { useUserContext } from "../context/UserContext";
 import type { Restaurant } from "../types";
+
+const BASE_NAV: NavItem[] = [
+  { id: "restaurants", label: "Restaurants" },
+];
 
 export default function RestoListPage() {
   const { user } = useUserContext();
@@ -57,133 +62,159 @@ export default function RestoListPage() {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-eb-page">
-      <header className="border-b border-eb-layout bg-white px-6 py-4">
-        <div className="mx-auto max-w-3xl flex items-center justify-between">
-          <h1 className="text-lg font-semibold text-eb-primary">Mes restaurants</h1>
-          <button
-            type="button"
-            onClick={() => setShowCreate((o) => !o)}
-            className="rounded-lg bg-eb-primary px-4 py-2 text-[13px] font-medium text-white hover:opacity-90 transition-opacity"
-          >
-            {showCreate ? "Annuler" : "+ Nouveau"}
-          </button>
-        </div>
-      </header>
+  const nav: NavItem[] = [
+    ...BASE_NAV,
+    ...(user?.slug
+      ? [{ id: "profil-extra", label: "Mon profil", href: `/extras/${user.slug}`, sectionLabel: "Compte" }]
+      : []),
+  ];
 
-      <main className="mx-auto max-w-3xl px-4 py-6 space-y-4">
+  return (
+    <AppShell
+      title="Restaurants"
+      subtitle="Mes établissements"
+      nav={nav}
+      activeTab="restaurants"
+      onTabChange={() => { /* single tab */ }}
+    >
+      <div className="space-y-4 max-w-[860px]">
+        {/* Header de section */}
+        <section className="rounded-eb-card border border-eb-layout bg-white p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-[12px] font-medium uppercase tracking-[0.12em] text-eb-muted">Espace restaurant</p>
+              <h1 className="mt-2 text-[26px] font-semibold text-eb-text">Mes restaurants</h1>
+              <p className="mt-2 text-[14px] leading-6 text-eb-secondary">
+                Gérez le planning, les disponibilités et l'équipe de chaque établissement.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowCreate((o) => !o)}
+              className="shrink-0 rounded-eb bg-eb-primary px-4 py-2 text-[13px] font-medium text-white hover:opacity-90 transition-opacity"
+            >
+              {showCreate ? "Annuler" : "+ Nouveau"}
+            </button>
+          </div>
+        </section>
+
+        {/* Formulaire de création */}
         {showCreate && (
           <form
             onSubmit={(e) => void handleCreate(e)}
-            className="rounded-eb-card border border-eb-layout bg-white p-5 space-y-3"
+            className="rounded-eb-card border border-eb-layout bg-white p-6 space-y-4"
           >
-            <h2 className="text-[13px] font-medium text-eb-primary">Créer un restaurant</h2>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-[12px] text-eb-secondary mb-1">Nom *</label>
+            <p className="text-[12px] font-medium uppercase tracking-[0.12em] text-eb-muted">Créer un restaurant</p>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <label className="space-y-1.5">
+                <span className="text-[12px] font-medium text-eb-secondary">Nom *</span>
                 <input
                   type="text"
                   required
                   value={createForm.name}
                   onChange={(e) => setF("name", e.target.value)}
-                  className="w-full rounded-lg border border-eb-layout px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-eb-primary/30"
+                  className="eb-input w-full"
                 />
-              </div>
-              <div>
-                <label className="block text-[12px] text-eb-secondary mb-1">Slug (URL) *</label>
+              </label>
+              <label className="space-y-1.5">
+                <span className="text-[12px] font-medium text-eb-secondary">Slug (URL) *</span>
                 <input
                   type="text"
                   required
                   value={createForm.slug}
                   onChange={(e) => setF("slug", e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"))}
                   placeholder="mon-restaurant"
-                  className="w-full rounded-lg border border-eb-layout px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-eb-primary/30"
+                  className="eb-input w-full"
                 />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-[12px] text-eb-secondary mb-1">Ville</label>
+              </label>
+              <label className="space-y-1.5">
+                <span className="text-[12px] font-medium text-eb-secondary">Ville</span>
                 <input
                   type="text"
                   value={createForm.city}
                   onChange={(e) => setF("city", e.target.value)}
-                  className="w-full rounded-lg border border-eb-layout px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-eb-primary/30"
+                  className="eb-input w-full"
                 />
-              </div>
-              <div>
-                <label className="block text-[12px] text-eb-secondary mb-1">Type de cuisine</label>
+              </label>
+              <label className="space-y-1.5">
+                <span className="text-[12px] font-medium text-eb-secondary">Type de cuisine</span>
                 <input
                   type="text"
                   value={createForm.cuisine_type}
                   onChange={(e) => setF("cuisine_type", e.target.value)}
                   placeholder="Français, Italien…"
-                  className="w-full rounded-lg border border-eb-layout px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-eb-primary/30"
+                  className="eb-input w-full"
                 />
-              </div>
+              </label>
             </div>
             {error && <p className="text-[12px] text-red-500">{error}</p>}
-            <div className="flex gap-2">
+            <div className="flex gap-2 pt-1">
               <button
                 type="button"
                 onClick={() => setShowCreate(false)}
-                className="flex-1 rounded-lg border border-eb-layout py-2 text-sm text-eb-secondary hover:bg-eb-page transition-colors"
+                className="flex-1 rounded-eb border border-eb-layout py-2 text-[13px] font-medium text-eb-secondary hover:bg-eb-page transition-colors"
               >
                 Annuler
               </button>
               <button
                 type="submit"
                 disabled={busy}
-                className="flex-1 rounded-lg bg-eb-primary py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-60 transition-opacity"
+                className="flex-1 rounded-eb bg-eb-primary py-2 text-[13px] font-medium text-white hover:opacity-90 disabled:opacity-60 transition-opacity"
               >
-                {busy ? "Création…" : "Créer"}
+                {busy ? "Création…" : "Créer le restaurant"}
               </button>
             </div>
           </form>
         )}
 
+        {/* Liste */}
         {loading ? (
-          <p className="text-center text-sm text-eb-secondary">Chargement…</p>
+          <p className="py-8 text-center text-[14px] text-eb-secondary">Chargement…</p>
         ) : restaurants.length === 0 ? (
-          <div className="rounded-eb-card border border-eb-layout bg-white p-8 text-center">
-            <p className="text-eb-secondary text-sm">Vous n'avez pas encore de restaurant.</p>
-            <p className="mt-1 text-[12px] text-eb-secondary">Cliquez sur "+ Nouveau" pour en créer un.</p>
-          </div>
+          <section className="rounded-eb-card border border-eb-layout bg-white p-10 text-center">
+            <p className="text-[15px] font-medium text-eb-text">Aucun restaurant pour le moment</p>
+            <p className="mt-2 text-[13px] text-eb-secondary">Cliquez sur "+ Nouveau" pour créer votre premier établissement.</p>
+          </section>
         ) : (
-          <div className="space-y-3">
-            {restaurants.map((r) => (
-              <Link
-                key={r.id}
-                to={`/resto/${r.slug}`}
-                className="block rounded-eb-card border border-eb-layout bg-white p-4 hover:shadow-sm transition-shadow"
-              >
-                <div className="flex items-center gap-3">
+          <section className="rounded-eb-card border border-eb-layout bg-white overflow-hidden">
+            <div className="divide-y divide-eb-layout">
+              {restaurants.map((r) => (
+                <Link
+                  key={r.id}
+                  to={`/resto/${r.slug}`}
+                  className="flex items-center gap-4 px-6 py-4 hover:bg-eb-page transition-colors"
+                >
                   {r.logo_url ? (
-                    <img src={r.logo_url} alt="" className="h-10 w-10 rounded-full object-cover" />
+                    <img src={r.logo_url} alt="" className="h-11 w-11 shrink-0 rounded-full object-cover" />
                   ) : (
-                    <div className="h-10 w-10 rounded-full bg-eb-layout flex items-center justify-center text-lg">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-amber-100 text-xl">
                       🍽
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-eb-primary">{r.name}</p>
-                    <p className="text-[12px] text-eb-secondary">
-                      {r.city}{r.city && r.cuisine_type ? " · " : ""}{r.cuisine_type}
+                    <p className="text-[15px] font-semibold text-eb-text">{r.name}</p>
+                    <p className="mt-0.5 text-[12px] text-eb-muted">
+                      {[r.city, r.cuisine_type].filter(Boolean).join(" · ") || "Aucune ville renseignée"}
                     </p>
                   </div>
-                  <div className="text-right">
-                    <p className="text-[12px] text-eb-secondary">{r.member_count} membre{r.member_count !== 1 ? "s" : ""}</p>
+                  <div className="shrink-0 text-right">
+                    <p className="text-[13px] font-medium text-eb-text">
+                      {r.member_count} membre{r.member_count !== 1 ? "s" : ""}
+                    </p>
                     {r.is_owner && (
-                      <span className="text-[10px] text-eb-primary font-medium">Propriétaire</span>
+                      <span className="text-[11px] font-medium text-eb-primary">Propriétaire</span>
+                    )}
+                    {!r.is_owner && r.is_manager && (
+                      <span className="text-[11px] font-medium text-eb-secondary">Responsable</span>
                     )}
                   </div>
-                </div>
-              </Link>
-            ))}
-          </div>
+                  <span className="shrink-0 text-[12px] text-eb-muted">→</span>
+                </Link>
+              ))}
+            </div>
+          </section>
         )}
-      </main>
-    </div>
+      </div>
+    </AppShell>
   );
 }

@@ -1,4 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import ContactPickerPanel from "../components/contacts/ContactPickerPanel";
+import TimePicker from "../components/TimePicker";
 import type {
   Restaurant,
   RestaurantMember,
@@ -17,6 +19,7 @@ import {
   generateRestaurantPlanning,
   fetchRestaurantHours,
   updateShift,
+  createService,
   type MonthlyMemberHours,
 } from "../api";
 import WeekTimeGrid, { type TimeRange } from "../components/agenda/WeekTimeGrid";
@@ -58,22 +61,75 @@ export default function ServicePlanner({
   const [weeks, setWeeks] = useState(1),
     [month, setMonth] = useState(""),
     [hours, setHours] = useState<MonthlyMemberHours[]>([]);
+  const [showPicker, setShowPicker] = useState(false);
+  const pickerRef = useRef<HTMLDivElement>(null);
   const [mode, setMode] = useState<"services" | "modeles">("services");
   const [view, setView] = useState<"planning" | "agenda">("planning");
   const monday = new Date();
   monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7) + offset * 7);
-  const days = Array.from({ length: 7 }, (_, i) => {
+  const days = Array.from({ length: weeks * 7 }, (_, i) => {
     const d = new Date(monday);
     d.setDate(d.getDate() + i);
     return localDay(d);
   });
   const from = days[0],
-    to = days[6],
+    to = days[days.length - 1],
     viewMonth = month || from.slice(0, 7);
   const [deleting, setDeleting] = useState<RestaurantService | null>(null);
   const [deleteScope, setDeleteScope] = useState<"this" | "future">("this");
+  const [pendingDay, setPendingDay] = useState<string | null>(null);
+  const [animatingIds, setAnimatingIds] = useState<Set<number>>(new Set());
+  const knownIdsRef = useRef<Set<number>>(new Set());
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [copiedDef, setCopiedDef] = useState<ServiceDefinition | null>(null);
+  const [copiedTitle, setCopiedTitle] = useState<string>("");
+  const [focusedDay, setFocusedDay] = useState<string | null>(null);
+  const [dragOverDay, setDragOverDay] = useState<string | null>(null);
   const active = services.find((s) => s.id === selected);
   const reload = () => setRefresh((n) => n + 1);
+
+  async function pasteToDay(targetDay: string) {
+    if (!copiedDef || !manager) return;
+    setBusy(true);
+    try {
+      const def: ServiceDefinition = {
+        ...copiedDef,
+        tasks: copiedDef.tasks.map((t) => ({ ...t, done: false })),
+      };
+      await createService(slug, { date: targetDay, definition: def }, token);
+      reload();
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      if ((e.ctrlKey || e.metaKey) && e.key === "c") {
+        const sel = services.find((s) => s.id === selectedId);
+        if (sel) {
+          setCopiedDef(serviceDefinition(sel));
+          setCopiedTitle(sel.title);
+        }
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === "v") {
+        if (copiedDef && focusedDay) void pasteToDay(focusedDay);
+      }
+      if (e.key === "Escape") {
+        setSelectedId(null);
+        setSelectedIds(new Set());
+        setFocusedDay(null);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selectedId, copiedDef, focusedDay, services]);
+
   useEffect(() => {
     let alive = true;
     setLoading(true);
@@ -86,6 +142,14 @@ export default function ServicePlanner({
     ])
       .then(([s, t]) => {
         if (alive) {
+          if (knownIdsRef.current.size > 0) {
+            const newIds = s.filter((svc) => !knownIdsRef.current.has(svc.id)).map((svc) => svc.id);
+            if (newIds.length > 0) {
+              setAnimatingIds(new Set(newIds));
+              setTimeout(() => setAnimatingIds(new Set()), 900);
+            }
+          }
+          knownIdsRef.current = new Set(s.map((svc) => svc.id));
           setServices(s);
           setTemplates(t);
         }
@@ -192,7 +256,14 @@ export default function ServicePlanner({
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <label className="text-sm">
-                Afficher{" "}
+                <select className="border rounded p-2" value={weeks} onChange={(e) => setWeeks(Number(e.target.value))}>
+                  <option value={1}>1 semaine</option>
+                  <option value={2}>2 semaines</option>
+                  <option value={4}>4 semaines</option>
+                  <option value={5}>5 semaines</option>
+                </select>
+              </label>
+              <label className="text-sm">
                 <select className="border rounded p-2" value={filter} onChange={(e) => setFilter(e.target.value)}>
                   <option value="">Toute l’équipe</option>
                   {members.map((m) => (
@@ -226,6 +297,23 @@ export default function ServicePlanner({
                       Publier la semaine
                     </button>
                   )}
+                  <div className="relative" ref={pickerRef}>
+                    <button
+                      className="border border-eb-layout rounded-lg px-3 py-2 text-sm text-eb-secondary hover:text-eb-text transition-colors"
+                      onClick={() => setShowPicker((v) => !v)}
+                    >
+                      Réserver un extra
+                    </button>
+                    {showPicker && (
+                      <div className="absolute right-0 top-full mt-2 z-20">
+                        <ContactPickerPanel
+                          token={token}
+                          currentWeekStart={from}
+                          onClose={() => setShowPicker(false)}
+                        />
+                      </div>
+                    )}
+                  </div>
                   <button
                     className="bg-eb-primary text-white px-4 py-2 rounded-lg text-sm"
                     onClick={() => setEditor({ initial: { date: from, start_time: "12:00", end_time: "15:30" } })}
@@ -239,7 +327,17 @@ export default function ServicePlanner({
 
           {error && <p role="alert" className="text-red-700">{error}</p>}
           {notice && <p role="status" className="text-sm">{notice}</p>}
-          {loading && <p role="status" className="text-sm">Chargement du planning…</p>}
+
+          {/* ── Contenu (avec overlay de chargement) ── */}
+          <div className="relative">
+            {loading && (
+              <div className="absolute inset-0 z-20 flex items-start justify-center pt-12 bg-white/60 rounded-xl">
+                <svg className="animate-spin h-6 w-6 text-eb-primary" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3"/>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
+                </svg>
+              </div>
+            )}
 
           {/* ── Vue Agenda (WeekTimeGrid) ── */}
           {view === "agenda" && (
@@ -318,6 +416,7 @@ export default function ServicePlanner({
                     manager={manager}
                     token={token}
                     slug={slug}
+                    hideTasks
                     onEdit={() => setEditor({ service: active })}
                     onDuplicate={(prefill) => setEditor({ prefill })}
                     onDelete={() => { setDeleting(active); setDeleteScope("this"); }}
@@ -329,40 +428,104 @@ export default function ServicePlanner({
           )}
 
           {/* ── Vue Planning (colonnes par jour) ── */}
-          {view === "planning" && (<div className="overflow-x-auto -mx-1 px-1 pb-2">
-            <div className="flex gap-3" style={{ minWidth: `${days.length * 210}px` }}>
-              {days.map((day) => {
-                const dayServices = services.filter(
-                  (s) =>
-                    s.date === day &&
-                    (!filter ||
-                      s.shifts.some((p) =>
-                        p.assignments.some(
-                          (a) => a.member_id === Number(filter) && a.status !== "declined",
-                        ),
-                      )),
-                );
-                const jsDay = new Date(day + "T12:00:00").getDay();
-                const dayLabel = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"][jsDay];
-                const isToday = day === localDay(new Date());
-                return (
-                  <div key={day} className="flex-1 min-w-[200px] space-y-2">
-                    {/* Day header */}
-                    <div
-                      className={`rounded-lg py-2 text-center text-sm ${
-                        isToday
-                          ? "bg-eb-primary text-white"
-                          : "bg-white border text-eb-secondary"
-                      }`}
-                    >
-                      <p className="text-[11px] font-medium uppercase tracking-wide">{dayLabel}</p>
-                      <p className={`font-semibold ${isToday ? "" : "text-eb-text"}`}>{day.slice(8)}</p>
-                    </div>
+          {view === "planning" && (() => {
+            const renderCol = (day: string) => {
+              const dayServices = services.filter(
+                (s) =>
+                  s.date === day &&
+                  (!filter ||
+                    s.shifts.some((p) =>
+                      p.assignments.some(
+                        (a) => a.member_id === Number(filter) && a.status !== "declined",
+                      ),
+                    )),
+              );
+              const jsDay = new Date(day + "T12:00:00").getDay();
+              const dayLabel = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"][jsDay];
+              const isToday = day === localDay(new Date());
+              const isDragTarget = dragOverDay === day;
+              const isFocused = focusedDay === day && copiedDef;
+              return (
+                <div
+                  key={day}
+                  className={`flex-1 min-w-[200px] space-y-2 rounded-xl transition-all ${isDragTarget ? "ring-2 ring-eb-primary/50 bg-blue-50/50" : ""} ${isFocused ? "ring-2 ring-green-400/50" : ""}`}
+                  onClick={(e) => {
+                    if ((e.target as HTMLElement).closest("[data-service-card]")) return;
+                    setFocusedDay(day);
+                    setSelectedId(null);
+                  }}
+                  onDragOver={(e) => {
+                    if (e.dataTransfer.types.includes("application/x-eb-item")) return;
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = "copy";
+                    setDragOverDay(day);
+                  }}
+                  onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOverDay(null); }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setDragOverDay(null);
+                    if (e.dataTransfer.types.includes("application/x-eb-item")) return;
+                    const sourceDay = e.dataTransfer.getData("application/x-eb-service");
+                    if (sourceDay && sourceDay === day) return;
+                    void pasteToDay(day);
+                  }}
+                >
+                  {/* Day header */}
+                  <div
+                    className={`rounded-lg py-2 text-center text-sm cursor-pointer ${
+                      isToday
+                        ? "bg-eb-primary text-white"
+                        : isFocused
+                        ? "bg-green-50 border border-green-300 text-green-700"
+                        : "bg-white border text-eb-secondary"
+                    }`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (copiedDef) {
+                        setFocusedDay(day);
+                        void pasteToDay(day);
+                      } else {
+                        setFocusedDay(day);
+                        setSelectedId(null);
+                      }
+                    }}
+                  >
+                    <p className="text-[11px] font-medium uppercase tracking-wide">{dayLabel}</p>
+                    <p className={`font-semibold ${isToday ? "" : isFocused ? "" : "text-eb-text"}`}>{day.slice(8)}</p>
+                  </div>
 
-                    {/* Services */}
-                    {dayServices.map((service) => (
+                  {/* Services */}
+                  {dayServices.map((service) => (
+                    <div
+                      key={service.id}
+                      data-service-card
+                      draggable={manager}
+                      className={`transition-all ${selectedId === service.id ? "ring-2 ring-eb-primary rounded-xl" : selectedIds.has(service.id) ? "ring-2 ring-violet-400 rounded-xl" : ""}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (e.shiftKey) {
+                          setSelectedIds((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(service.id)) next.delete(service.id);
+                            else next.add(service.id);
+                            return next;
+                          });
+                          setSelectedId(null);
+                        } else {
+                          setSelectedId(service.id);
+                          setSelectedIds(new Set());
+                          setFocusedDay(null);
+                        }
+                      }}
+                      onDragStart={(e) => {
+                        e.dataTransfer.effectAllowed = "copy";
+                        e.dataTransfer.setData("application/x-eb-service", service.date);
+                        setCopiedDef(serviceDefinition(service));
+                        setCopiedTitle(service.title);
+                        setSelectedId(service.id);
+                      }}
+                    >
                       <ServiceDayCard
-                        key={service.id}
                         service={service}
                         members={members}
                         manager={manager}
@@ -372,34 +535,71 @@ export default function ServicePlanner({
                         onDuplicate={(prefill) => setEditor({ prefill })}
                         onDelete={() => { setDeleting(service); setDeleteScope("this"); }}
                         onReload={reload}
+                        onCopy={() => { setCopiedDef(serviceDefinition(service)); setCopiedTitle(service.title); setSelectedId(service.id); }}
+                        isNew={animatingIds.has(service.id)}
                       />
-                    ))}
+                    </div>
+                  ))}
 
-                    {/* Empty day */}
-                    {dayServices.length === 0 && !manager && (
-                      <div className="rounded-lg border border-dashed py-6 text-center text-xs text-eb-muted">
-                        Aucun service
-                      </div>
-                    )}
+                  {/* Nouvelle card inline */}
+                  {pendingDay === day && (
+                    <NewServiceInlineCard
+                      day={day}
+                      slug={slug}
+                      token={token}
+                      onSaved={() => { setPendingDay(null); reload(); }}
+                      onCancel={() => setPendingDay(null)}
+                    />
+                  )}
 
-                    {/* Add service */}
-                    {manager && (
-                      <button
-                        className="w-full rounded-lg border border-dashed py-2 text-xs text-eb-secondary hover:border-eb-primary hover:text-eb-primary transition-colors"
-                        onClick={() =>
-                          setEditor({
-                            initial: { date: day, start_time: "12:00", end_time: "15:30" },
-                          })
-                        }
-                      >
-                        + Service
-                      </button>
-                    )}
+                  {/* Empty day */}
+                  {dayServices.length === 0 && pendingDay !== day && !manager && (
+                    <div className="rounded-lg border border-dashed py-6 text-center text-xs text-eb-muted">
+                      Aucun service
+                    </div>
+                  )}
+
+                  {/* Add service */}
+                  {manager && pendingDay !== day && (
+                    <button
+                      className="w-full rounded-lg border border-dashed py-2 text-xs text-eb-secondary hover:border-eb-primary hover:text-eb-primary transition-colors"
+                      onClick={() => setPendingDay(day)}
+                    >
+                      + Service
+                    </button>
+                  )}
+                </div>
+              );
+            };
+
+            return (
+              <div className="overflow-x-auto -mx-1 px-1 pb-2">
+                {weeks > 1 ? (
+                  <div className="space-y-5">
+                    {Array.from({ length: weeks }, (_, wi) => {
+                      const weekDays = days.slice(wi * 7, wi * 7 + 7);
+                      return (
+                        <div key={wi}>
+                          <p className="text-xs font-medium text-eb-muted mb-2 px-0.5 uppercase tracking-wide">
+                            Semaine du {weekDays[0]}
+                          </p>
+                          <div className="flex gap-3" style={{ minWidth: `${7 * 210}px` }}>
+                            {weekDays.map(renderCol)}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                );
-              })}
-            </div>
-          </div>)}
+                ) : (
+                  <div className="flex gap-3" style={{ minWidth: `${7 * 210}px` }}>
+                    {days.map(renderCol)}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+          </div>{/* fin overlay chargement */}
 
           <section className="bg-white rounded-xl border p-4 space-y-3">
             <div className="flex justify-between gap-3">
@@ -582,6 +782,227 @@ export default function ServicePlanner({
           }}
         />
       )}
+
+      {/* Barre d'actions multi-sélection */}
+      {selectedIds.size > 0 && manager && (
+        <div
+          className="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-eb-panel text-white text-[12px] rounded-xl px-4 py-2.5 shadow-xl"
+          style={{ animation: "cardEnter 0.2s ease-out both" }}
+        >
+          <span className="text-white/60">{selectedIds.size} service{selectedIds.size > 1 ? "s" : ""} sélectionné{selectedIds.size > 1 ? "s" : ""}</span>
+          <div className="w-px h-4 bg-white/20" />
+          <button
+            disabled={busy}
+            className="hover:text-white/80 transition-colors disabled:opacity-40"
+            onClick={() => void action(async () => {
+              await Promise.all(
+                services
+                  .filter((s) => selectedIds.has(s.id) && !s.template_id)
+                  .map((s) => editService(slug, s.id, { definition: serviceDefinition(s), recurring: true }, token))
+              );
+              setSelectedIds(new Set());
+              setNotice(`${selectedIds.size} service(s) rendus hebdomadaires.`);
+            })}
+          >
+            Rendre hebdomadaires
+          </button>
+          <button
+            className="text-white/50 hover:text-white ml-1"
+            onClick={() => setSelectedIds(new Set())}
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      {/* Toast clipboard */}
+      {copiedDef && !(selectedIds.size > 0) && (
+        <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-eb-panel text-white text-[12px] rounded-xl px-4 py-2.5 shadow-xl"
+          style={{ animation: "cardEnter 0.2s ease-out both" }}
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          <span>«&nbsp;{copiedTitle}&nbsp;» copié — cliquer sur un jour ou Ctrl+V pour coller</span>
+          <button onClick={() => { setCopiedDef(null); setSelectedId(null); }} className="text-white/50 hover:text-white ml-1">×</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const NEW_POSITIONS = [
+  { value: "serveur",       label: "Serveur·se" },
+  { value: "chef_de_rang",  label: "Chef de rang" },
+  { value: "barman",        label: "Barman / Barmaid" },
+  { value: "sommelier",     label: "Sommelier·e" },
+  { value: "hote_accueil",  label: "Hôte·sse d'accueil" },
+  { value: "chef_cuisine",  label: "Chef de cuisine" },
+  { value: "cuisinier",     label: "Cuisinier·e" },
+  { value: "plongeur",      label: "Plongeur·se" },
+  { value: "manager",       label: "Manager" },
+  { value: "autre",         label: "Autre" },
+];
+
+interface DraftShift {
+  id: string;
+  position: string;
+  start_time: string;
+  end_time: string;
+}
+
+function NewServiceInlineCard({
+  day, slug, token, onSaved, onCancel,
+}: {
+  day: string; slug: string; token: string; onSaved: () => void; onCancel: () => void;
+}) {
+  const [title, setTitle] = useState("Service");
+  const [startTime, setStartTime] = useState("12:00");
+  const [endTime, setEndTime] = useState("15:30");
+  const [shifts, setShifts] = useState<DraftShift[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState("");
+
+  function addShift() {
+    setShifts((prev) => [...prev, { id: crypto.randomUUID(), position: "serveur", start_time: startTime, end_time: endTime }]);
+  }
+
+  function updateShift(id: string, patch: Partial<DraftShift>) {
+    setShifts((prev) => prev.map((s) => s.id === id ? { ...s, ...patch } : s));
+  }
+
+  function removeShift(id: string) {
+    setShifts((prev) => prev.filter((s) => s.id !== id));
+  }
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    setErr("");
+    try {
+      const slots = shifts.map((s) => ({
+        key: s.id,
+        title: NEW_POSITIONS.find((p) => p.value === s.position)?.label ?? s.position,
+        position: s.position,
+        positions_needed: 1,
+        start_time: s.start_time,
+        end_time: s.end_time,
+        break_minutes: 0,
+        required_skills: [] as string[],
+      }));
+      await createService(slug, {
+        date: day,
+        definition: {
+          title: title.trim() || "Service",
+          start_time: startTime,
+          kitchen_end_time: endTime,
+          end_time: endTime,
+          notes: "",
+          tasks: [],
+          slots,
+        },
+      }, token);
+      onSaved();
+    } catch (e) {
+      setErr(String(e));
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div
+      className="bg-white border border-eb-primary/30 rounded-xl p-3 text-sm"
+      style={{ animation: "cardEnter 0.2s ease-out both" }}
+    >
+      {err && <p className="text-xs text-red-500 mb-2">{err}</p>}
+      <form onSubmit={(e) => void submit(e)} className="space-y-3">
+        {/* Titre */}
+        <input
+          autoFocus
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          className="w-full font-semibold bg-transparent border-b border-eb-layout focus:outline-none focus:border-eb-primary pb-0.5 text-sm text-eb-text"
+          placeholder="Nom du service"
+        />
+
+        {/* Horaires du service */}
+        <div className="flex items-center gap-2">
+          <TimePicker
+            value={startTime}
+            onChange={(v) => { setStartTime(v); setShifts((prev) => prev.map((s) => ({ ...s, start_time: v }))); }}
+            className="flex-1 text-xs rounded border border-eb-layout px-2 py-1.5 flex items-center gap-0.5 bg-white text-eb-text"
+          />
+          <span className="text-eb-muted text-xs shrink-0">–</span>
+          <TimePicker
+            value={endTime}
+            onChange={(v) => { setEndTime(v); setShifts((prev) => prev.map((s) => ({ ...s, end_time: v }))); }}
+            className="flex-1 text-xs rounded border border-eb-layout px-2 py-1.5 flex items-center gap-0.5 bg-white text-eb-text"
+          />
+        </div>
+
+        {/* Shifts définis */}
+        {shifts.length > 0 && (
+          <div className="space-y-2 border-t border-eb-layout pt-2">
+            {shifts.map((s) => (
+              <div key={s.id} className="flex items-center gap-1.5">
+                <select
+                  value={s.position}
+                  onChange={(e) => updateShift(s.id, { position: e.target.value })}
+                  className="flex-1 text-xs rounded border border-eb-layout px-1.5 py-1 bg-white focus:outline-none focus:border-eb-primary min-w-0"
+                >
+                  {NEW_POSITIONS.map((p) => (
+                    <option key={p.value} value={p.value}>{p.label}</option>
+                  ))}
+                </select>
+                <TimePicker
+                  value={s.start_time}
+                  onChange={(v) => updateShift(s.id, { start_time: v })}
+                  className="w-16 text-[11px] rounded border border-eb-layout px-1 py-1 flex items-center gap-0 bg-white text-eb-text shrink-0"
+                />
+                <span className="text-eb-muted text-[10px] shrink-0">–</span>
+                <TimePicker
+                  value={s.end_time}
+                  onChange={(v) => updateShift(s.id, { end_time: v })}
+                  className="w-16 text-[11px] rounded border border-eb-layout px-1 py-1 flex items-center gap-0 bg-white text-eb-text shrink-0"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeShift(s.id)}
+                  className="text-eb-muted hover:text-red-500 text-sm shrink-0 leading-none"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Ajouter un shift */}
+        <button
+          type="button"
+          onClick={addShift}
+          className="text-[12px] text-eb-secondary hover:text-eb-primary transition-colors flex items-center gap-1"
+        >
+          <span className="font-medium">+</span>
+          <span>Ajouter un shift</span>
+        </button>
+
+        {/* Actions */}
+        <div className="flex gap-2 border-t border-eb-layout pt-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="flex-1 py-1.5 text-xs text-eb-secondary border border-eb-layout rounded-lg hover:bg-eb-page transition-colors"
+          >
+            Annuler
+          </button>
+          <button
+            type="submit"
+            disabled={saving}
+            className="flex-1 py-1.5 text-xs font-medium bg-eb-primary text-white rounded-lg hover:opacity-90 disabled:opacity-60"
+          >
+            {saving ? "Création…" : "Créer"}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }

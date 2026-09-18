@@ -83,7 +83,7 @@ def generate(restaurant, shifts, assigned_by):
     for s in tasks:
         while s.assignments.exclude(status="declined").count() < s.positions_needed:
             already=set(s.assignments.values_list("member_id",flat=True))
-            candidates=[m for m in staff if m.id not in already and availability(m,s) in ("available","maybe") and not reasons(m,s)]
+            candidates=[m for m in staff if m.id not in already and availability(m,s) != "unavailable" and not reasons(m,s)]
             if not candidates: break
             def score(m):
                 rows=bookings(m,s); pref=m.preferences
@@ -96,7 +96,7 @@ def generate(restaurant, shifts, assigned_by):
                 if any(o.date.weekday()==s.date.weekday() and o.start_time==s.start_time for o in rows):cost-=pref.get("stable",0)*2
                 coworkers=set(s.assignments.exclude(status="declined").values_list("member_id",flat=True))
                 cost+=pref.get("variety",1)*sum(1 for o in rows if o.assignments.filter(member_id__in=coworkers).exists())
-                return (availability(m,s)=="maybe",cost,m.id)
+                return (availability(m,s)!="available",cost,m.id)
             chosen=min(candidates,key=score)
             s.assignments.create(member=chosen,assigned_by=assigned_by,locked=False)
         missing=s.positions_needed-s.assignments.exclude(status="declined").count()
