@@ -125,7 +125,6 @@ export default function ServiceDayCard({
             definition: { ...destDef, notes: [...dstNotes, payload.note].join("\n") },
           }, token);
         }
-      }
       } else if (payload.type === "shift" && payload.shift) {
         const newSlot: ServiceSlot = {
           key: crypto.randomUUID(),
