@@ -5,13 +5,13 @@
 Le home serveur est accessible depuis n'importe où via un webhook sécurisé.
 
 **URL :** `https://deploy.pascuans.dev`  
-**Token :** `fQ__hcpsl-M03fCSkjoOvG1aSwzxfaF95EsS2EfA7E8`
+**Authentification :** le token doit être fourni localement via la variable d’environnement `DEPLOY_TOKEN`. Ne jamais le stocker dans Git.
 
 ### Déployer une app
 
 ```bash
 curl -s -X POST https://deploy.pascuans.dev/deploy \
-  -H "Authorization: Bearer fQ__hcpsl-M03fCSkjoOvG1aSwzxfaF95EsS2EfA7E8" \
+  -H "Authorization: Bearer $DEPLOY_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"app": "extrabeam-v2-front"}'
 ```
@@ -20,7 +20,7 @@ Retourne `{"job_id": "...", "poll": "/status/<job_id>"}`. Poller jusqu'à `statu
 
 ```bash
 curl -s https://deploy.pascuans.dev/status/<job_id> \
-  -H "Authorization: Bearer fQ__hcpsl-M03fCSkjoOvG1aSwzxfaF95EsS2EfA7E8"
+  -H "Authorization: Bearer $DEPLOY_TOKEN"
 ```
 
 ### Apps disponibles
