@@ -804,13 +804,12 @@ export default function ServicePlanner({
             disabled={busy}
             className="hover:text-white/80 transition-colors disabled:opacity-40"
             onClick={() => void action(async () => {
-              await Promise.all(
-                services
-                  .filter((s) => selectedIds.has(s.id) && !s.template_id)
-                  .map((s) => editService(slug, s.id, { definition: serviceDefinition(s), recurring: true }, token))
-              );
+              const toMakeRecurring = services.filter((s) => selectedIds.has(s.id) && !s.template_id);
+              for (const s of toMakeRecurring) {
+                await editService(slug, s.id, { definition: serviceDefinition(s), recurring: true }, token);
+              }
               setSelectedIds(new Set());
-              setNotice(`${selectedIds.size} service(s) rendus hebdomadaires.`);
+              setNotice(`${toMakeRecurring.length} service(s) rendus hebdomadaires.`);
             })}
           >
             Rendre hebdomadaires

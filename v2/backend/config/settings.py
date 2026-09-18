@@ -8,9 +8,9 @@ env = environ.Env(
     DEBUG=(bool, True),
     SECRET_KEY=(str, "change-me"),
     ALLOWED_HOSTS=(list, ["127.0.0.1", "localhost"]),
-    CORS_ALLOWED_ORIGINS=(list, ["http://127.0.0.1:5180"]),
-    CSRF_TRUSTED_ORIGINS=(list, ["http://127.0.0.1:5180"]),
-    FRONTEND_URL=(str, "http://127.0.0.1:5180"),
+    CORS_ALLOWED_ORIGINS=(list, ["http://127.0.0.1:5180", "http://localhost:5180"]),
+    CSRF_TRUSTED_ORIGINS=(list, ["http://127.0.0.1:5180", "http://localhost:5180"]),
+    FRONTEND_URL=(str, "http://localhost:5180"),
     OIDC_ISSUER_URL=(str, "https://auth.pascuans.dev"),
     OIDC_CLIENT_ID=(str, ""),
     OIDC_CLIENT_SECRET=(str, ""),
@@ -22,6 +22,7 @@ DEBUG = env("DEBUG")
 SECRET_KEY = env("SECRET_KEY")
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS")
 CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS")
+CORS_ALLOW_ALL_ORIGINS = DEBUG  # in production DEBUG=False so the explicit list is enforced
 from corsheaders.defaults import default_headers
 CORS_ALLOW_HEADERS = (*default_headers, "x-resto-session")
 CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS")
