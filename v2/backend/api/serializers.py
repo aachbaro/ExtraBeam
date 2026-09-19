@@ -26,6 +26,7 @@ from .models import (
     Facture,
     Mission,
     MissionTemplate,
+    ProfileContact,
     Skill,
     Slot,
     Unavailability,
@@ -145,6 +146,43 @@ class ClientContactSerializer(serializers.ModelSerializer):
         if profile.role != AccountProfile.ROLE_FREELANCE:
             raise serializers.ValidationError("Seuls les profils freelance peuvent etre ajoutes aux contacts.")
         return value
+
+
+class ProfileSearchSerializer(serializers.ModelSerializer):
+    """Profil public léger — utilisé pour la recherche et la liste de contacts."""
+    avatar_url = serializers.SerializerMethodField()
+    role = serializers.CharField()
+
+    class Meta:
+        model = AccountProfile
+        fields = ["id", "slug", "display_name", "avatar_url", "job_title", "location", "role"]
+
+    def get_avatar_url(self, obj: AccountProfile) -> str | None:
+        return build_profile_avatar_url(obj, self.context.get("request"))
+
+
+class ProfileContactSerializer(serializers.ModelSerializer):
+    """Un lien de contact — inclut le profil de l'autre partie."""
+    profile = serializers.SerializerMethodField()
+    i_initiated = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProfileContact
+        fields = ["link_id", "profile", "i_initiated", "created_at"]
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        ret["link_id"] = instance.pk
+        return ret
+
+    def get_profile(self, obj: ProfileContact) -> dict:
+        my_profile = self.context.get("my_profile")
+        other = obj.to_profile if (my_profile and obj.from_profile_id == my_profile.pk) else obj.from_profile
+        return ProfileSearchSerializer(other, context=self.context).data
+
+    def get_i_initiated(self, obj: ProfileContact) -> bool:
+        my_profile = self.context.get("my_profile")
+        return my_profile is not None and obj.from_profile_id == my_profile.pk
 
 
 class SlotSerializer(serializers.ModelSerializer):

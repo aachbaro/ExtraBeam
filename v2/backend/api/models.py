@@ -248,6 +248,33 @@ class ClientContact(models.Model):
         return f"{self.client_profile} -> {self.contact_profile}"
 
 
+class ProfileContact(models.Model):
+    """
+    Lien mutuel entre deux profils.
+    Quand A ajoute B, les deux apparaissent dans leurs contacts respectifs.
+    La suppression d'un côté retire le lien des deux côtés.
+    """
+    from_profile = models.ForeignKey(
+        AccountProfile, on_delete=models.CASCADE, related_name="contacts_initiated"
+    )
+    to_profile = models.ForeignKey(
+        AccountProfile, on_delete=models.CASCADE, related_name="contacts_received"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["from_profile", "to_profile"],
+                name="unique_profile_contact",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.from_profile} ↔ {self.to_profile}"
+
+
 # ---------------------------------------------------------------------------
 # Agenda — Créneaux de disponibilité
 # ---------------------------------------------------------------------------

@@ -7,6 +7,8 @@ Role   : Déclare toutes les URLs de l'API ExtraBeam v2.
 
 from django.urls import path
 
+from .contact_views import ContactDetailView, ContactsView, ContactStatusView, ProfileSearchView
+from .dev_views import DevAccountDeleteView, DevAccountsView, DevLoginView
 from .views import (
     AdminAccountDetailView,
     AdminOverviewView,
@@ -40,6 +42,11 @@ urlpatterns = [
     # --- Santé ---
     path("health/", HealthView.as_view(), name="health"),
 
+    # --- Dev auth (DEBUG=True uniquement) ---
+    path("dev/accounts/", DevAccountsView.as_view(), name="dev-accounts"),
+    path("dev/login/", DevLoginView.as_view(), name="dev-login"),
+    path("dev/accounts/<str:username>/", DevAccountDeleteView.as_view(), name="dev-account-delete"),
+
     # --- Avatars uploadés ---
     path("avatars/<str:avatar_id>/", AvatarFileView.as_view(), name="avatar-file"),
 
@@ -54,6 +61,12 @@ urlpatterns = [
     path("client/templates/<int:template_id>/", ClientTemplateDetailView.as_view(), name="client-template-detail"),
     path("client/contacts/", ClientContactsView.as_view(), name="client-contacts"),
     path("client/contacts/<int:contact_id>/", ClientContactDetailView.as_view(), name="client-contact-detail"),
+
+    # --- Contacts mutuels ---
+    path("contacts/", ContactsView.as_view(), name="contacts"),
+    path("contacts/status/<slug:slug>/", ContactStatusView.as_view(), name="contact-status"),
+    path("contacts/<slug:slug>/", ContactDetailView.as_view(), name="contact-detail"),
+    path("profiles/search/", ProfileSearchView.as_view(), name="profile-search"),
 
     # --- Admin ---
     path("admin/overview/", AdminOverviewView.as_view(), name="admin-overview"),
