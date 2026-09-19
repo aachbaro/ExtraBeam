@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "rea
 import { createPortal } from "react-dom";
 import type { RestaurantMember, RestaurantService, ServiceDefinition, ServiceSlot, ServiceTask } from "../types";
 import { assignMember, deleteShift, editService, removeAssignment, toggleFixedAssignment } from "../api";
+import { useUndo } from "./UndoContext";
 import { serviceDefinition } from "./ServiceEditor";
 import TimePicker from "../components/TimePicker";
 import SkillsPicker from "./SkillsPicker";
@@ -66,6 +67,7 @@ export default function ServiceDayCard({
 }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const { push: pushUndo } = useUndo();
   const [editMode, setEditMode] = useState(false);
   const [editTitle, setEditTitle] = useState(service.title);
   const [editStart, setEditStart] = useState(service.start_time.slice(0, 5));
@@ -120,6 +122,19 @@ export default function ServiceDayCard({
     return editService(slug, id, { definition }, token);
   };
   const saveDefinition = (definition: ServiceDefinition) => write(service.id, definition);
+  async function saveWithUndo(label: string, definition: ServiceDefinition) {
+    if (!templateMode) {
+      const prevDef = serviceDefinition(service);
+      await saveDefinition(definition);
+      pushUndo({
+        label,
+        undoFn: async () => { await write(service.id, prevDef); onReload(); },
+        redoFn: async () => { await write(service.id, definition); onReload(); },
+      });
+    } else {
+      await saveDefinition(definition);
+    }
+  }
   function editHeader() {
     setEditTitle(service.title); setEditStart(service.start_time.slice(0, 5));
     setEditEnd(service.end_time.slice(0, 5)); setEditKitchen(service.kitchen_end_time.slice(0, 5));
@@ -176,9 +191,16 @@ export default function ServiceDayCard({
     setBusy(true);
     setError("");
     try {
-      const def = serviceDefinition(service);
-      const kitchenEnd = editKitchen;
-      await write(service.id, { ...def, title: editTitle.trim() || service.title, start_time: editStart, end_time: editEnd, kitchen_end_time: kitchenEnd });
+      const prevDef = serviceDefinition(service);
+      const newDef = { ...prevDef, title: editTitle.trim() || service.title, start_time: editStart, end_time: editEnd, kitchen_end_time: editKitchen };
+      await write(service.id, newDef);
+      if (!templateMode) {
+        pushUndo({
+          label: "Modification horaires",
+          undoFn: async () => { await write(service.id, prevDef); onReload(); },
+          redoFn: async () => { await write(service.id, newDef); onReload(); },
+        });
+      }
       setEditMode(false);
       onReload();
     } catch (e) {
@@ -192,13 +214,42 @@ export default function ServiceDayCard({
     setAssigningSlot(null);
     if (templateMode) {
       await run(() => saveDefinition({ ...serviceDefinition(service), slots: service.slots.map((s, i) => i === shiftId ? { ...s, fixed_member_ids: [...(s.fixed_member_ids || []), memberId] } : s) }));
-    } else await run(() => assignMember(slug, shiftId, memberId, token));
+    } else {
+      setBusy(true); setError("");
+      try {
+        const result = await assignMember(slug, shiftId, memberId, token);
+        let latestId = result.id;
+        pushUndo({
+          label: "Affectation",
+          undoFn: async () => { await removeAssignment(slug, shiftId, latestId, token); onReload(); },
+          redoFn: async () => { const r = await assignMember(slug, shiftId, memberId, token); latestId = r.id; onReload(); },
+        });
+        onReload();
+      } catch(e) { setError(String(e)); }
+      finally { setBusy(false); }
+    }
   }
 
   async function unassign(shiftId: number, assignmentId: number) {
     if (templateMode) {
       await run(() => saveDefinition({ ...serviceDefinition(service), slots: service.slots.map((s, i) => i === shiftId ? { ...s, fixed_member_ids: (s.fixed_member_ids || []).filter(id => id !== assignmentId) } : s) }));
-    } else await run(() => removeAssignment(slug, shiftId, assignmentId, token));
+    } else {
+      const memberId = service.shifts.flatMap(s => s.assignments).find(a => a.id === assignmentId)?.member_id;
+      setBusy(true); setError("");
+      try {
+        await removeAssignment(slug, shiftId, assignmentId, token);
+        if (memberId !== undefined) {
+          let undoId: number | null = null;
+          pushUndo({
+            label: "Désaffectation",
+            undoFn: async () => { const r = await assignMember(slug, shiftId, memberId, token); undoId = r.id; onReload(); },
+            redoFn: async () => { if (undoId !== null) await removeAssignment(slug, shiftId, undoId, token); undoId = null; onReload(); },
+          });
+        }
+        onReload();
+      } catch(e) { setError(String(e)); }
+      finally { setBusy(false); }
+    }
   }
 
   async function removeShiftSlot(shiftId: number) {
@@ -208,7 +259,19 @@ export default function ServiceDayCard({
   }
 
   async function toggleTask(key: string, done: boolean) {
-    if (!templateMode) await run(() => editService(slug, service.id, { task_key: key, done }, token));
+    if (!templateMode) {
+      setBusy(true); setError("");
+      try {
+        await editService(slug, service.id, { task_key: key, done }, token);
+        pushUndo({
+          label: done ? "Tâche cochée" : "Tâche décochée",
+          undoFn: async () => { await editService(slug, service.id, { task_key: key, done: !done }, token); onReload(); },
+          redoFn: async () => { await editService(slug, service.id, { task_key: key, done }, token); onReload(); },
+        });
+        onReload();
+      } catch(e) { setError(String(e)); }
+      finally { setBusy(false); }
+    }
   }
 
   // Group shifts by position, preserving first-seen order
@@ -481,9 +544,17 @@ export default function ServiceDayCard({
                               hidden={templateMode}
                               title={a.locked ? "Retirer le poste fixe" : "Rendre fixe hebdomadaire"}
                               onClick={() => {
+                                const wasLocked = a.locked;
                                 setBusy(true);
-                                toggleFixedAssignment(slug, shift.id, a.id, !a.locked, token)
-                                  .then(onReload)
+                                toggleFixedAssignment(slug, shift.id, a.id, !wasLocked, token)
+                                  .then(() => {
+                                    pushUndo({
+                                      label: wasLocked ? "Retrait poste fixe" : "Poste fixe",
+                                      undoFn: async () => { await toggleFixedAssignment(slug, shift.id, a.id, wasLocked, token); onReload(); },
+                                      redoFn: async () => { await toggleFixedAssignment(slug, shift.id, a.id, !wasLocked, token); onReload(); },
+                                    });
+                                    onReload();
+                                  })
                                   .catch((err) => setError(String(err)))
                                   .finally(() => setBusy(false));
                               }}
@@ -601,7 +672,7 @@ export default function ServiceDayCard({
           members={members}
           slot={editingSlot}
           templateMode={templateMode}
-          onSave={saveDefinition}
+          onSave={(def) => saveWithUndo(editingSlot ? "Modification shift" : "Ajout shift", def)}
           onSaved={() => { setAddShiftOpen(false); onReload(); }}
           onClose={() => setAddShiftOpen(false)}
         />
@@ -742,7 +813,7 @@ export default function ServiceDayCard({
           service={service}
           manager={manager}
           templateMode={templateMode}
-          onSave={saveDefinition}
+          onSave={(def) => saveWithUndo("Notes/tâches", def)}
           onToggleTask={(key, done) => void toggleTask(key, done)}
           onSaved={() => { setNotesEditOpen(false); onReload(); }}
           onClose={() => setNotesEditOpen(false)}

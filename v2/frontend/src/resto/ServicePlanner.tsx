@@ -26,6 +26,7 @@ import HoursGauge from "../components/HoursGauge";
 import ServiceEditor, { serviceDefinition } from "./ServiceEditor";
 import ServiceDayCard from "./ServiceDayCard";
 import WeeklyTemplateBoard from "./WeeklyTemplateBoard";
+import { UndoContext, useUndoStack } from "./UndoContext";
 function localDay(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
@@ -42,6 +43,7 @@ export default function ServicePlanner({
 }) {
   const slug = restaurant.slug,
     manager = !!restaurant.is_manager;
+  const { contextValue: undoContextValue, undo, redo, canUndo, canRedo, undoLabel, redoLabel } = useUndoStack();
   const [offset, setOffset] = useState(0),
     [refresh, setRefresh] = useState(0);
   const [services, setServices] = useState<RestaurantService[]>([]),
@@ -134,6 +136,14 @@ export default function ServicePlanner({
       if ((e.ctrlKey || e.metaKey) && e.key === "v") {
         if (copiedDef && focusedDay) void pasteToDay(focusedDay);
       }
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === "z") {
+        e.preventDefault();
+        void undo();
+      }
+      if ((e.ctrlKey || e.metaKey) && ((e.shiftKey && e.key === "z") || e.key === "y")) {
+        e.preventDefault();
+        void redo();
+      }
       if (e.key === "Escape") {
         setSelectedId(null);
         setSelectedIds(new Set());
@@ -142,7 +152,7 @@ export default function ServicePlanner({
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [selectedId, copiedDef, focusedDay, services, mode, editor, busy]);
+  }, [selectedId, copiedDef, focusedDay, services, mode, editor, busy, undo, redo]);
 
   useEffect(() => {
     let alive = true;
@@ -232,6 +242,7 @@ export default function ServicePlanner({
     });
   }
   return (
+    <UndoContext.Provider value={undoContextValue}>
     <div className="space-y-5">
       {/* Mode toggle */}
       {manager && (
@@ -259,6 +270,28 @@ export default function ServicePlanner({
               {offset !== 0 && (
                 <button onClick={() => setOffset(0)} className="text-sm underline">Aujourd’hui</button>
               )}
+              <div className="flex gap-1 ml-1">
+                <button
+                  disabled={!canUndo || busy}
+                  onClick={() => void undo()}
+                  title={undoLabel ? `Annuler : ${undoLabel} (Ctrl+Z)` : "Annuler (Ctrl+Z)"}
+                  className="border rounded p-1.5 disabled:opacity-30 hover:bg-eb-page transition-colors"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 7v6h6"/><path d="M3 13C5.2 8 9.6 5 14 5c4.4 0 8 3.6 8 8s-3.6 8-8 8c-2 0-3.9-.7-5.3-2"/>
+                  </svg>
+                </button>
+                <button
+                  disabled={!canRedo || busy}
+                  onClick={() => void redo()}
+                  title={redoLabel ? `Rétablir : ${redoLabel} (Ctrl+Shift+Z)` : "Rétablir (Ctrl+Shift+Z)"}
+                  className="border rounded p-1.5 disabled:opacity-30 hover:bg-eb-page transition-colors"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 7v6h-6"/><path d="M21 13c-2.2-5-6.6-8-11-8-4.4 0-8 3.6-8 8s3.6 8 8 8c2 0 3.9-.7 5.3-2"/>
+                  </svg>
+                </button>
+              </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <label className="text-sm">
@@ -749,5 +782,6 @@ export default function ServicePlanner({
         </div>
       )}
     </div>
+    </UndoContext.Provider>
   );
 }
