@@ -10,6 +10,7 @@
 import { useState, type FormEvent } from "react";
 import { localIsoToDate, localIsoToTime } from "../../lib/slotDateTime";
 import type { Mission, Slot } from "../../types";
+import TimePicker from "../TimePicker";
 
 interface Props {
   slot: Slot;
@@ -78,13 +79,13 @@ export default function SlotEditModal({ slot, missions, onSave, onDelete, onClos
           <div className="flex gap-3">
             <div className="flex-1">
               <label className="text-[12px] font-medium text-eb-secondary">Début</label>
-              <input type="time" className="eb-input mt-1" value={startTime}
-                onChange={(e) => setStartTime(e.target.value)} required />
+              <TimePicker className="eb-input mt-1" value={startTime}
+                onChange={setStartTime} required />
             </div>
             <div className="flex-1">
               <label className="text-[12px] font-medium text-eb-secondary">Fin</label>
-              <input type="time" className="eb-input mt-1" value={endTime}
-                onChange={(e) => setEndTime(e.target.value)} required />
+              <TimePicker className="eb-input mt-1" value={endTime}
+                onChange={setEndTime} required />
             </div>
           </div>
 

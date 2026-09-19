@@ -20,7 +20,7 @@ services:
     depends_on:
       - extrabeam-v2-back
     ports:
-      - "127.0.0.1:${EXTRABEAM_HTTP_PORT:-8080}:80"
+      - "${EXTRABEAM_HTTP_PORT:-8080}:80"
 
 volumes:
   extrabeam-v2-data:

@@ -2,13 +2,17 @@
 import { Link, Navigate } from "react-router-dom";
 
 import { fetchAdminOverview } from "../api";
-import Topbar from "../components/Topbar";
+import AppShell, { type NavItem } from "../components/AppShell";
 import { useUserContext } from "../context/UserContext";
 import type { AccountRole, AdminAccountSummary, AdminOverviewResponse } from "../types";
 
+const ADMIN_NAV: NavItem[] = [
+  { id: "comptes", label: "Comptes" },
+];
+
 const roleLabels: Record<AccountRole, string> = {
   freelance: "Freelance",
-  client: "Client",
+  client: "Restaurateur",
   admin: "Admin",
 };
 
@@ -161,17 +165,21 @@ export default function AdminDashboardPage() {
   const summary = overview?.summary;
 
   return (
-    <main className="min-h-screen bg-eb-page">
-      <div className="mx-auto max-w-[1280px] px-4 py-6 space-y-4">
-        <Topbar />
-
+    <AppShell
+      title="Admin"
+      subtitle="Pilotage Rivebelle"
+      nav={ADMIN_NAV}
+      activeTab="comptes"
+      onTabChange={() => { /* single tab */ }}
+    >
+      <div className="space-y-4 max-w-[1200px]">
         <section className="rounded-eb-card border border-eb-layout bg-white p-6">
           <p className="text-[12px] font-medium uppercase tracking-[0.12em] text-eb-muted">
             Espace admin
           </p>
           <div className="mt-3 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <h1 className="text-[30px] font-semibold text-eb-text">Pilotage Rivebelle</h1>
+              <h1 className="text-[28px] font-semibold text-eb-text">Pilotage Rivebelle</h1>
               <p className="mt-3 max-w-3xl text-[14px] leading-6 text-eb-secondary">
                 Vue globale des comptes, des missions et de l&apos;activité produit avec un accès rapide
                 aux fiches détaillées de chaque profil.
@@ -199,7 +207,7 @@ export default function AdminDashboardPage() {
                 >
                   <option value="">Tous les comptes</option>
                   <option value="freelance">Freelances</option>
-                  <option value="client">Clients</option>
+                  <option value="client">Restaurateurs</option>
                   <option value="admin">Admins</option>
                 </select>
               </label>
@@ -211,7 +219,7 @@ export default function AdminDashboardPage() {
           <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <StatCard label="Comptes" value={summary.total_accounts} tone="text-eb-text" />
             <StatCard label="Freelances" value={summary.freelance_accounts} tone="text-eb-primary" />
-            <StatCard label="Clients" value={summary.client_accounts} tone="text-eb-success" />
+            <StatCard label="Restaurateurs" value={summary.client_accounts} tone="text-eb-success" />
             <StatCard label="Admins" value={summary.admin_accounts} tone="text-eb-text" />
             <StatCard label="Skills" value={summary.total_skills} tone="text-eb-text" />
             <StatCard label="Missions" value={summary.total_missions} tone="text-eb-text" />
@@ -261,6 +269,6 @@ export default function AdminDashboardPage() {
           )}
         </section>
       </div>
-    </main>
+    </AppShell>
   );
 }

@@ -16,6 +16,7 @@ import {
   skillNames,
   states,
 } from "../types";
+import TimePicker from "../../components/TimePicker";
 import { NavLink } from "react-router-dom";
 import { Stat, Empty } from "../ui";
 import MonthlyHoursGauges from "../MonthlyHoursGauges";
@@ -558,19 +559,19 @@ function SlotAddDialog({
           <div className="lulu-form-grid">
             <label>
               Début
-              <input
+              <TimePicker
                 autoFocus
-                type="time"
+                className="lulu-time-input"
                 value={start}
-                onChange={(e) => setStart(e.target.value)}
+                onChange={setStart}
               />
             </label>
             <label>
               Fin estimée
-              <input
-                type="time"
+              <TimePicker
+                className="lulu-time-input"
                 value={end}
-                onChange={(e) => setEnd(e.target.value)}
+                onChange={setEnd}
               />
             </label>
           </div>
@@ -744,19 +745,19 @@ function PositionDialog({
           <div className="lulu-form-grid" style={{ marginBottom: 20 }}>
             <label>
               Début
-              <input
+              <TimePicker
                 autoFocus
-                type="time"
+                className="lulu-time-input"
                 value={start}
-                onChange={(e) => setStart(e.target.value)}
+                onChange={setStart}
               />
             </label>
             <label>
               Fin estimée
-              <input
-                type="time"
+              <TimePicker
+                className="lulu-time-input"
                 value={end}
-                onChange={(e) => setEnd(e.target.value)}
+                onChange={setEnd}
               />
             </label>
           </div>

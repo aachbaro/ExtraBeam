@@ -68,6 +68,32 @@
   outline: 3px solid #d49c61;
   outline-offset: 3px;
 }
+.lulu-time-input {
+  border: 1px solid #dce0d5;
+  background: #fff;
+  border-radius: 7px;
+  padding: 9px 10px;
+  max-width: 100%;
+  color: var(--ink);
+  min-height: 40px;
+  width: 100%;
+  text-align: left;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  font-variant-numeric: tabular-nums;
+}
+.lulu-time-input:focus {
+  border-color: #709b7e;
+  box-shadow: 0 0 0 3px #709b7e16;
+  outline: none;
+}
+
 .lulu input:not([type="checkbox"]),
 .lulu select {
   border: 1px solid #dce0d5;

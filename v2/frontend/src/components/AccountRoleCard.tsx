@@ -11,7 +11,7 @@ const ROLE_CARDS: { value: Extract<AccountRole, "freelance" | "client">; label: 
   },
   {
     value: "client",
-    label: "Compte client",
+    label: "Compte restaurateur",
     description: "Espace prive pour tes templates, tes contacts et le suivi de tes demandes.",
   },
 ];
@@ -53,7 +53,7 @@ export default function AccountRoleCard({ slug, role, token, onRoleChanged }: Pr
             Type de compte
           </p>
           <p className="mt-1 text-[13px] text-eb-secondary">
-            Tu peux passer de freelance a client a tout moment. La vue et les outils s&apos;adaptent juste apres.
+            Tu peux passer de freelance a restaurateur a tout moment. La vue et les outils s&apos;adaptent juste apres.
           </p>
         </div>
 

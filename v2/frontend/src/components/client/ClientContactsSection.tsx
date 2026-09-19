@@ -84,7 +84,7 @@ export default function ClientContactsSection({ token, initialContacts }: Props)
                         {contact.profile.display_name}
                       </h3>
                       <Link
-                        to={`/p/${contact.profile.slug}`}
+                        to={`/extras/${contact.profile.slug}`}
                         className="text-[12px] font-medium text-eb-primary hover:underline"
                       >
                         Voir le profil

@@ -9,7 +9,7 @@ import type { AdminAccountDetailResponse, Mission, Slot, Unavailability } from "
 
 const roleLabels = {
   freelance: "Freelance",
-  client: "Client",
+  client: "Restaurateur",
   admin: "Admin",
 } as const;
 
@@ -114,7 +114,7 @@ export default function AdminAccountPage() {
             </div>
 
             {account?.slug && account.role !== "client" ? (
-              <Link to={`/p/${account.slug}`} className="eb-btn-primary">
+              <Link to={`/extras/${account.slug}`} className="eb-btn-primary">
                 Ouvrir le profil public
               </Link>
             ) : null}
@@ -158,7 +158,7 @@ export default function AdminAccountPage() {
                     <p className="mt-2 text-[15px] text-eb-secondary">{account.email}</p>
                     <p className="mt-2 text-[14px] text-eb-muted">
                       {authProviderLabels[account.auth_provider] ?? account.auth_provider}
-                      {account.slug ? ` · /p/${account.slug}` : ""}
+                      {account.slug ? ` · /extras/${account.slug}` : ""}
                     </p>
 
                     {(account.job_title || account.location) && (

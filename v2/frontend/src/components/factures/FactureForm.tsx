@@ -7,6 +7,7 @@
 import { useState } from "react";
 
 import type { FacturePayload } from "../../api";
+import TimePicker from "../TimePicker";
 import type {
   Facture,
   FactureStatus,
@@ -588,26 +589,20 @@ export default function FactureForm({
               </label>
               <label className="text-xs">
                 Début
-                <input
+                <TimePicker
                   aria-label="Début de prestation"
-                  type="time"
                   className="eb-input"
                   value={prestation.start}
-                  onChange={(e) =>
-                    setPrestation((p) => ({ ...p, start: e.target.value }))
-                  }
+                  onChange={(v) => setPrestation((p) => ({ ...p, start: v }))}
                 />
               </label>
               <label className="text-xs">
                 Fin
-                <input
+                <TimePicker
                   aria-label="Fin de prestation"
-                  type="time"
                   className="eb-input"
                   value={prestation.end}
-                  onChange={(e) =>
-                    setPrestation((p) => ({ ...p, end: e.target.value }))
-                  }
+                  onChange={(v) => setPrestation((p) => ({ ...p, end: v }))}
                 />
               </label>
             </div>

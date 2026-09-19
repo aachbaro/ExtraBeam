@@ -8,6 +8,7 @@ import {
   skillNames,
 } from "../types";
 import EmployeeAvailabilityDialog from "../EmployeeAvailabilityDialog";
+import TimePicker from "../../components/TimePicker";
 
 export default function TeamPage({
   board,
@@ -286,23 +287,19 @@ function EmployeeEditor({
                       <option value="midi">Midi</option>
                       <option value="soir">Soir</option>
                     </select>
-                    <input
+                    <TimePicker
                       aria-label="Début fixe"
-                      type="time"
                       required
+                      className="lulu-time-input"
                       value={f.start}
-                      onChange={(e) =>
-                        updateFixed(index, { start: e.target.value })
-                      }
+                      onChange={(v) => updateFixed(index, { start: v })}
                     />
-                    <input
+                    <TimePicker
                       aria-label="Fin fixe"
-                      type="time"
                       required
+                      className="lulu-time-input"
                       value={f.end}
-                      onChange={(e) =>
-                        updateFixed(index, { end: e.target.value })
-                      }
+                      onChange={(v) => updateFixed(index, { end: v })}
                     />
                     <button
                       type="button"

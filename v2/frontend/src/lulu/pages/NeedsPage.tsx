@@ -10,6 +10,7 @@ import {
   monday,
   skillNames,
 } from "../types";
+import TimePicker from "../../components/TimePicker";
 
 export default function NeedsPage({ week, board, act }: PageProps) {
   const [rows, setRows] = useState(() =>
@@ -192,21 +193,19 @@ export default function NeedsPage({ week, board, act }: PageProps) {
                       </select>
                     </td>
                     <td>
-                      <input
+                      <TimePicker
                         aria-label="Début"
-                        type="time"
+                        className="lulu-time-input"
                         value={s.start}
-                        onChange={(e) =>
-                          update(s.id, { start: e.target.value })
-                        }
+                        onChange={(v) => update(s.id, { start: v })}
                       />
                     </td>
                     <td>
-                      <input
+                      <TimePicker
                         aria-label="Fin"
-                        type="time"
+                        className="lulu-time-input"
                         value={s.end}
-                        onChange={(e) => update(s.id, { end: e.target.value })}
+                        onChange={(v) => update(s.id, { end: v })}
                       />
                     </td>
                     <td>

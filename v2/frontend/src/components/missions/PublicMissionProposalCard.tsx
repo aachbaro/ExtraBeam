@@ -7,6 +7,7 @@ import {
 } from "../../api";
 import { useUserContext } from "../../context/UserContext";
 import type { MissionTemplate, MissionTemplateMode, Unavailability } from "../../types";
+import TimePicker from "../TimePicker";
 
 interface ProposalSlotState {
   title: string;
@@ -539,12 +540,10 @@ export default function PublicMissionProposalCard({ slug, unavailabilities = [],
                         value={slot.start_date}
                         onChange={(event) => setSlotField(index, "start_date", event.target.value)}
                       />
-                      <input
-                        type="time"
-                        step="900"
+                      <TimePicker
                         className="eb-input"
                         value={slot.start_time}
-                        onChange={(event) => setSlotField(index, "start_time", event.target.value)}
+                        onChange={(v) => setSlotField(index, "start_time", v)}
                       />
                     </div>
                     <div className="grid gap-3 sm:grid-cols-2">
@@ -554,12 +553,10 @@ export default function PublicMissionProposalCard({ slug, unavailabilities = [],
                         value={slot.end_date}
                         onChange={(event) => setSlotField(index, "end_date", event.target.value)}
                       />
-                      <input
-                        type="time"
-                        step="900"
+                      <TimePicker
                         className="eb-input"
                         value={slot.end_time}
-                        onChange={(event) => setSlotField(index, "end_time", event.target.value)}
+                        onChange={(v) => setSlotField(index, "end_time", v)}
                       />
                     </div>
                   </div>

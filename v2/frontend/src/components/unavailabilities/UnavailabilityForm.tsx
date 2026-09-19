@@ -10,6 +10,7 @@
 
 import { useState } from "react";
 import type { Unavailability } from "../../types";
+import TimePicker from "../TimePicker";
 
 const WEEKDAY_LABELS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
 const ALL_DAY_START = "07:00";
@@ -192,22 +193,18 @@ export default function UnavailabilityForm({ initial, onSave, onDelete, onClose 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-[12px] font-medium text-eb-secondary">Début</label>
-              <input
-                type="time"
-                step={900}
+              <TimePicker
                 className="eb-input"
                 value={form.start_time}
-                onChange={(e) => set("start_time", e.target.value)}
+                onChange={(v) => set("start_time", v)}
               />
             </div>
             <div>
               <label className="mb-1 block text-[12px] font-medium text-eb-secondary">Fin</label>
-              <input
-                type="time"
-                step={900}
+              <TimePicker
                 className="eb-input"
                 value={form.end_time}
-                onChange={(e) => set("end_time", e.target.value)}
+                onChange={(v) => set("end_time", v)}
               />
             </div>
           </div>
