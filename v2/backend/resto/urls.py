@@ -29,4 +29,5 @@ urlpatterns = [
     path("restaurants/<slug:slug>/shifts/<int:shift_id>/availability/", views.shift_availability),
     path("restaurants/<slug:slug>/shifts/<int:shift_id>/assignments/", views.shift_assignments),
     path("restaurants/<slug:slug>/shifts/<int:shift_id>/assignments/<int:assignment_id>/", views.shift_assignment_detail),
+    path("restaurants/<slug:slug>/shifts/<int:shift_id>/assignments/<int:assignment_id>/fixed/", views.toggle_fixed_assignment),
 ]

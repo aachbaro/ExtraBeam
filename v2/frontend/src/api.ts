@@ -808,6 +808,10 @@ export async function removeAssignment(
   return deleteReq(`${RESTO}/restaurants/${slug}/shifts/${shiftId}/assignments/${assignmentId}/`, token);
 }
 
+export function toggleFixedAssignment(slug: string, shiftId: number, assignmentId: number, fixed: boolean, token: string) {
+  return patchJson<ShiftAssignment>(`${RESTO}/restaurants/${slug}/shifts/${shiftId}/assignments/${assignmentId}/fixed/`, { fixed }, token);
+}
+
 export type MonthlyMemberHours = { member_id: number; name: string; published_minutes: number; draft_minutes: number; target_minutes: number };
 export function fetchRestaurantHours(slug: string, month: string, token: string | null) {
   return getJson<MonthlyMemberHours[]>(`${RESTO}/restaurants/${slug}/hours/?month=${month}`, token);

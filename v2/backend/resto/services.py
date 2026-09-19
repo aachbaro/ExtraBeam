@@ -7,7 +7,7 @@ from rest_framework import serializers
 from rest_framework.decorators import api_view
 from rest_framework.exceptions import ValidationError, NotFound
 from rest_framework.response import Response
-from .models import ServiceTemplate, RestaurantService, RestaurantShift, ServiceCancellation, POSITION_CHOICES
+from .models import ServiceTemplate, RestaurantService, RestaurantShift, ShiftAssignment, ServiceCancellation, POSITION_CHOICES
 from .serializers import RestaurantShiftSerializer
 from . import scheduling
 from .views import _get_restaurant, _require_auth, _require_manager, _require_team
@@ -29,6 +29,7 @@ class SlotInput(serializers.Serializer):
     end_time = serializers.TimeField(format='%H:%M')
     break_minutes = serializers.IntegerField(min_value=0, max_value=180, default=30)
     required_skills = serializers.ListField(child=serializers.CharField(max_length=40), max_length=20, default=list)
+    fixed_member_ids = serializers.ListField(child=serializers.IntegerField(), max_length=20, default=list, required=False)
 
     def validate(self, data):
         start, end = data['start_time'], data['end_time']
@@ -104,6 +105,16 @@ def serialize_template(template):
     return dict(id=template.id,name=template.name,weekday=template.weekday,definition=template.definition,starts_on=template.starts_on,ends_on=template.ends_on)
 
 
+def _apply_fixed_assignments(shift, fixed_member_ids, restaurant):
+    for member_id in (fixed_member_ids or []):
+        member = restaurant.members.filter(id=member_id, is_active=True).first()
+        if member:
+            ShiftAssignment.objects.get_or_create(
+                shift=shift, member=member,
+                defaults={'locked': True, 'status': 'proposed'},
+            )
+
+
 def validate_assignments(slot):
     assignments=list(slot.assignments.exclude(status='declined').select_related('member'))
     if len(assignments)>slot.positions_needed:
@@ -167,8 +178,9 @@ def apply_definition(service, data, *, merge=False):
             validate_assignments(slot)
     for key,new in new_slots.items():
         if key not in seen and (not merge or key not in old_slots):
-            RestaurantShift.objects.create(restaurant=service.restaurant,service_instance=service,
+            shift = RestaurantShift.objects.create(restaurant=service.restaurant,service_instance=service,
                 template_slot_key=key,date=service.date,**{k:new[k] for k in SLOT_FIELDS})
+            _apply_fixed_assignments(shift, new.get('fixed_member_ids'), service.restaurant)
     if merge:
         service.template_snapshot=deepcopy(data)
         service.save(update_fields=['template_snapshot'])

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import type { RestaurantMember, RestaurantService, ServiceDefinition, ServiceSlot, ServiceTask } from "../types";
-import { assignMember, deleteShift, editService, removeAssignment } from "../api";
+import { assignMember, deleteShift, editService, removeAssignment, toggleFixedAssignment } from "../api";
 import { serviceDefinition } from "./ServiceEditor";
 import TimePicker from "../components/TimePicker";
 
@@ -70,13 +71,38 @@ export default function ServiceDayCard({
   const [tasksExpanded, setTasksExpanded] = useState(false);
   const [notesEditOpen, setNotesEditOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
   const [dropActive, setDropActive] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLButtonElement>(null);
+  const menuPanelRef = useRef<HTMLDivElement>(null);
+  const positionsDropRef = useRef<HTMLDivElement>(null);
+  const tasksDropRef = useRef<HTMLDivElement>(null);
+
+  // React 18 attache dragover de manière passive : on doit l'enregistrer nativement avec passive:false
+  useEffect(() => {
+    const attachNonPassiveDragOver = (el: HTMLDivElement | null) => {
+      if (!el) return () => {};
+      const handler = (e: DragEvent) => {
+        if (e.dataTransfer?.types.includes("application/x-eb-item")) {
+          e.preventDefault();
+          if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+          setDropActive(true);
+        }
+      };
+      el.addEventListener("dragover", handler, { passive: false });
+      return () => el.removeEventListener("dragover", handler);
+    };
+    const cleanPos = attachNonPassiveDragOver(positionsDropRef.current);
+    const cleanTasks = attachNonPassiveDragOver(tasksDropRef.current);
+    return () => { cleanPos(); cleanTasks(); };
+  }, []);
 
   useEffect(() => {
     if (!menuOpen) return;
     function onDown(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+      const t = e.target as Node;
+      if (menuRef.current?.contains(t) || menuPanelRef.current?.contains(t)) return;
+      setMenuOpen(false);
     }
     document.addEventListener("mousedown", onDown);
     return () => document.removeEventListener("mousedown", onDown);
@@ -268,10 +294,17 @@ export default function ServiceDayCard({
               </p>
             </div>
             {manager && (
-              <div ref={menuRef} className="relative shrink-0">
+              <div className="shrink-0">
                 <button
+                  ref={menuRef}
                   title="Actions"
-                  onClick={() => setMenuOpen((v) => !v)}
+                  onClick={() => {
+                    if (!menuOpen && menuRef.current) {
+                      const r = menuRef.current.getBoundingClientRect();
+                      setMenuPos({ top: r.bottom + 4, right: window.innerWidth - r.right });
+                    }
+                    setMenuOpen((v) => !v);
+                  }}
                   className={`p-1.5 rounded-lg transition-colors text-eb-secondary hover:bg-eb-page hover:text-eb-text ${menuOpen ? "bg-eb-page text-eb-text" : ""}`}
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
@@ -279,10 +312,11 @@ export default function ServiceDayCard({
                   </svg>
                 </button>
 
-                {menuOpen && (
+                {menuOpen && menuPos && createPortal(
                   <div
-                    className="absolute right-0 top-full mt-1 z-50 bg-white border border-eb-layout rounded-xl shadow-xl py-1 min-w-[190px] overflow-hidden"
-                    style={{ animation: "menuEnter 0.15s ease-out both" }}
+                    ref={menuPanelRef}
+                    className="fixed z-[9999] bg-white border border-eb-layout rounded-xl shadow-xl py-1 min-w-[190px] overflow-hidden"
+                    style={{ top: menuPos.top, right: menuPos.right, animation: "menuEnter 0.15s ease-out both" }}
                   >
                     <MenuItem
                       icon={<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>}
@@ -312,6 +346,20 @@ export default function ServiceDayCard({
                       label="Dupliquer"
                       onClick={() => { onDuplicate(serviceDefinition(service)); setMenuOpen(false); }}
                     />
+                    {!service.template_id && (
+                      <MenuItem
+                        icon={<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>}
+                        label="Rendre hebdomadaire"
+                        onClick={() => {
+                          setBusy(true);
+                          editService(slug, service.id, { definition: serviceDefinition(service), recurring: true }, token)
+                            .then(onReload)
+                            .catch((err) => setError(String(err)))
+                            .finally(() => setBusy(false));
+                          setMenuOpen(false);
+                        }}
+                      />
+                    )}
                     <div className="h-px bg-eb-layout mx-2 my-1" />
                     <MenuItem
                       icon={<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>}
@@ -319,7 +367,8 @@ export default function ServiceDayCard({
                       danger
                       onClick={() => { onDelete(); setMenuOpen(false); }}
                     />
-                  </div>
+                  </div>,
+                  document.body
                 )}
               </div>
             )}
@@ -330,8 +379,8 @@ export default function ServiceDayCard({
       {/* Positions groupées */}
       {positionOrder.length > 0 && (
         <div
+          ref={positionsDropRef}
           className={`border-t divide-y divide-eb-layout/50 rounded-b-xl transition-colors ${dropActive ? "bg-blue-50/40" : ""}`}
-          onDragOver={(e) => { if (e.dataTransfer.types.includes("application/x-eb-item")) { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setDropActive(true); } }}
           onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDropActive(false); }}
           onDrop={(e) => void handleDrop(e)}
         >
@@ -394,26 +443,53 @@ export default function ServiceDayCard({
 
                     {/* Personnes assignées */}
                     {active.map((a) => (
-                      <div key={a.id} className="group/person flex items-center justify-between py-0.5 pl-2">
+                      <div
+                        key={a.id}
+                        className={`group/person flex items-center justify-between py-0.5 pl-2 rounded ${a.locked ? "bg-amber-50" : ""}`}
+                      >
                         <span
-                          className={`text-[12px] ${a.status === "proposed" ? "text-amber-600" : "text-eb-text"}`}
-                          title={a.status === "proposed" ? "Affectation proposée — en attente de confirmation" : undefined}
+                          className={`text-[12px] flex items-center gap-1 ${a.locked ? "text-amber-700 font-medium" : a.status === "proposed" ? "text-amber-600" : "text-eb-text"}`}
+                          title={a.locked ? "Poste fixe hebdomadaire" : a.status === "proposed" ? "Affectation proposée — en attente de confirmation" : undefined}
                         >
+                          {a.locked && (
+                            <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor" className="shrink-0 opacity-70">
+                              <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4" fill="none" stroke="currentColor" strokeWidth="2.5"/>
+                            </svg>
+                          )}
                           {a.member_name}
-                          {a.status === "proposed" && (
+                          {!a.locked && a.status === "proposed" && (
                             <span className="ml-1 text-[10px] font-medium text-amber-500 opacity-70">?</span>
                           )}
                           {!manager && <span className="text-eb-muted ml-2 text-[11px]">{timeRange}</span>}
                         </span>
                         {manager && (
-                          <button
-                            type="button"
-                            disabled={busy}
-                            onClick={() => void unassign(shift.id, a.id)}
-                            className="opacity-0 group-hover/person:opacity-100 text-[11px] text-eb-muted hover:text-red-500 transition-opacity ml-1"
-                          >
-                            ×
-                          </button>
+                          <div className="opacity-0 group-hover/person:opacity-100 flex items-center gap-0.5 transition-opacity">
+                            <button
+                              type="button"
+                              disabled={busy}
+                              title={a.locked ? "Retirer le poste fixe" : "Rendre fixe hebdomadaire"}
+                              onClick={() => {
+                                setBusy(true);
+                                toggleFixedAssignment(slug, shift.id, a.id, !a.locked, token)
+                                  .then(onReload)
+                                  .catch((err) => setError(String(err)))
+                                  .finally(() => setBusy(false));
+                              }}
+                              className={`text-[10px] p-0.5 rounded transition-colors ${a.locked ? "text-amber-500 hover:text-amber-700" : "text-eb-muted hover:text-amber-500"}`}
+                            >
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                                <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4" fill="none" stroke="currentColor" strokeWidth="2.5"/>
+                              </svg>
+                            </button>
+                            <button
+                              type="button"
+                              disabled={busy}
+                              onClick={() => void unassign(shift.id, a.id)}
+                              className="text-[11px] text-eb-muted hover:text-red-500 transition-colors p-0.5"
+                            >
+                              ×
+                            </button>
+                          </div>
                         )}
                       </div>
                     ))}
@@ -550,8 +626,8 @@ export default function ServiceDayCard({
           >
             <div style={{ overflow: "hidden" }}>
               <div
+                ref={tasksDropRef}
                 className={`pt-2 pb-1 space-y-2 rounded-lg transition-colors ${dropActive ? "bg-blue-50/60 ring-1 ring-eb-primary/30" : ""}`}
-                onDragOver={(e) => { if (e.dataTransfer.types.includes("application/x-eb-item")) { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setDropActive(true); } }}
                 onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDropActive(false); }}
                 onDrop={(e) => void handleDrop(e)}
               >

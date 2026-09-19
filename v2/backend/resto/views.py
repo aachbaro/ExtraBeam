@@ -352,8 +352,9 @@ def shift_assignments(request, slug, shift_id):
     )
     if not created:
         assignment.status = "proposed"
-        assignment.locked = True
-        assignment.save(update_fields=["status", "locked"])
+        if not assignment.locked:  # ne pas désactiver un poste fixe
+            pass
+        assignment.save(update_fields=["status"])
 
     shift.status = "draft"
     shift.save(update_fields=["status"])
@@ -409,6 +410,43 @@ def shift_assignment_detail(request, slug, shift_id, assignment_id):
         return Response(ShiftAssignmentSerializer(assignment).data)
 
     raise PermissionDenied("Action non autorisée.")
+
+
+@api_view(["PATCH"])
+@transaction.atomic
+def toggle_fixed_assignment(request, slug, shift_id, assignment_id):
+    restaurant = _get_restaurant(slug)
+    _require_manager(restaurant, _require_auth(request))
+
+    try:
+        shift = restaurant.shifts.get(id=shift_id)
+        assignment = shift.assignments.select_related("member").get(id=assignment_id)
+    except (RestaurantShift.DoesNotExist, ShiftAssignment.DoesNotExist):
+        raise NotFound("Introuvable.")
+
+    from rest_framework import serializers as drf_serializers
+    fixed = drf_serializers.BooleanField().run_validation(request.data.get("fixed", False))
+    assignment.locked = fixed
+    assignment.save(update_fields=["locked"])
+
+    # Propagate to template slot definition
+    if shift.service_instance_id and shift.template_slot_key:
+        service = shift.service_instance
+        if service.template_id:
+            template = service.template
+            for slot in template.definition.get("slots", []):
+                if slot.get("key") == shift.template_slot_key:
+                    ids = set(slot.get("fixed_member_ids", []))
+                    if fixed:
+                        ids.add(assignment.member_id)
+                    else:
+                        ids.discard(assignment.member_id)
+                    slot["fixed_member_ids"] = list(ids)
+                    break
+            template.save(update_fields=["definition"])
+
+    from .serializers import ShiftAssignmentSerializer as _SA
+    return Response(_SA(assignment).data)
 
 
 # ---------------------------------------------------------------------------
