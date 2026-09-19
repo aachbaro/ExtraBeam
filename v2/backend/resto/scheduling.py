@@ -73,7 +73,9 @@ def reasons(member, shift, existing=None):
 def candidate_details(shift):
     return [dict(member_id=m.id,status=availability(m,shift),reasons=reasons(m,shift)) for m in shift.restaurant.members.filter(is_active=True).select_related("profile")]
 
-def generate(restaurant, shifts, assigned_by):
+def generate(restaurant, shifts, assigned_by, period_start=None, period_end=None):
+    period_start = period_start or min((s.date for s in shifts), default=None)
+    period_end = period_end or max((s.date for s in shifts), default=None)
     # Caller holds a restaurant lock. Published, confirmed and manual rows survive.
     ShiftAssignment.objects.filter(shift__in=shifts, shift__status="draft", locked=False, status="proposed").delete()
     staff=list(restaurant.members.filter(is_active=True).select_related("profile"))
@@ -87,9 +89,10 @@ def generate(restaurant, shifts, assigned_by):
             if not candidates: break
             def score(m):
                 rows=bookings(m,s); pref=m.preferences
-                period=[o for o in rows if o.date.year==s.date.year and o.date.month==s.date.month]
+                period=[o for o in rows if o.restaurant_id == restaurant.id and period_start <= o.date <= period_end]
                 same_day=any(o.date==s.date for o in rows)
-                cost=sum(minutes(o) for o in period)/max(m.weekly_hours*60,1)
+                target=m.weekly_hours*60*((period_end-period_start).days+1)/7
+                cost=100*(sum(minutes(o) for o in period)+minutes(s))/max(target,1)
                 cost+=pref.get("weekends",0)*4*(s.date.weekday()>4)
                 cost+=pref.get("split",0)*4*same_day-pref.get("compact",0)*3*same_day
                 cost+=pref.get("evenings" if s.start_time.hour>=17 else "lunches",0)*4

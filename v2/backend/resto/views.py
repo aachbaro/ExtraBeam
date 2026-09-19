@@ -475,7 +475,7 @@ def generate_planning(request, slug):
     from .services import materialize
     materialize(restaurant,start,end)
     rows=list(restaurant.shifts.filter(date__range=(start,end)))
-    warnings=scheduling.generate(restaurant,rows,profile)
+    warnings=scheduling.generate(restaurant,rows,profile,period_start=start,period_end=end)
     return Response({"shifts":RestaurantShiftSerializer(_shift_qs(restaurant).filter(date__range=(start,end)),many=True).data,"warnings":warnings})
 
 @api_view(["GET"])
@@ -483,10 +483,16 @@ def generate_planning(request, slug):
 def monthly_hours(request, slug):
     restaurant=_get_restaurant(slug);_require_team(restaurant,_profile(request))
     try:
-        start=date.fromisoformat(request.query_params.get("month", "")+"-01")
-    except ValueError:raise ValidationError("Mois invalide.")
-    days=calendar.monthrange(start.year,start.month)[1]
-    rows=ShiftAssignment.objects.filter(shift__restaurant=restaurant,shift__date__year=start.year,shift__date__month=start.month).exclude(status="declined").select_related("shift")
+        if request.query_params.get("from") or request.query_params.get("to"):
+            start=date.fromisoformat(request.query_params.get("from", ""))
+            end=date.fromisoformat(request.query_params.get("to", ""))
+            if not 0 <= (end-start).days <= 93: raise ValueError()
+        else:
+            start=date.fromisoformat(request.query_params.get("month", "")+"-01")
+            end=start+timedelta(days=calendar.monthrange(start.year,start.month)[1]-1)
+    except ValueError:raise ValidationError("Période invalide (94 jours maximum).")
+    days=(end-start).days+1
+    rows=ShiftAssignment.objects.filter(shift__restaurant=restaurant,shift__date__range=(start,end)).exclude(status="declined").select_related("shift")
     result=[]
     for m in restaurant.members.all():
         published=sum(scheduling.minutes(a.shift) for a in rows if a.member_id==m.id and a.shift.status=="published")

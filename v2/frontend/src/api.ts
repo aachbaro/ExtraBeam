@@ -644,6 +644,7 @@ export async function fetchRestaurant(slug: string, token?: string | null): Prom
 }
 
 export interface RestaurantPayload {
+  planning_rules?: Record<string, number>;
   slug?: string;
   name: string;
   description?: string;
@@ -813,8 +814,8 @@ export function toggleFixedAssignment(slug: string, shiftId: number, assignmentI
 }
 
 export type MonthlyMemberHours = { member_id: number; name: string; published_minutes: number; draft_minutes: number; target_minutes: number };
-export function fetchRestaurantHours(slug: string, month: string, token: string | null) {
-  return getJson<MonthlyMemberHours[]>(`${RESTO}/restaurants/${slug}/hours/?month=${month}`, token);
+export function fetchRestaurantHours(slug: string, month: string, token: string | null, range?: { from: string; to: string }) {
+  return getJson<MonthlyMemberHours[]>(`${RESTO}/restaurants/${slug}/hours/?${range ? `from=${range.from}&to=${range.to}` : `month=${month}`}`, token);
 }
 export function generateRestaurantPlanning(slug: string, from: string, to: string, token: string) {
   return postJson<{shifts: RestaurantShift[]; warnings: {shift_id: number; missing: number}[]}>(`${RESTO}/restaurants/${slug}/generate/`, {from,to}, token);

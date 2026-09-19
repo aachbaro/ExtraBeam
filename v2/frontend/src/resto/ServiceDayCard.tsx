@@ -4,6 +4,8 @@ import type { RestaurantMember, RestaurantService, ServiceDefinition, ServiceSlo
 import { assignMember, deleteShift, editService, removeAssignment, toggleFixedAssignment } from "../api";
 import { serviceDefinition } from "./ServiceEditor";
 import TimePicker from "../components/TimePicker";
+import SkillsPicker from "./SkillsPicker";
+import { serviceExceptions } from "./serviceExceptions";
 
 const TASK_PHASES: { value: ServiceTask["phase"]; label: string }[] = [
   { value: "opening", label: "Avant" },
@@ -48,7 +50,9 @@ interface Props {
   manager: boolean;
   token: string;
   slug: string;
-  onEdit: () => void;
+  onEdit?: () => void;
+  templateMode?: boolean;
+  writeDefinition?: (id: number, definition: ServiceDefinition) => Promise<unknown>;
   onDuplicate: (prefill: ServiceDefinition) => void;
   onDelete: () => void;
   onReload: () => void;
@@ -58,13 +62,15 @@ interface Props {
 }
 
 export default function ServiceDayCard({
-  service, members, manager, token, slug, onEdit, onDuplicate, onDelete, onReload, onCopy, isNew, hideTasks,
+  service, members, manager, token, slug, onDuplicate, onDelete, onReload, onCopy, isNew, hideTasks, templateMode = false, writeDefinition,
 }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [editMode, setEditMode] = useState(false);
   const [editTitle, setEditTitle] = useState(service.title);
   const [editStart, setEditStart] = useState(service.start_time.slice(0, 5));
+  const [editKitchen, setEditKitchen] = useState(service.kitchen_end_time.slice(0, 5));
+  const [editingSlot, setEditingSlot] = useState<ServiceSlot | undefined>();
   const [editEnd, setEditEnd] = useState(service.end_time.slice(0, 5));
   const [assigningSlot, setAssigningSlot] = useState<{ shiftId: number; slotIdx: number } | null>(null);
   const [addShiftOpen, setAddShiftOpen] = useState(false);
@@ -83,7 +89,7 @@ export default function ServiceDayCard({
     const attachNonPassiveDragOver = (el: HTMLDivElement | null) => {
       if (!el) return () => {};
       const handler = (e: DragEvent) => {
-        if (e.dataTransfer?.types.includes("application/x-eb-item")) {
+        if (e.dataTransfer?.types.includes((templateMode ? "application/x-eb-template-item" : "application/x-eb-item"))) {
           e.preventDefault();
           if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
           setDropActive(true);
@@ -108,10 +114,22 @@ export default function ServiceDayCard({
     return () => document.removeEventListener("mousedown", onDown);
   }, [menuOpen]);
 
+  const write = (id: number, definition: ServiceDefinition) => {
+    if (writeDefinition) return writeDefinition(id, definition);
+    if (templateMode) return Promise.reject(new Error("Enregistrement du modèle indisponible."));
+    return editService(slug, id, { definition }, token);
+  };
+  const saveDefinition = (definition: ServiceDefinition) => write(service.id, definition);
+  function editHeader() {
+    setEditTitle(service.title); setEditStart(service.start_time.slice(0, 5));
+    setEditEnd(service.end_time.slice(0, 5)); setEditKitchen(service.kitchen_end_time.slice(0, 5));
+    setEditMode(true); setMenuOpen(false);
+  }
   async function handleDrop(e: React.DragEvent) {
-    e.preventDefault();
+    e.preventDefault(); e.stopPropagation();
+    if (!manager) return;
     setDropActive(false);
-    const raw = e.dataTransfer.getData("application/x-eb-item");
+    const raw = e.dataTransfer.getData(templateMode ? "application/x-eb-template-item" : "application/x-eb-item");
     if (!raw) return;
     const payload = JSON.parse(raw) as {
       type: "task" | "note" | "shift";
@@ -120,63 +138,30 @@ export default function ServiceDayCard({
       task?: ServiceTask;
       note?: string;
       noteIndex?: number;
-      shift?: { id: number; position: string; title: string; start_time: string; end_time: string; break_minutes: number; required_skills: string[] };
+      shift?: { slot?: ServiceSlot; id: number; position: string; title: string; start_time: string; end_time: string; break_minutes: number; required_skills: string[] };
     };
+    if (payload.sourceServiceId === service.id) return;
     const destDef = serviceDefinition(service);
-    setBusy(true);
-    setError("");
+    setBusy(true); setError("");
     try {
+      // Save the destination first: a rejected destination must never erase the source.
       if (payload.type === "task" && payload.task) {
-        const alreadyHere = destDef.tasks.some((t) => t.key === payload.task!.key);
-        if (payload.sourceServiceId !== service.id) {
-          await editService(slug, payload.sourceServiceId, {
-            definition: { ...payload.sourceDef, tasks: payload.sourceDef.tasks.filter((t) => t.key !== payload.task!.key) },
-          }, token);
-        }
-        if (!alreadyHere) {
-          await editService(slug, service.id, {
-            definition: { ...destDef, tasks: [...destDef.tasks, { ...payload.task, done: false }] },
-          }, token);
-        }
+        await write(service.id, { ...destDef, tasks: [...destDef.tasks, { ...payload.task, key: crypto.randomUUID(), done: false }] });
+        await write(payload.sourceServiceId, { ...payload.sourceDef, tasks: payload.sourceDef.tasks.filter(t => t.key !== payload.task!.key) });
       } else if (payload.type === "note" && payload.note !== undefined) {
-        const srcNotes = (payload.sourceDef.notes || "").split("\n").filter(Boolean);
-        const dstNotes = (destDef.notes || "").split("\n").filter(Boolean);
-        if (payload.sourceServiceId !== service.id) {
-          await editService(slug, payload.sourceServiceId, {
-            definition: { ...payload.sourceDef, notes: srcNotes.filter((_, i) => i !== payload.noteIndex).join("\n") },
-          }, token);
-        }
-        if (!dstNotes.includes(payload.note)) {
-          await editService(slug, service.id, {
-            definition: { ...destDef, notes: [...dstNotes, payload.note].join("\n") },
-          }, token);
-        }
+        await write(service.id, { ...destDef, notes: [destDef.notes, payload.note].filter(Boolean).join("\n") });
+        await write(payload.sourceServiceId, { ...payload.sourceDef, notes: payload.sourceDef.notes.split("\n").filter(Boolean).filter((_, i) => i !== payload.noteIndex).join("\n") });
       } else if (payload.type === "shift" && payload.shift) {
-        const newSlot: ServiceSlot = {
-          key: crypto.randomUUID(),
-          title: payload.shift.title,
-          position: payload.shift.position,
-          positions_needed: 1,
-          start_time: payload.shift.start_time,
-          end_time: payload.shift.end_time,
-          break_minutes: payload.shift.break_minutes,
-          required_skills: payload.shift.required_skills,
-        };
-        // Supprimer du service source
-        if (payload.sourceServiceId !== service.id) {
-          await deleteShift(slug, payload.shift.id, token);
-        }
-        // Ajouter au service destination
-        await editService(slug, service.id, {
-          definition: { ...destDef, slots: [...destDef.slots, newSlot] },
-        }, token);
+        const sourceSlot = payload.shift.slot;
+        const newSlot: ServiceSlot = sourceSlot
+          ? { ...sourceSlot, key: crypto.randomUUID() }
+          : { key: crypto.randomUUID(), title: payload.shift.title, position: payload.shift.position, positions_needed: 1, start_time: payload.shift.start_time, end_time: payload.shift.end_time, break_minutes: payload.shift.break_minutes, required_skills: payload.shift.required_skills };
+        await write(service.id, { ...destDef, slots: [...destDef.slots, newSlot] });
+        if (templateMode) await write(payload.sourceServiceId, { ...payload.sourceDef, slots: payload.sourceDef.slots.filter(s => s.key !== sourceSlot?.key) });
+        else await deleteShift(slug, payload.shift.id, token);
       }
-      onReload();
-    } catch (err) {
-      setError(String(err));
-    } finally {
-      setBusy(false);
-    }
+    } catch (err) { setError(String(err)); }
+    finally { setBusy(false); onReload(); }
   }
 
   async function run(fn: () => Promise<unknown>) {
@@ -192,13 +177,8 @@ export default function ServiceDayCard({
     setError("");
     try {
       const def = serviceDefinition(service);
-      // Reclamper kitchen_end_time dans [editStart, editEnd] pour éviter l'erreur de validation
-      let kitchenEnd = def.kitchen_end_time;
-      if (kitchenEnd < editStart) kitchenEnd = editStart;
-      if (kitchenEnd > editEnd)   kitchenEnd = editEnd;
-      await editService(slug, service.id, {
-        definition: { ...def, title: editTitle.trim() || service.title, start_time: editStart, end_time: editEnd, kitchen_end_time: kitchenEnd },
-      }, token);
+      const kitchenEnd = editKitchen;
+      await write(service.id, { ...def, title: editTitle.trim() || service.title, start_time: editStart, end_time: editEnd, kitchen_end_time: kitchenEnd });
       setEditMode(false);
       onReload();
     } catch (e) {
@@ -210,20 +190,25 @@ export default function ServiceDayCard({
 
   async function assign(shiftId: number, memberId: number) {
     setAssigningSlot(null);
-    await run(() => assignMember(slug, shiftId, memberId, token));
+    if (templateMode) {
+      await run(() => saveDefinition({ ...serviceDefinition(service), slots: service.slots.map((s, i) => i === shiftId ? { ...s, fixed_member_ids: [...(s.fixed_member_ids || []), memberId] } : s) }));
+    } else await run(() => assignMember(slug, shiftId, memberId, token));
   }
 
   async function unassign(shiftId: number, assignmentId: number) {
-    await run(() => removeAssignment(slug, shiftId, assignmentId, token));
+    if (templateMode) {
+      await run(() => saveDefinition({ ...serviceDefinition(service), slots: service.slots.map((s, i) => i === shiftId ? { ...s, fixed_member_ids: (s.fixed_member_ids || []).filter(id => id !== assignmentId) } : s) }));
+    } else await run(() => removeAssignment(slug, shiftId, assignmentId, token));
   }
 
   async function removeShiftSlot(shiftId: number) {
     if (!confirm("Supprimer ce poste ?")) return;
-    await run(() => deleteShift(slug, shiftId, token));
+    if (templateMode) await run(() => saveDefinition({ ...serviceDefinition(service), slots: service.slots.filter((_, i) => i !== shiftId) }));
+    else await run(() => deleteShift(slug, shiftId, token));
   }
 
   async function toggleTask(key: string, done: boolean) {
-    await run(() => editService(slug, service.id, { task_key: key, done }, token));
+    if (!templateMode) await run(() => editService(slug, service.id, { task_key: key, done }, token));
   }
 
   // Group shifts by position, preserving first-seen order
@@ -237,11 +222,14 @@ export default function ServiceDayCard({
     groups[shift.position].push(shift);
   }
 
+  const exceptions = serviceExceptions(service, templateMode);
+  const noteLines = service.notes.split("\n").filter(Boolean);
   const totalPostes = service.shifts.reduce((n, s) => n + s.positions_needed, 0);
   const assignedPostes = service.shifts.reduce((n, s) => n + s.assigned_count, 0);
 
   return (
     <div
+      onContextMenu={(e) => { if (!manager || (e.target as HTMLElement).closest("[role=dialog]")) return; e.preventDefault(); e.stopPropagation(); setMenuPos({ top: Math.min(e.clientY, window.innerHeight - 300), right: Math.max(8, window.innerWidth - e.clientX - 190) }); setMenuOpen(true); }}
       className={`bg-white border rounded-xl text-sm overflow-hidden ${busy ? "opacity-70 pointer-events-none" : ""}`}
       style={isNew ? { animation: "cardEnter 0.25s ease-out both" } : undefined}
     >
@@ -252,6 +240,7 @@ export default function ServiceDayCard({
         {editMode ? (
           <div className="space-y-2" style={{ animation: "menuEnter 0.15s ease-out both" }}>
             <input
+              aria-label="Nom du service"
               autoFocus
               value={editTitle}
               onChange={(e) => setEditTitle(e.target.value)}
@@ -262,6 +251,9 @@ export default function ServiceDayCard({
               <span className="text-eb-muted text-xs shrink-0">–</span>
               <TimePicker value={editEnd} onChange={setEditEnd} className="flex-1 text-xs rounded border border-eb-layout px-2 py-1.5 flex items-center gap-0.5 bg-white text-eb-text focus:border-eb-primary" />
             </div>
+            <label className="block text-[11px] text-eb-secondary">Fermeture cuisine
+              <TimePicker value={editKitchen} onChange={setEditKitchen} className="w-full border rounded px-2 py-1.5" />
+            </label>
             <div className="flex gap-2">
               <button
                 type="button"
@@ -282,8 +274,9 @@ export default function ServiceDayCard({
           </div>
         ) : (
           <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1" role={manager ? "button" : undefined} tabIndex={manager ? 0 : undefined} onClick={() => manager && editHeader()} onKeyDown={(e) => { if (manager && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); editHeader(); } }} aria-label={`Modifier le nom et les horaires de ${service.title}`}>
               <h3 className="font-semibold text-eb-text truncate">{service.title}</h3>
+              {!templateMode && service.template_id && <p className="text-[10px] text-eb-secondary mt-1">{service.customized ? "Modifié pour cette semaine" : "Semaine type"}</p>}
               <p className="text-xs text-eb-secondary mt-0.5">
                 {fmtTime(service.start_time)} – {fmtTime(service.end_time)}
                 {totalPostes > 0 && (
@@ -321,18 +314,12 @@ export default function ServiceDayCard({
                     <MenuItem
                       icon={<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>}
                       label="Renommer / horaires"
-                      onClick={() => { setEditTitle(service.title); setEditStart(service.start_time.slice(0, 5)); setEditEnd(service.end_time.slice(0, 5)); setEditMode(true); setMenuOpen(false); }}
+                      onClick={editHeader}
                     />
                     <MenuItem
                       icon={<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>}
                       label="Ajouter un shift"
-                      onClick={() => { setAddShiftOpen(true); setMenuOpen(false); }}
-                    />
-                    <div className="h-px bg-eb-layout mx-2 my-1" />
-                    <MenuItem
-                      icon={<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>}
-                      label="Édition complète"
-                      onClick={() => { onEdit(); setMenuOpen(false); }}
+                      onClick={() => { setEditingSlot(undefined); setAddShiftOpen(true); setMenuOpen(false); }}
                     />
                     <div className="h-px bg-eb-layout mx-2 my-1" />
                     <MenuItem
@@ -346,7 +333,7 @@ export default function ServiceDayCard({
                       label="Dupliquer"
                       onClick={() => { onDuplicate(serviceDefinition(service)); setMenuOpen(false); }}
                     />
-                    {!service.template_id && (
+                    {!templateMode && !service.template_id && (
                       <MenuItem
                         icon={<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>}
                         label="Rendre hebdomadaire"
@@ -376,6 +363,25 @@ export default function ServiceDayCard({
         )}
       </div>
 
+      {!hideTasks && (exceptions.tasks.size > 0 || exceptions.notes.size > 0) && (
+        <section aria-label="Notes et tâches de ce service uniquement" className="border-t border-amber-200 bg-amber-50 px-3 py-2 space-y-2">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-800">Ce service uniquement</p>
+          {noteLines.map((note, i) => exceptions.notes.has(i) && (
+            <div key={i} draggable={manager} onDragStart={e => { e.stopPropagation(); e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("application/x-eb-item", JSON.stringify({ type: "note", sourceServiceId: service.id, sourceDef: serviceDefinition(service), note, noteIndex: i })); }}>
+              <button type="button" disabled={!manager} onClick={() => setNotesEditOpen(true)} className="text-left text-xs text-amber-900 whitespace-pre-wrap break-words">{note}</button>
+            </div>
+          ))}
+          {service.tasks.filter(t => exceptions.tasks.has(t.key)).map(t => (
+            <div key={t.key} className="flex items-start gap-2" draggable={manager} onDragStart={e => { e.stopPropagation(); e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("application/x-eb-item", JSON.stringify({ type: "task", sourceServiceId: service.id, sourceDef: serviceDefinition(service), task: t })); }}>
+              <input type="checkbox" aria-label={t.label} checked={t.done} disabled={busy} onChange={e => void toggleTask(t.key, e.target.checked)} className="mt-0.5 accent-amber-700" />
+              <button type="button" disabled={!manager} onClick={() => setNotesEditOpen(true)} className={`text-xs text-left text-amber-900 ${t.done ? "line-through" : ""}`}>
+                <span className="text-amber-700">{TASK_PHASES.find(p => p.value === t.phase)?.label} · </span>{t.label}
+              </button>
+            </div>
+          ))}
+        </section>
+      )}
+
       {/* Positions groupées */}
       {positionOrder.length > 0 && (
         <div
@@ -390,6 +396,8 @@ export default function ServiceDayCard({
                 {POSITION_LABELS[position] ?? position}
               </p>
               {groups[position].map((shift) => {
+                const slot = service.slots[service.shifts.findIndex(s => s.id === shift.id)];
+                const exception = slot ? exceptions.slots.get(slot.key) : undefined;
                 const active = shift.assignments.filter((a) => a.status !== "declined");
                 const freeSlots = Math.max(0, shift.positions_needed - active.length);
                 const timeRange = `${fmtTime(shift.start_time)} – ${fmtTime(shift.end_time)}`;
@@ -400,15 +408,17 @@ export default function ServiceDayCard({
                 return (
                   <div
                     key={shift.id}
-                    className="space-y-0.5 group/shift group/item"
+                    className={`space-y-0.5 group/shift group/item ${exception ? "bg-amber-50 border-l-2 border-amber-400 rounded px-2 py-1 my-1" : ""}`}
                     draggable={manager}
                     onDragStart={(e) => {
+                      e.stopPropagation();
                       e.dataTransfer.effectAllowed = "move";
-                      e.dataTransfer.setData("application/x-eb-item", JSON.stringify({
+                      e.dataTransfer.setData((templateMode ? "application/x-eb-template-item" : "application/x-eb-item"), JSON.stringify({
                         type: "shift",
                         sourceServiceId: service.id,
                         sourceDef: serviceDefinition(service),
                         shift: {
+                          slot: templateMode ? service.slots[shift.id] : undefined,
                           id: shift.id,
                           position: shift.position,
                           title: shift.title,
@@ -420,11 +430,12 @@ export default function ServiceDayCard({
                       }));
                     }}
                   >
+                    {exception && <p className="text-[10px] text-amber-800">{exception === "added" ? "Ajouté pour ce service" : "Ajusté pour ce service"}</p>}
                     {/* Ligne créneau + poignée drag + bouton supprimer shift */}
                     <div className="flex items-center gap-1 justify-between">
                       <div className="flex items-center gap-1">
                         {manager && <DragHandle />}
-                        <span className="text-[10px] text-eb-muted">{timeRange}</span>
+                        <button type="button" disabled={!manager} className="text-[10px] text-eb-muted hover:text-eb-primary" onClick={() => { const index = service.shifts.findIndex(s => s.id === shift.id); setEditingSlot(service.slots[index]); setAddShiftOpen(true); }}>{timeRange}</button>
                       </div>
                       {manager && (
                         <button
@@ -467,6 +478,7 @@ export default function ServiceDayCard({
                             <button
                               type="button"
                               disabled={busy}
+                              hidden={templateMode}
                               title={a.locked ? "Retirer le poste fixe" : "Rendre fixe hebdomadaire"}
                               onClick={() => {
                                 setBusy(true);
@@ -541,7 +553,7 @@ export default function ServiceDayCard({
                             >
                               <span className="text-eb-muted font-medium">+</span>
                               <span className="border-b border-dashed border-eb-layout group-hover/slot:border-eb-primary transition-colors">
-                                Assigner
+                                {templateMode ? "Affecter un employé fixe" : "Assigner"}
                               </span>
                             </button>
                           ) : (
@@ -571,11 +583,11 @@ export default function ServiceDayCard({
         <div className="border-t px-3 py-2">
           <button
             type="button"
-            onClick={() => setAddShiftOpen(true)}
+            onClick={() => { setEditingSlot(undefined); setAddShiftOpen(true); }}
             className="text-[12px] text-eb-secondary hover:text-eb-primary transition-colors flex items-center gap-1"
           >
             <span className="font-medium text-base leading-none">+</span>
-            <span>Ajouter un shift</span>
+            <span>Ajouter un shift{!templateMode && <span className="block text-[10px] text-eb-muted">Ce service uniquement</span>}</span>
           </button>
         </div>
       )}
@@ -586,6 +598,10 @@ export default function ServiceDayCard({
           service={service}
           slug={slug}
           token={token}
+          members={members}
+          slot={editingSlot}
+          templateMode={templateMode}
+          onSave={saveDefinition}
           onSaved={() => { setAddShiftOpen(false); onReload(); }}
           onClose={() => setAddShiftOpen(false)}
         />
@@ -633,7 +649,7 @@ export default function ServiceDayCard({
               >
                 {/* Tâches groupées par phase */}
                 {TASK_PHASES.map(({ value: phase, label: phaseLabel }) => {
-                  const group = service.tasks.filter((t) => t.phase === phase);
+                  const group = service.tasks.filter((t) => t.phase === phase && !exceptions.tasks.has(t.key));
                   if (!group.length) return null;
                   return (
                     <div key={phase}>
@@ -643,10 +659,11 @@ export default function ServiceDayCard({
                           <div
                             key={t.key}
                             className="group/item flex items-center gap-1.5 cursor-grab active:cursor-grabbing"
-                            draggable
+                            draggable={manager}
                             onDragStart={(e) => {
+                      e.stopPropagation();
                               e.dataTransfer.effectAllowed = "move";
-                              e.dataTransfer.setData("application/x-eb-item", JSON.stringify({
+                              e.dataTransfer.setData((templateMode ? "application/x-eb-template-item" : "application/x-eb-item"), JSON.stringify({
                                 type: "task", sourceServiceId: service.id,
                                 sourceDef: serviceDefinition(service), task: t,
                               }));
@@ -656,11 +673,11 @@ export default function ServiceDayCard({
                             <input
                               type="checkbox"
                               checked={t.done}
-                              disabled={busy}
+                              disabled={busy || templateMode}
                               onChange={(e) => void toggleTask(t.key, e.target.checked)}
                               className="h-3.5 w-3.5 accent-eb-primary rounded shrink-0"
                             />
-                            <span className={`text-[12px] flex-1 ${t.done ? "line-through text-eb-muted" : "text-eb-text"}`}>{t.label}</span>
+                            <span onClick={() => manager && setNotesEditOpen(true)} className={`text-[12px] flex-1 ${t.done ? "line-through text-eb-muted" : "text-eb-text"}`}>{t.label}</span>
                           </div>
                         ))}
                       </div>
@@ -675,21 +692,22 @@ export default function ServiceDayCard({
                   return (
                     <div className="border-t pt-2 space-y-1">
                       <p className="text-[10px] font-semibold uppercase tracking-wider text-eb-muted mb-1">Notes</p>
-                      {lines.map((note, i) => (
+                      {lines.map((note, i) => ({ note, i })).filter(({ i }) => !exceptions.notes.has(i)).map(({ note, i }) => (
                         <div
                           key={i}
                           className="group/item flex items-center gap-1.5 cursor-grab active:cursor-grabbing"
-                          draggable
+                          draggable={manager}
                           onDragStart={(e) => {
+                      e.stopPropagation();
                             e.dataTransfer.effectAllowed = "move";
-                            e.dataTransfer.setData("application/x-eb-item", JSON.stringify({
+                            e.dataTransfer.setData((templateMode ? "application/x-eb-template-item" : "application/x-eb-item"), JSON.stringify({
                               type: "note", sourceServiceId: service.id,
                               sourceDef: serviceDefinition(service), note, noteIndex: i,
                             }));
                           }}
                         >
                           <DragHandle />
-                          <span className="text-[12px] text-eb-secondary flex-1">{note}</span>
+                          <button type="button" disabled={!manager} onClick={() => setNotesEditOpen(true)} className="text-left text-[12px] text-eb-secondary flex-1">{note}</button>
                         </div>
                       ))}
                     </div>
@@ -722,9 +740,9 @@ export default function ServiceDayCard({
       {notesEditOpen && (
         <NotesTasksPanel
           service={service}
-          slug={slug}
-          token={token}
           manager={manager}
+          templateMode={templateMode}
+          onSave={saveDefinition}
           onToggleTask={(key, done) => void toggleTask(key, done)}
           onSaved={() => { setNotesEditOpen(false); onReload(); }}
           onClose={() => setNotesEditOpen(false)}
@@ -735,17 +753,24 @@ export default function ServiceDayCard({
 }
 
 function AddShiftPanel({
-  service, slug, token, onSaved, onClose,
+  service, slug, token, members, slot, templateMode, onSave, onSaved, onClose,
 }: {
   service: RestaurantService;
   slug: string;
   token: string;
+  members: RestaurantMember[];
+  slot?: ServiceSlot;
+  templateMode: boolean;
+  onSave: (definition: ServiceDefinition) => Promise<unknown>;
   onSaved: () => void;
   onClose: () => void;
 }) {
-  const [position, setPosition] = useState("serveur");
-  const [startTime, setStartTime] = useState(service.start_time.slice(0, 5));
-  const [endTime, setEndTime] = useState(service.end_time.slice(0, 5));
+  const [position, setPosition] = useState(slot?.position || "serveur");
+  const [count, setCount] = useState(slot?.positions_needed || 1);
+  const [pause, setPause] = useState(slot?.break_minutes ?? 30);
+  const [skills, setSkills] = useState(slot?.required_skills || []);
+  const [startTime, setStartTime] = useState(slot?.start_time || service.start_time.slice(0, 5));
+  const [endTime, setEndTime] = useState(slot?.end_time || service.end_time.slice(0, 5));
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
 
@@ -756,18 +781,17 @@ function AddShiftPanel({
     try {
       const def = serviceDefinition(service);
       const newSlot: ServiceSlot = {
-        key: crypto.randomUUID(),
+        ...slot,
+        key: slot?.key || crypto.randomUUID(),
         title: POSITION_LABELS[position] ?? position,
         position,
-        positions_needed: 1,
+        positions_needed: count,
         start_time: startTime,
         end_time: endTime,
-        break_minutes: 0,
-        required_skills: [],
+        break_minutes: pause,
+        required_skills: skills,
       };
-      await editService(slug, service.id, {
-        definition: { ...def, slots: [...def.slots, newSlot] },
-      }, token);
+      await onSave({ ...def, slots: slot ? def.slots.map(s => s.key === slot.key ? newSlot : s) : [...def.slots, newSlot] });
       onSaved();
     } catch (e) {
       setErr(String(e));
@@ -777,17 +801,18 @@ function AddShiftPanel({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/30"
+      role="dialog" aria-label={slot ? "Modifier le poste" : "Ajouter un shift"} className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/30"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-xl p-4 w-full max-w-xs space-y-3 shadow-xl"
+        className="bg-white rounded-xl p-4 w-full max-w-xs max-h-[90vh] overflow-y-auto space-y-3 shadow-xl"
         style={{ animation: "cardEnter 0.2s ease-out both" }}
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="font-semibold text-sm text-eb-text">Ajouter un shift</h3>
+        <h3 className="font-semibold text-sm text-eb-text">{slot ? "Modifier le poste" : "Ajouter un shift"}</h3>
+        <p className="text-xs text-eb-secondary">{templateMode ? "Modification de la semaine type." : "Ce service uniquement : la semaine type reste inchangée."}</p>
         {err && <p className="text-xs text-red-500">{err}</p>}
-        <form onSubmit={(e) => void submit(e)} className="space-y-3">
+        <form onKeyDown={(e) => { if (e.key === "Enter" && e.target instanceof HTMLInputElement) { e.preventDefault(); e.target.blur(); } }} onSubmit={(e) => void submit(e)} className="space-y-3">
           <div>
             <label className="block text-[11px] text-eb-muted mb-1">Poste</label>
             <select
@@ -818,6 +843,11 @@ function AddShiftPanel({
               />
             </div>
           </div>
+          <div className="flex gap-2">
+            <label className="text-xs">Effectif<input aria-label="Effectif" className="border rounded w-full p-1" type="number" min={Math.max(1, slot?.fixed_member_ids?.length || 0)} max={50} required value={count} onChange={e => setCount(Number(e.target.value))} /></label>
+            <label className="text-xs">Pause (min)<input aria-label="Pause (min)" className="border rounded w-full p-1" type="number" min={0} max={180} required value={pause} onChange={e => setPause(Number(e.target.value))} /></label>
+          </div>
+          <SkillsPicker slug={slug} token={token} members={members} value={skills} onChange={setSkills} onCreated={() => {}} />
           <div className="flex gap-2 pt-1">
             <button
               type="button"
@@ -831,7 +861,7 @@ function AddShiftPanel({
               disabled={saving}
               className="flex-1 py-1.5 text-xs font-medium bg-eb-primary text-white rounded-lg hover:opacity-90 disabled:opacity-60"
             >
-              {saving ? "Ajout…" : "Ajouter"}
+              {saving ? "Enregistrement…" : slot ? "Enregistrer" : "Ajouter"}
             </button>
           </div>
         </form>
@@ -876,11 +906,11 @@ function MenuItem({
 }
 
 function NotesTasksPanel({
-  service, slug, token, manager, onToggleTask, onSaved, onClose,
+  service, manager, templateMode, onSave, onToggleTask, onSaved, onClose,
 }: {
   service: RestaurantService;
-  slug: string;
-  token: string;
+  templateMode: boolean;
+  onSave: (definition: ServiceDefinition) => Promise<unknown>;
   manager: boolean;
   onToggleTask: (key: string, done: boolean) => void;
   onSaved: () => void;
@@ -924,9 +954,7 @@ function NotesTasksPanel({
     try {
       const { serviceDefinition } = await import("./ServiceEditor");
       const def = serviceDefinition(service);
-      await editService(slug, service.id, {
-        definition: { ...def, notes: notesList.join("\n"), tasks },
-      }, token);
+      await onSave({ ...def, notes: [...notesList, ...(newNote.trim() ? [newNote.trim()] : [])].join("\n"), tasks: [...tasks, ...(newTask.trim() ? [{ key: crypto.randomUUID(), label: newTask.trim(), phase: newPhase, done: false }] : [])] });
       onSaved();
     } catch (e) {
       setErr(String(e));
@@ -936,15 +964,16 @@ function NotesTasksPanel({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/30"
+      role="dialog" aria-label="Notes et tâches" className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/30"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-xl p-4 w-full max-w-sm space-y-4 shadow-xl"
+        className="bg-white rounded-xl p-4 w-full max-w-sm max-h-[85vh] overflow-y-auto space-y-4 shadow-xl"
         style={{ animation: "cardEnter 0.2s ease-out both" }}
         onClick={(e) => e.stopPropagation()}
       >
         <h3 className="font-semibold text-sm text-eb-text">Notes & tâches</h3>
+        <p className="text-xs text-eb-secondary">{templateMode ? "Notes et tâches de la semaine type." : "Ces ajouts et modifications concernent uniquement ce service, pas les semaines suivantes."}</p>
         {err && <p className="text-xs text-red-500">{err}</p>}
 
         {/* Notes individuelles */}
@@ -955,7 +984,7 @@ function NotesTasksPanel({
               {notesList.map((note, i) => (
                 <div key={i} className="group/n flex items-center gap-2">
                   <DragHandle />
-                  <span className="flex-1 text-[12px] text-eb-secondary">{note}</span>
+                  <input aria-label="Texte de la note" disabled={!manager} value={note} onChange={e => setNotesList(prev => prev.map((value, index) => index === i ? e.target.value : value))} className="flex-1 min-w-0 text-xs border-b border-eb-layout" />
                   {manager && (
                     <button
                       type="button"
@@ -998,6 +1027,7 @@ function NotesTasksPanel({
                           <DragHandle />
                           <input
                             type="checkbox"
+                            disabled={templateMode}
                             checked={t.done}
                             onChange={(e) => {
                               onToggleTask(t.key, e.target.checked);
@@ -1005,7 +1035,7 @@ function NotesTasksPanel({
                             }}
                             className="h-3.5 w-3.5 accent-eb-primary rounded shrink-0"
                           />
-                          <span className={`flex-1 text-[12px] ${t.done ? "line-through text-eb-muted" : "text-eb-text"}`}>{t.label}</span>
+                          <input aria-label="Texte de la tâche" disabled={!manager} value={t.label} onChange={e => setTasks(prev => prev.map(task => task.key === t.key ? { ...task, label: e.target.value } : task))} className="flex-1 min-w-0 text-xs border-b border-eb-layout" />
                           {manager && (
                             <button
                               type="button"

@@ -10,8 +10,9 @@ import MemberPlanningEditor from "./MemberPlanningEditor";
 import MyAvailabilityBoard from "./MyAvailabilityBoard";
 import RestoTeamSection from "./RestoTeamSection";
 import ServicePlanner from "./ServicePlanner";
+import RestaurantSettings from "./RestaurantSettings";
 
-type RestoTab = "planning" | "mes-dispos" | "equipe";
+type RestoTab = "planning" | "mes-dispos" | "equipe" | "parametres";
 
 const RESTO_NAV: NavItem[] = [
   { id: "planning", label: "Planning" },
@@ -71,6 +72,7 @@ export default function RestoPage() {
 
   const restoNav: NavItem[] = [
     ...RESTO_NAV,
+    ...(manager ? [{ id: "parametres", label: "Paramètres" }] : []),
     ...(user?.slug
       ? [{ id: "profil-extra", label: "Mon profil", href: `/extras/${user.slug}`, sectionLabel: "Compte" }]
       : []),
@@ -96,6 +98,8 @@ export default function RestoPage() {
           onMembersChanged={setMembers}
         />
       )}
+
+      {tab === "parametres" && manager && <RestaurantSettings restaurant={restaurant} token={token} onSaved={setRestaurant} />}
 
       {tab === "mes-dispos" && (
         <MyAvailabilityBoard slug={restaurant.slug} token={token} />

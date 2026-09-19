@@ -104,3 +104,37 @@ Nouveaux endpoints (préfixe `/api/resto/restaurants/:slug/`) :
 - `access/people/` GET, `access/login/` POST, `access/board/` POST, `access/availability/` POST, `access/logout/` POST. Les trois derniers utilisent `X-Resto-Session`, sans privilège central. Les requêtes de disponibilité agissent toujours sur le membre de la session, jamais sur un identifiant d’employé fourni par le client.
 
 Validation : 18 tests Django couvrant aussi les annulations, l’arrêt de récurrence, les versions datées, les droits des responsables, le catalogue, les sessions PIN, leur révocation et le verrouillage des tentatives. Scénario navigateur isolé : Entrée, tags, choix des habilitations, hebdomadaire, portée des modifications/suppressions, configuration et connexion PIN, disponibilité personnelle et viewport mobile.
+
+## Semaine type et édition ciblée — 19 septembre 2026
+
+Le planning restaurant propose **Planning** (dates réelles) et **Semaine type** (une seule semaine habituelle du lundi au dimanche). Cette dernière utilise les `ServiceTemplate` existants sans migration ni réinitialisation.
+
+### Règle d’ergonomie à conserver
+
+Les cartes sont le point d’entrée de l’édition. Les fenêtres doivent rester courtes et limitées à l’élément choisi : ne pas rouvrir le formulaire complet d’un service depuis son en-tête. Les vues par service et semaine type utilisent le même composant `ServiceDayCard` pour éviter de faire diverger leurs interactions.
+
+- **Ajouter un service** crée directement une carte vide dans le jour choisi. Nom et horaires sont ensuite modifiables dans son en-tête ; les postes, notes et tâches se complètent indépendamment.
+- **Cliquer l’en-tête** édite seulement le nom, les horaires et la fermeture cuisine, dans la carte.
+- **Cliquer les horaires d’un poste** ouvre une petite fenêtre pour ce poste : rôle, horaires, effectif, pause et compétences. « Ajouter un shift » utilise la même fenêtre.
+- **Notes et tâches** dispose de son panneau dédié. Entrée ajoute une note ou tâche à la liste sans enregistrer le service. Le texte des éléments existants peut être modifié. L’avancement des tâches se coche uniquement sur les services datés, jamais sur le modèle.
+- **Menu … ou clic droit** : horaires, ajout de poste, copie, duplication, suppression. « Édition complète » a été retiré de ce menu.
+- **Sélection** : clic sur le fond d’une carte, Maj+clic pour plusieurs modèles, Ctrl/Cmd+C puis un jour ou Ctrl/Cmd+V. Échap efface la sélection et la copie. Les raccourcis sont ignorés pendant la saisie et dans les petites fenêtres.
+- **Glisser une carte sur un jour** la copie, comme dans le planning existant. Les déplacements de notes, tâches et postes utilisent des données de glissement distinctes entre modèles et services datés. La destination est enregistrée avant de retirer la source pour éviter une perte si la destination refuse la modification. Les deux requêtes ne sont pas atomiques : un échec de retrait peut laisser une copie ; l’erreur reste affichée.
+
+Dans la semaine type, l’option « Appliquer aussi mes modifications aux prochains brouillons » est décochée initialement. Une fois cochée, les modifications de modèles effectuées dans cette vue utilisent la propagation existante, avec conservation des ajustements ponctuels et exclusion des publiés. Les affectations sur la carte modèle sont des affectations fixes ; elles sont enregistrées dans `fixed_member_ids`, via l’API des modèles. Les identifiants des postes présentés dans cette vue sont des indices locaux : ils ne doivent jamais être envoyés aux endpoints des postes datés.
+
+Retirer un modèle demande confirmation et conserve les services déjà créés. Les récurrences terminées apparaissent séparément. Le planning daté affiche « Semaine type » ou « Modifié pour cette semaine » ; la comparaison ignore l’avancement des tâches et les métadonnées d’affectation fixe.
+
+### Vérifications
+
+Build TypeScript/Vite réussi. Scénario navigateur isolé `.dev/weekly-template-smoke.cjs` : ajout direct sans formulaire, édition d’en-tête, Entrée sans soumission globale, fenêtre de poste, notes et tâches, conservation des employés fixes, propagation, clic droit/copie, sélection multiple et clavier, création/édition datée, débordement mobile et absence d’erreurs JavaScript.
+
+Le test backend ajouté vérifie le repère d’ajustement : progression des tâches et affectations fixes ne suffisent pas, une note ponctuelle le déclenche. Lors de la vérification backend de cette refonte, 17 tests sur 19 passent. Deux exécutions du test hérité `test_unknown_and_unqualified_not_generated` échouent : le moteur modifié précédemment accepte une disponibilité `unknown`, contrairement à l’attente du test. Cette refonte ne modifie pas cette règle.
+
+### Repérage des ajustements ponctuels
+
+Dans les cartes datées, les notes et tâches ajoutées ou modifiées sont visibles en tête de carte dans un encadré ambré « Ce service uniquement ». Elles ne sont pas répétées dans le volet des éléments habituels. Les postes ajoutés ou ajustés ont le même fond ambré et une mention textuelle. Les petites fenêtres de postes et de notes/tâches rappellent que leur enregistrement ne modifie que cette occurrence.
+
+L'API expose `template_snapshot`, la définition de référence attachée à l'occurrence. `serviceExceptions.ts` compare les clés et le contenu des tâches/postes (sans considérer l'avancement des tâches ou les affectations) ; les notes sont comparées ligne par ligne, en conservant le nombre d'occurrences des lignes identiques. Un service ponctuel sans modèle contient uniquement des éléments propres à sa date. Une ancienne API sans snapshot ne permet pas de classer les éléments d'un service récurrent : on n'invente alors pas de différences. Aucun marquage ponctuel n'apparaît dans la semaine type.
+
+Vérifié : instantané conservé après une modification ponctuelle côté API ; affichage des notes/tâches au-dessus des postes, couleur/mention des postes ajoutés, conservation des notes habituelles sans duplication dans le scénario navigateur.

@@ -1,6 +1,5 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState } from "react";
 import ContactPickerPanel from "../components/contacts/ContactPickerPanel";
-import TimePicker from "../components/TimePicker";
 import type {
   Restaurant,
   RestaurantMember,
@@ -24,8 +23,9 @@ import {
 } from "../api";
 import WeekTimeGrid, { type TimeRange } from "../components/agenda/WeekTimeGrid";
 import HoursGauge from "../components/HoursGauge";
-import ServiceEditor, { weekdays, serviceDefinition } from "./ServiceEditor";
+import ServiceEditor, { serviceDefinition } from "./ServiceEditor";
 import ServiceDayCard from "./ServiceDayCard";
+import WeeklyTemplateBoard from "./WeeklyTemplateBoard";
 function localDay(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
@@ -53,11 +53,14 @@ export default function ServicePlanner({
     service?: RestaurantService;
     template?: ServiceTemplate;
     prefill?: ServiceDefinition;
+    templateMode?: boolean;
+    initialWeekday?: number;
   } | null>(null);
   const [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
     [busy, setBusy] = useState(false),
     [loading, setLoading] = useState(true);
+  const [period, setPeriod] = useState<"weeks" | "month" | "cycle">("weeks");
   const [weeks, setWeeks] = useState(1),
     [month, setMonth] = useState(""),
     [hours, setHours] = useState<MonthlyMemberHours[]>([]);
@@ -66,18 +69,28 @@ export default function ServicePlanner({
   const [mode, setMode] = useState<"services" | "modeles">("services");
   const [view, setView] = useState<"planning" | "agenda">("planning");
   const monday = new Date();
-  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7) + offset * 7);
-  const days = Array.from({ length: weeks * 7 }, (_, i) => {
-    const d = new Date(monday);
-    d.setDate(d.getDate() + i);
-    return localDay(d);
+  const cycleDay = restaurant.planning_rules?.cycle_start_day ?? 1;
+  const endDate = new Date();
+  if (period !== "weeks") {
+    monday.setDate(1); monday.setMonth(monday.getMonth() + offset);
+    if (period === "cycle") monday.setDate(Math.min(cycleDay, new Date(monday.getFullYear(), monday.getMonth()+1, 0).getDate()));
+    endDate.setFullYear(monday.getFullYear(), monday.getMonth()+1, 1);
+    if (period === "cycle") endDate.setDate(Math.min(cycleDay, new Date(endDate.getFullYear(), endDate.getMonth()+1, 0).getDate()));
+    endDate.setDate(endDate.getDate()-1);
+  } else monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7) + offset * 7);
+  const length = period !== "weeks" ? Math.round((Date.UTC(endDate.getFullYear(), endDate.getMonth(), endDate.getDate())-Date.UTC(monday.getFullYear(), monday.getMonth(), monday.getDate()))/86400000)+1 : weeks * 7;
+  const days = Array.from({ length }, (_, i) => {
+    const d = new Date(monday); d.setDate(d.getDate() + i); return localDay(d);
   });
+  const calendarDays: (string | null)[] = period !== "weeks"
+    ? [...Array((monday.getDay() + 6) % 7).fill(null), ...days]
+    : days;
+  while (calendarDays.length % 7) calendarDays.push(null);
   const from = days[0],
     to = days[days.length - 1],
     viewMonth = month || from.slice(0, 7);
   const [deleting, setDeleting] = useState<RestaurantService | null>(null);
   const [deleteScope, setDeleteScope] = useState<"this" | "future">("this");
-  const [pendingDay, setPendingDay] = useState<string | null>(null);
   const [animatingIds, setAnimatingIds] = useState<Set<number>>(new Set());
   const knownIdsRef = useRef<Set<number>>(new Set());
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -108,6 +121,7 @@ export default function ServicePlanner({
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      if (mode !== "services" || editor || busy) return;
       const tag = (e.target as HTMLElement).tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
       if ((e.ctrlKey || e.metaKey) && e.key === "c") {
@@ -128,7 +142,7 @@ export default function ServicePlanner({
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [selectedId, copiedDef, focusedDay, services]);
+  }, [selectedId, copiedDef, focusedDay, services, mode, editor, busy]);
 
   useEffect(() => {
     let alive = true;
@@ -166,7 +180,7 @@ export default function ServicePlanner({
   }, [slug, token, from, to, refresh, manager]);
   useEffect(() => {
     let alive = true;
-    fetchRestaurantHours(slug, viewMonth, token)
+    fetchRestaurantHours(slug, viewMonth, token, period !== "weeks" ? { from, to } : undefined)
       .then((r) => {
         if (alive) setHours(r);
       })
@@ -176,7 +190,7 @@ export default function ServicePlanner({
     return () => {
       alive = false;
     };
-  }, [slug, token, viewMonth, refresh]);
+  }, [slug, token, viewMonth, refresh, period, from, to]);
   async function action(fn: () => Promise<unknown>) {
     setBusy(true);
     setError("");
@@ -197,24 +211,16 @@ export default function ServicePlanner({
       setNotice(`${draftShifts.length} poste(s) publiés.`);
     });
   }
-  async function prepare() {
-    await action(async () => {
-      const end = new Date(to + "T12:00:00");
-      end.setDate(end.getDate() + (weeks - 1) * 7);
-      const result = await prepareServices(slug, from, localDay(end), token);
-      setNotice(
-        `${result.created} service(s) préparé(s). Les services hebdomadaires apparaissent automatiquement en consultant chaque semaine.`,
-      );
-    });
+  async function quickCreate(date: string, definition: ServiceDefinition = { title: "Service", start_time: "12:00", kitchen_end_time: "14:30", end_time: "15:30", notes: "", tasks: [], slots: [] }) {
+    if (busy) return;
+    await action(() => createService(slug, { date, definition: { ...definition, tasks: definition.tasks.map(t => ({ ...t, done: false })) } }, token));
   }
   async function generate() {
     await action(async () => {
-      const end = new Date(to + "T12:00:00");
-      end.setDate(end.getDate() + (weeks - 1) * 7);
       const result = await generateRestaurantPlanning(
         slug,
         from,
-        localDay(end),
+        to,
         token,
       );
       const missing = result.warnings.reduce((sum, w) => sum + w.missing, 0);
@@ -236,7 +242,7 @@ export default function ServicePlanner({
               className={`px-4 py-1.5 rounded text-sm font-medium transition-colors ${mode === m ? "bg-white shadow-sm text-eb-text" : "text-eb-secondary hover:text-eb-text"}`}
               onClick={() => { setMode(m); setSelected(null); setNotice(""); }}
             >
-              {m === "services" ? "Services" : "Modèles"}
+              {m === "services" ? "Planning" : "Semaine type"}
             </button>
           ))}
         </div>
@@ -256,7 +262,9 @@ export default function ServicePlanner({
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <label className="text-sm">
-                <select className="border rounded p-2" value={weeks} onChange={(e) => setWeeks(Number(e.target.value))}>
+                <select aria-label="Période du planning" className="border rounded p-2" value={period !== "weeks" ? period : String(weeks)} onChange={(e) => { setOffset(0); setSelected(null); setFocusedDay(null); setMonth(""); if (e.target.value === "month" || e.target.value === "cycle") setPeriod(e.target.value); else { setPeriod("weeks"); setWeeks(Number(e.target.value)); } }}>
+                  <option value="month">Mois entier</option>
+                  <option value="cycle">Cycle mensuel (à partir du {cycleDay})</option>
                   <option value={1}>1 semaine</option>
                   <option value={2}>2 semaines</option>
                   <option value={4}>4 semaines</option>
@@ -294,7 +302,7 @@ export default function ServicePlanner({
                       disabled={busy}
                       onClick={() => void publishAllDrafts()}
                     >
-                      Publier la semaine
+                      Publier la période
                     </button>
                   )}
                   <div className="relative" ref={pickerRef}>
@@ -316,7 +324,7 @@ export default function ServicePlanner({
                   </div>
                   <button
                     className="bg-eb-primary text-white px-4 py-2 rounded-lg text-sm"
-                    onClick={() => setEditor({ initial: { date: from, start_time: "12:00", end_time: "15:30" } })}
+                    onClick={() => void quickCreate(focusedDay || from)}
                   >
                     + Nouveau service
                   </button>
@@ -340,9 +348,10 @@ export default function ServicePlanner({
             )}
 
           {/* ── Vue Agenda (WeekTimeGrid) ── */}
-          {view === "agenda" && (
+          {view === "agenda" && Array.from({ length: Math.ceil(days.length / 7) }, (_, weekIndex) => (
             <WeekTimeGrid
-              days={days}
+              key={weekIndex}
+              days={days.slice(weekIndex * 7, weekIndex * 7 + 7)}
               editable={manager && !busy}
               events={services
                 .filter((s) => !filter || s.shifts.some((p) => p.assignments.some((a) => a.member_id === Number(filter) && a.status !== "declined")))
@@ -358,7 +367,7 @@ export default function ServicePlanner({
               onSelect={(initial) => setEditor({ initial })}
               onOpen={setSelected}
             />
-          )}
+          ))}
 
           {/* Active service detail (agenda view) */}
           {view === "agenda" && active && (
@@ -418,7 +427,7 @@ export default function ServicePlanner({
                     slug={slug}
                     hideTasks
                     onEdit={() => setEditor({ service: active })}
-                    onDuplicate={(prefill) => setEditor({ prefill })}
+                    onDuplicate={(prefill) => void quickCreate(active.date, prefill)}
                     onDelete={() => { setDeleting(active); setDeleteScope("this"); }}
                     onReload={reload}
                   />
@@ -541,7 +550,7 @@ export default function ServicePlanner({
                         token={token}
                         slug={slug}
                         onEdit={() => setEditor({ service })}
-                        onDuplicate={(prefill) => setEditor({ prefill })}
+                        onDuplicate={(prefill) => void quickCreate(service.date, prefill)}
                         onDelete={() => { setDeleting(service); setDeleteScope("this"); }}
                         onReload={reload}
                         onCopy={() => { setCopiedDef(serviceDefinition(service)); setCopiedTitle(service.title); setSelectedId(service.id); }}
@@ -550,29 +559,18 @@ export default function ServicePlanner({
                     </div>
                   ))}
 
-                  {/* Nouvelle card inline */}
-                  {pendingDay === day && (
-                    <NewServiceInlineCard
-                      day={day}
-                      slug={slug}
-                      token={token}
-                      onSaved={() => { setPendingDay(null); reload(); }}
-                      onCancel={() => setPendingDay(null)}
-                    />
-                  )}
-
                   {/* Empty day */}
-                  {dayServices.length === 0 && pendingDay !== day && !manager && (
+                  {dayServices.length === 0 && !manager && (
                     <div className="rounded-lg border border-dashed py-6 text-center text-xs text-eb-muted">
                       Aucun service
                     </div>
                   )}
 
                   {/* Add service */}
-                  {manager && pendingDay !== day && (
+                  {manager && (
                     <button
                       className="w-full rounded-lg border border-dashed py-2 text-xs text-eb-secondary hover:border-eb-primary hover:text-eb-primary transition-colors"
-                      onClick={() => setPendingDay(day)}
+                      onClick={() => void quickCreate(day)}
                     >
                       + Service
                     </button>
@@ -583,27 +581,13 @@ export default function ServicePlanner({
 
             return (
               <div className="overflow-x-auto -mx-1 px-1 pb-2">
-                {weeks > 1 ? (
-                  <div className="space-y-5">
-                    {Array.from({ length: weeks }, (_, wi) => {
-                      const weekDays = days.slice(wi * 7, wi * 7 + 7);
-                      return (
-                        <div key={wi}>
-                          <p className="text-xs font-medium text-eb-muted mb-2 px-0.5 uppercase tracking-wide">
-                            Semaine du {weekDays[0]}
-                          </p>
-                          <div className="flex gap-3" style={{ minWidth: `${7 * 210}px` }}>
-                            {weekDays.map(renderCol)}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="flex gap-3" style={{ minWidth: `${7 * 210}px` }}>
-                    {days.map(renderCol)}
-                  </div>
-                )}
+                <div className="space-y-5">
+                  {Array.from({ length: calendarDays.length / 7 }, (_, wi) => (
+                    <div key={wi} className="flex gap-3" style={{ minWidth: `${7 * 210}px` }}>
+                      {calendarDays.slice(wi * 7, wi * 7 + 7).map((day, i) => day ? renderCol(day) : <div key={`empty-${i}`} aria-hidden="true" className="flex-1 min-w-[200px]" />)}
+                    </div>
+                  ))}
+                </div>
               </div>
             );
           })()}
@@ -612,11 +596,11 @@ export default function ServicePlanner({
 
           <section className="bg-white rounded-xl border p-4 space-y-3">
             <div className="flex justify-between gap-3">
-              <h2 className="font-medium">Heures prévues dans le mois</h2>
-              <input aria-label="Mois des heures" type="month" value={viewMonth} onChange={(e) => setMonth(e.target.value)} />
+              <h2 className="font-medium">{period === "weeks" ? "Heures prévues dans le mois" : `Heures prévues du ${from} au ${to}`}</h2>
+              {period === "weeks" && <input aria-label="Mois des heures" type="month" value={viewMonth} onChange={(e) => setMonth(e.target.value)} />}
             </div>
             <p className="text-xs text-eb-secondary">
-              Foncé : publié · clair : brouillon. Calcul sur les horaires des postes, pauses déduites. Objectif : contrat hebdomadaire × jours du mois ÷ 7.
+              Foncé : publié · clair : brouillon. Calcul sur les horaires des postes, pauses déduites. Objectif : contrat hebdomadaire × jours de la période ÷ 7.
             </p>
             {hours.filter((r) => !filter || r.member_id === Number(filter)).map((r) => (
               <HoursGauge key={r.member_id} name={r.name} published={r.published_minutes} draft={r.draft_minutes} target={r.target_minutes} />
@@ -628,89 +612,20 @@ export default function ServicePlanner({
       {/* ── MODE MODÈLES ── */}
       {mode === "modeles" && manager && (
         <>
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h2 className="font-semibold text-eb-text">Modèles de service</h2>
-              <p className="text-sm text-eb-secondary mt-0.5">
-                Définissez les besoins habituels par jour de la semaine. Préparez ensuite les semaines à venir en un clic.
-              </p>
-            </div>
-            <button
-              className="bg-eb-primary text-white px-4 py-2 rounded-lg text-sm shrink-0"
-              onClick={() => setEditor({ initial: { date: from, start_time: "12:00", end_time: "15:30" } })}
-            >
-              + Créer un modèle
-            </button>
-          </div>
-
           {error && <p role="alert" className="text-red-700">{error}</p>}
           {notice && <p role="status" className="text-sm">{notice}</p>}
-
-          {templates.length === 0 ? (
-            <div className="bg-white border rounded-xl p-10 text-center space-y-2">
-              <p className="text-eb-secondary text-sm">Aucun modèle pour l’instant.</p>
-              <p className="text-xs text-eb-muted">
-                Cliquez sur "+ Créer un modèle", définissez les postes et tâches, puis cochez "Service hebdomadaire".
-              </p>
-            </div>
-          ) : (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {templates.map((t) => (
-                <div key={t.id} className="bg-white border rounded-xl p-4 space-y-3">
-                  <div>
-                    <p className="text-xs font-medium text-eb-primary uppercase tracking-wide">{weekdays[t.weekday]}</p>
-                    <h3 className="font-semibold text-eb-text mt-0.5">{t.name}</h3>
-                    <p className="text-sm text-eb-secondary">{t.definition.start_time} – {t.definition.end_time}</p>
-                  </div>
-                  <div className="flex gap-2 flex-wrap">
-                    <span className="bg-eb-page border rounded-full px-2.5 py-0.5 text-xs">
-                      {t.definition.slots.reduce((n, s) => n + s.positions_needed, 0)} postes
-                    </span>
-                    <span className="bg-eb-page border rounded-full px-2.5 py-0.5 text-xs">
-                      {t.definition.tasks.length} tâches
-                    </span>
-                  </div>
-                  <div className="flex gap-3 text-sm border-t pt-2">
-                    <button className="underline text-eb-primary" onClick={() => setEditor({ template: t })}>Modifier</button>
-                    <button
-                      disabled={busy}
-                      className="text-red-600"
-                      onClick={() => {
-                        if (confirm("Supprimer ce modèle ? Les services déjà créés seront conservés."))
-                          void action(() => deleteServiceTemplate(slug, t.id, token));
-                      }}
-                    >
-                      Supprimer
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div className="bg-white border rounded-xl p-4 space-y-3">
-            <h3 className="font-medium">Préparer les services</h3>
-            <p className="text-sm text-eb-secondary">
-              Génère les services datés à partir des modèles. Les services déjà créés ne sont pas dupliqués.
-            </p>
-            <div className="flex flex-wrap gap-3 items-center">
-              <label className="text-sm">
-                Période{" "}
-                <select className="border rounded p-2" value={weeks} onChange={(e) => setWeeks(Number(e.target.value))}>
-                  {[1, 2, 3, 4, 5, 6].map((n) => (
-                    <option key={n} value={n}>{n} semaine(s)</option>
-                  ))}
-                </select>
-              </label>
-              <button
-                className="border rounded px-3 py-2 text-sm"
-                disabled={busy || !templates.length}
-                onClick={() => void prepare()}
-              >
-                Préparer depuis les modèles
-              </button>
-            </div>
-          </div>
+          <WeeklyTemplateBoard
+            templates={templates}
+            members={members}
+            busy={busy || loading}
+            slug={slug}
+            token={token}
+            onReload={reload}
+            onDelete={(template) => {
+              if (confirm(`Retirer « ${template.name} » de la semaine type ? Les services déjà créés seront conservés.`))
+                void action(() => deleteServiceTemplate(slug, template.id, token));
+            }}
+          />
         </>
       )}
       {deleting && (
@@ -793,7 +708,7 @@ export default function ServicePlanner({
       )}
 
       {/* Barre d'actions multi-sélection */}
-      {selectedIds.size > 0 && manager && (
+      {mode === "services" && selectedIds.size > 0 && manager && (
         <div
           className="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-eb-panel text-white text-[12px] rounded-xl px-4 py-2.5 shadow-xl"
           style={{ animation: "cardEnter 0.2s ease-out both" }}
@@ -824,7 +739,7 @@ export default function ServicePlanner({
       )}
 
       {/* Toast clipboard */}
-      {copiedDef && !(selectedIds.size > 0) && (
+      {mode === "services" && copiedDef && !(selectedIds.size > 0) && (
         <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-eb-panel text-white text-[12px] rounded-xl px-4 py-2.5 shadow-xl"
           style={{ animation: "cardEnter 0.2s ease-out both" }}
         >
@@ -833,184 +748,6 @@ export default function ServicePlanner({
           <button onClick={() => { setCopiedDef(null); setSelectedId(null); }} className="text-white/50 hover:text-white ml-1">×</button>
         </div>
       )}
-    </div>
-  );
-}
-
-const NEW_POSITIONS = [
-  { value: "serveur",       label: "Serveur·se" },
-  { value: "chef_de_rang",  label: "Chef de rang" },
-  { value: "barman",        label: "Barman / Barmaid" },
-  { value: "sommelier",     label: "Sommelier·e" },
-  { value: "hote_accueil",  label: "Hôte·sse d'accueil" },
-  { value: "chef_cuisine",  label: "Chef de cuisine" },
-  { value: "cuisinier",     label: "Cuisinier·e" },
-  { value: "plongeur",      label: "Plongeur·se" },
-  { value: "manager",       label: "Manager" },
-  { value: "autre",         label: "Autre" },
-];
-
-interface DraftShift {
-  id: string;
-  position: string;
-  start_time: string;
-  end_time: string;
-}
-
-function NewServiceInlineCard({
-  day, slug, token, onSaved, onCancel,
-}: {
-  day: string; slug: string; token: string; onSaved: () => void; onCancel: () => void;
-}) {
-  const [title, setTitle] = useState("Service");
-  const [startTime, setStartTime] = useState("12:00");
-  const [endTime, setEndTime] = useState("15:30");
-  const [shifts, setShifts] = useState<DraftShift[]>([]);
-  const [saving, setSaving] = useState(false);
-  const [err, setErr] = useState("");
-
-  function addShift() {
-    setShifts((prev) => [...prev, { id: crypto.randomUUID(), position: "serveur", start_time: startTime, end_time: endTime }]);
-  }
-
-  function updateShift(id: string, patch: Partial<DraftShift>) {
-    setShifts((prev) => prev.map((s) => s.id === id ? { ...s, ...patch } : s));
-  }
-
-  function removeShift(id: string) {
-    setShifts((prev) => prev.filter((s) => s.id !== id));
-  }
-
-  async function submit(e: FormEvent) {
-    e.preventDefault();
-    setSaving(true);
-    setErr("");
-    try {
-      const slots = shifts.map((s) => ({
-        key: s.id,
-        title: NEW_POSITIONS.find((p) => p.value === s.position)?.label ?? s.position,
-        position: s.position,
-        positions_needed: 1,
-        start_time: s.start_time,
-        end_time: s.end_time,
-        break_minutes: 0,
-        required_skills: [] as string[],
-      }));
-      await createService(slug, {
-        date: day,
-        definition: {
-          title: title.trim() || "Service",
-          start_time: startTime,
-          kitchen_end_time: endTime,
-          end_time: endTime,
-          notes: "",
-          tasks: [],
-          slots,
-        },
-      }, token);
-      onSaved();
-    } catch (e) {
-      setErr(String(e));
-      setSaving(false);
-    }
-  }
-
-  return (
-    <div
-      className="bg-white border border-eb-primary/30 rounded-xl p-3 text-sm"
-      style={{ animation: "cardEnter 0.2s ease-out both" }}
-    >
-      {err && <p className="text-xs text-red-500 mb-2">{err}</p>}
-      <form onSubmit={(e) => void submit(e)} className="space-y-3">
-        {/* Titre */}
-        <input
-          autoFocus
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="w-full font-semibold bg-transparent border-b border-eb-layout focus:outline-none focus:border-eb-primary pb-0.5 text-sm text-eb-text"
-          placeholder="Nom du service"
-        />
-
-        {/* Horaires du service */}
-        <div className="flex items-center gap-2">
-          <TimePicker
-            value={startTime}
-            onChange={(v) => { setStartTime(v); setShifts((prev) => prev.map((s) => ({ ...s, start_time: v }))); }}
-            className="flex-1 text-xs rounded border border-eb-layout px-2 py-1.5 flex items-center gap-0.5 bg-white text-eb-text"
-          />
-          <span className="text-eb-muted text-xs shrink-0">–</span>
-          <TimePicker
-            value={endTime}
-            onChange={(v) => { setEndTime(v); setShifts((prev) => prev.map((s) => ({ ...s, end_time: v }))); }}
-            className="flex-1 text-xs rounded border border-eb-layout px-2 py-1.5 flex items-center gap-0.5 bg-white text-eb-text"
-          />
-        </div>
-
-        {/* Shifts définis */}
-        {shifts.length > 0 && (
-          <div className="space-y-2 border-t border-eb-layout pt-2">
-            {shifts.map((s) => (
-              <div key={s.id} className="flex items-center gap-1.5">
-                <select
-                  value={s.position}
-                  onChange={(e) => updateShift(s.id, { position: e.target.value })}
-                  className="flex-1 text-xs rounded border border-eb-layout px-1.5 py-1 bg-white focus:outline-none focus:border-eb-primary min-w-0"
-                >
-                  {NEW_POSITIONS.map((p) => (
-                    <option key={p.value} value={p.value}>{p.label}</option>
-                  ))}
-                </select>
-                <TimePicker
-                  value={s.start_time}
-                  onChange={(v) => updateShift(s.id, { start_time: v })}
-                  className="w-16 text-[11px] rounded border border-eb-layout px-1 py-1 flex items-center gap-0 bg-white text-eb-text shrink-0"
-                />
-                <span className="text-eb-muted text-[10px] shrink-0">–</span>
-                <TimePicker
-                  value={s.end_time}
-                  onChange={(v) => updateShift(s.id, { end_time: v })}
-                  className="w-16 text-[11px] rounded border border-eb-layout px-1 py-1 flex items-center gap-0 bg-white text-eb-text shrink-0"
-                />
-                <button
-                  type="button"
-                  onClick={() => removeShift(s.id)}
-                  className="text-eb-muted hover:text-red-500 text-sm shrink-0 leading-none"
-                >
-                  ×
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Ajouter un shift */}
-        <button
-          type="button"
-          onClick={addShift}
-          className="text-[12px] text-eb-secondary hover:text-eb-primary transition-colors flex items-center gap-1"
-        >
-          <span className="font-medium">+</span>
-          <span>Ajouter un shift</span>
-        </button>
-
-        {/* Actions */}
-        <div className="flex gap-2 border-t border-eb-layout pt-2">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="flex-1 py-1.5 text-xs text-eb-secondary border border-eb-layout rounded-lg hover:bg-eb-page transition-colors"
-          >
-            Annuler
-          </button>
-          <button
-            type="submit"
-            disabled={saving}
-            className="flex-1 py-1.5 text-xs font-medium bg-eb-primary text-white rounded-lg hover:opacity-90 disabled:opacity-60"
-          >
-            {saving ? "Création…" : "Créer"}
-          </button>
-        </div>
-      </form>
     </div>
   );
 }

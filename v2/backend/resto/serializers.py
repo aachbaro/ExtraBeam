@@ -149,7 +149,21 @@ class RestaurantCreateSerializer(serializers.ModelSerializer):
 class RestaurantUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Restaurant
-        fields = ["name", "description", "address", "city", "cuisine_type", "logo_url", "cover_url"]
+        fields = ["name", "description", "address", "city", "cuisine_type", "logo_url", "cover_url", "planning_rules"]
+
+
+    def validate_planning_rules(self, value):
+        class Rules(serializers.Serializer):
+            cycle_start_day = serializers.IntegerField(min_value=1, max_value=31, required=False)
+            max_daily_hours = serializers.FloatField(min_value=1, max_value=24, required=False)
+            max_weekly_hours = serializers.FloatField(min_value=1, max_value=168, required=False)
+            min_rest_hours = serializers.FloatField(min_value=0, max_value=48, required=False)
+            max_days = serializers.IntegerField(min_value=1, max_value=7, required=False)
+        if not isinstance(value, dict):
+            raise serializers.ValidationError("Les règles doivent être un objet.")
+        validator = Rules(data=value)
+        validator.is_valid(raise_exception=True)
+        return {**(self.instance.planning_rules if self.instance else {}), **validator.validated_data}
 
 
 class MemberPlanningValidation(serializers.ModelSerializer):

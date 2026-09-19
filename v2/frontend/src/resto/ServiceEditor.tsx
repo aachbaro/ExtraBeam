@@ -60,6 +60,8 @@ export default function ServiceEditor({
   service,
   template,
   prefill,
+  templateMode = false,
+  initialWeekday,
   templates,
   members,
   onSkillsChanged,
@@ -72,6 +74,8 @@ export default function ServiceEditor({
   service?: RestaurantService;
   template?: ServiceTemplate;
   prefill?: ServiceDefinition;
+  templateMode?: boolean;
+  initialWeekday?: number;
   templates: ServiceTemplate[];
   members: RestaurantMember[];
   onSkillsChanged: () => void;
@@ -102,7 +106,7 @@ export default function ServiceEditor({
   const [recurring, setRecurring] = useState(!!service?.template_id);
   const [scope, setScope] = useState<"this" | "future">("this");
   const [weekday, setWeekday] = useState(
-    template?.weekday ?? (new Date(day + "T12:00:00").getDay() + 6) % 7,
+    initialWeekday ?? template?.weekday ?? (new Date(day + "T12:00:00").getDay() + 6) % 7,
   );
 
   const [applyFuture, setApplyFuture] = useState(false);
@@ -126,10 +130,10 @@ export default function ServiceEditor({
     setBusy(true);
     setError("");
     try {
-      if (template)
+      if (template || templateMode)
         await saveServiceTemplate(
           slug,
-          template.id,
+          template?.id ?? null,
           { definition, weekday, apply_future: applyFuture },
           token,
         );
@@ -179,7 +183,9 @@ export default function ServiceEditor({
         <div className="flex justify-between">
           <h2 id="service-editor-title" className="font-semibold">
             {template
-              ? "Modifier le modèle"
+              ? "Modifier la semaine type"
+              : templateMode
+                ? "Ajouter un service à la semaine type"
               : service
                 ? "Modifier ce service"
                 : prefill
@@ -190,7 +196,7 @@ export default function ServiceEditor({
             Fermer
           </button>
         </div>
-        {!service && !template && (
+        {!service && !template && !templateMode && (
           <label className="block">
             Partir d’un modèle
             <select
@@ -225,7 +231,7 @@ export default function ServiceEditor({
               onChange={(e) => field("title", e.target.value)}
             />
           </label>
-          {template ? (
+          {template || templateMode ? (
             <label>
               Jour habituel
               <select
@@ -481,7 +487,7 @@ export default function ServiceEditor({
             onChange={(e) => field("notes", e.target.value)}
           />
         </label>
-        {!template && (
+        {!template && !templateMode && (
           <section className="border-t pt-3 space-y-3">
             <label className="flex gap-2">
               <input

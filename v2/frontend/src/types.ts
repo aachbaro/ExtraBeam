@@ -387,6 +387,7 @@ export type AvailabilityStatus = "available" | "unavailable" | "maybe";
 export type AssignmentStatus = "proposed" | "confirmed" | "declined";
 
 export interface Restaurant {
+  planning_rules?: Record<string, number>;
   id: number;
   slug: string;
   name: string;
@@ -466,7 +467,7 @@ export interface RestaurantShift {
   available_count: number;
 }
 export type ServiceTask = { key: string; label: string; phase: 'opening' | 'during' | 'closing'; done: boolean };
-export type ServiceSlot = { key: string; title: string; position: string; positions_needed: number; start_time: string; end_time: string; break_minutes: number; required_skills: string[] };
+export type ServiceSlot = { key: string; title: string; position: string; positions_needed: number; start_time: string; end_time: string; break_minutes: number; required_skills: string[]; fixed_member_ids?: number[] };
 export type ServiceDefinition = { title: string; start_time: string; kitchen_end_time: string; end_time: string; notes: string; tasks: ServiceTask[]; slots: ServiceSlot[] };
-export type ServiceTemplate = { id: number; name: string; weekday: number; definition: ServiceDefinition };
-export type RestaurantService = ServiceDefinition & { id: number; date: string; template_id: number | null; shifts: RestaurantShift[]; customized: boolean };
+export type ServiceTemplate = { id: number; name: string; weekday: number; definition: ServiceDefinition; starts_on?: string | null; ends_on?: string | null };
+export type RestaurantService = ServiceDefinition & { id: number; date: string; template_id: number | null; template_snapshot?: ServiceDefinition | null; shifts: RestaurantShift[]; customized: boolean };

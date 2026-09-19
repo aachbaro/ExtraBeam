@@ -78,6 +78,28 @@ class PlanningTests(APITestCase):
         self.assertEqual(self.client.post(self.base+"generate/",{"from":"2026-09-07","to":"2026-09-13"}).status_code,403)
 
 class ServiceTests(PlanningTests):
+    def test_week_template_badge_ignores_progress_and_fixed_assignments(self):
+        definition = self.definition()
+        definition['slots'][0]['fixed_member_ids'] = [self.member.id]
+        template = self.client.post(self.base+'service-templates/',
+            {'weekday': 2, 'definition': definition}, format='json')
+        self.assertEqual(template.status_code, 201, template.data)
+        response = self.client.post(self.base+'services/',
+            {'date': '2027-09-01', 'template_id': template.data['id']}, format='json')
+        self.assertEqual(response.status_code, 201, response.data)
+        row = response.data[0]
+        self.assertFalse(row['customized'])
+        url = f"{self.base}services/{row['id']}/"
+        completed = self.client.patch(url, {'task_key': 'opening', 'done': True}, format='json')
+        self.assertEqual(completed.status_code, 200, completed.data)
+        self.assertFalse(completed.data['customized'])
+        definition['notes'] = 'Livraison exceptionnelle'
+        changed = self.client.patch(url, {'definition': definition}, format='json')
+        self.assertEqual(changed.status_code, 200, changed.data)
+        self.assertTrue(changed.data['customized'])
+        self.assertEqual(changed.data['template_snapshot']['notes'], '')
+        self.assertEqual(changed.data['notes'], 'Livraison exceptionnelle')
+
     def definition(self):
         return dict(title='Mercredi midi',start_time='12:00',kitchen_end_time='14:30',end_time='15:30',notes='',tasks=[dict(key='opening',label='Installer la salle',phase='opening',done=False)],slots=[dict(key='salle',position='serveur',title='',positions_needed=3,start_time='11:00',end_time='15:30',break_minutes=30,required_skills=[]),dict(key='cuisine',position='cuisinier',title='',positions_needed=1,start_time='09:00',end_time='15:30',break_minutes=30,required_skills=[])])
 

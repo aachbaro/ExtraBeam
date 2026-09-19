@@ -80,12 +80,23 @@ def current_definition(service):
     }
 
 
+def service_structure(data):
+    """Compare service needs, ignoring task progress and fixed-assignment metadata."""
+    result = deepcopy(data)
+    for task in result.get('tasks', []):
+        task.pop('done', None)
+    for slot in result.get('slots', []):
+        slot.pop('fixed_member_ids', None)
+    return result
+
+
 def serialize_service(service):
     slots = list(service.slots.all().order_by('id'))
     return dict(id=service.id, date=service.date.isoformat(), template_id=service.template_id,
+                template_snapshot=deepcopy(service.template_snapshot) if service.template_id else None,
                 **current_definition(service),
                 shifts=RestaurantShiftSerializer(slots,many=True).data,
-                customized=bool(service.template_id and current_definition(service) != service.template_snapshot))
+                customized=bool(service.template_id and service_structure(current_definition(service)) != service_structure(service.template_snapshot)))
 
 
 def definition_on(template,day):
