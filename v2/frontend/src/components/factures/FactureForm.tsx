@@ -299,6 +299,15 @@ export default function FactureForm({
         }
       : buildInitialForm(initial, profile, suggestedNumero),
   );
+  const [showRateDetail, setShowRateDetail] = useState(
+    !!(initial?.hours || initial?.rate),
+  );
+  function toggleRateDetail() {
+    setShowRateDetail((v) => {
+      if (v) setForm((prev) => ({ ...prev, hours: "", rate: "" }));
+      return !v;
+    });
+  }
   const [prestation, setPrestation] = useState({
     date: todayString(),
     start: "",
@@ -931,37 +940,49 @@ export default function FactureForm({
             <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-eb-muted">
               Montants
             </p>
-            <p className="mt-1 text-[12px] text-eb-muted">
-              Tu peux renseigner heures + taux ou saisir directement le montant
-              HT.
-            </p>
-            <div className="mt-3 grid gap-3 md:grid-cols-5">
-              <div>
-                <label className="mb-1 block text-[12px] font-medium text-eb-secondary">
-                  Quantite / heures
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.25"
-                  className="eb-input"
-                  value={form.hours}
-                  onChange={(event) => setHours(event.target.value)}
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-[12px] font-medium text-eb-secondary">
-                  Taux HT (€)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  className="eb-input"
-                  value={form.rate}
-                  onChange={(event) => setRate(event.target.value)}
-                />
-              </div>
+            <div className="mt-1 flex items-center justify-between">
+              <p className="text-[12px] text-eb-muted">
+                {showRateDetail ? "Qté × taux → montant HT calculé automatiquement." : "Prix forfaitaire, sans détail du taux horaire."}
+              </p>
+              <button
+                type="button"
+                onClick={toggleRateDetail}
+                className="text-[12px] text-eb-secondary underline hover:text-eb-text transition-colors shrink-0 ml-3"
+              >
+                {showRateDetail ? "Masquer le détail" : "Ajouter heures × taux"}
+              </button>
+            </div>
+            <div className={`mt-3 grid gap-3 ${showRateDetail ? "md:grid-cols-5" : "md:grid-cols-3"}`}>
+              {showRateDetail && (
+                <>
+                  <div>
+                    <label className="mb-1 block text-[12px] font-medium text-eb-secondary">
+                      Quantite / heures
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.25"
+                      className="eb-input"
+                      value={form.hours}
+                      onChange={(event) => setHours(event.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-[12px] font-medium text-eb-secondary">
+                      Taux HT (€)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      className="eb-input"
+                      value={form.rate}
+                      onChange={(event) => setRate(event.target.value)}
+                    />
+                  </div>
+                </>
+              )}
               <div>
                 <label className="mb-1 block text-[12px] font-medium text-eb-secondary">
                   HT (€)

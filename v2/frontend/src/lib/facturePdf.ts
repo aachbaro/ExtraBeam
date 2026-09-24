@@ -65,6 +65,7 @@ export function downloadFacturePdf(
   const amountTtc = parseAmount(facture.montant_ttc);
   const vatAmount =
     amountHt === null ? null : Number((amountHt * vatRate) / 100);
+  const hasRateDetail = !!(facture.hours?.trim() || facture.rate?.trim());
   const quantityLabel = facture.hours?.trim() || "1";
   const unitPrice = parseAmount(facture.rate) ?? amountHt;
   const description =
@@ -133,30 +134,38 @@ export function downloadFacturePdf(
   const clientEndY = renderLines(doc, clientLines, 110, 63, 75);
   const tableStartY = Math.max(sellerEndY, clientEndY) + 10;
 
-  autoTable(doc, {
-    startY: tableStartY,
-    head: [["Description", "Qté", "PU HT", "Total HT"]],
-    body: [[description, quantityLabel, formatMoney(unitPrice), formatMoney(amountHt)]],
-    theme: "grid",
-    headStyles: {
-      fillColor: [28, 78, 128],
-      textColor: 255,
-      halign: "center",
-    },
-    styles: {
-      font: "helvetica",
-      fontSize: 10,
-      cellPadding: 3,
-      lineColor: [220, 220, 220],
-    },
-    columnStyles: {
-      0: { cellWidth: 95 },
-      1: { halign: "right", cellWidth: 20 },
-      2: { halign: "right", cellWidth: 30 },
-      3: { halign: "right", cellWidth: 30 },
-    },
-    alternateRowStyles: { fillColor: [248, 248, 248] },
-  });
+  const sharedTableStyles = {
+    theme: "grid" as const,
+    headStyles: { fillColor: [28, 78, 128] as [number, number, number], textColor: 255, halign: "center" as const },
+    styles: { font: "helvetica", fontSize: 10, cellPadding: 3, lineColor: [220, 220, 220] as [number, number, number] },
+    alternateRowStyles: { fillColor: [248, 248, 248] as [number, number, number] },
+  };
+
+  if (hasRateDetail) {
+    autoTable(doc, {
+      startY: tableStartY,
+      head: [["Description", "Qté", "PU HT", "Total HT"]],
+      body: [[description, quantityLabel, formatMoney(unitPrice), formatMoney(amountHt)]],
+      ...sharedTableStyles,
+      columnStyles: {
+        0: { cellWidth: 95 },
+        1: { halign: "right", cellWidth: 20 },
+        2: { halign: "right", cellWidth: 30 },
+        3: { halign: "right", cellWidth: 30 },
+      },
+    });
+  } else {
+    autoTable(doc, {
+      startY: tableStartY,
+      head: [["Description", "Montant HT"]],
+      body: [[description, formatMoney(amountHt)]],
+      ...sharedTableStyles,
+      columnStyles: {
+        0: { cellWidth: 145 },
+        1: { halign: "right", cellWidth: 30 },
+      },
+    });
+  }
 
   const finalY = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? tableStartY;
   const summaryY = finalY + 10;
