@@ -8,6 +8,7 @@ Depends: settings.AUTH_USER_MODEL (Django User standard)
 """
 
 import secrets
+import uuid
 
 from django.conf import settings
 from django.db import models
@@ -79,6 +80,8 @@ class AccountProfile(models.Model):
     city = models.CharField(max_length=120, blank=True)
     country = models.CharField(max_length=120, blank=True, default="France")
     siret = models.CharField(max_length=20, blank=True)
+    legal_name = models.CharField(max_length=200, blank=True)
+    siren = models.CharField(max_length=9, blank=True)
     legal_status = models.CharField(
         max_length=120, blank=True, default="micro-entreprise"
     )
@@ -446,6 +449,9 @@ class Facture(models.Model):
     )
 
     numero = models.CharField(max_length=40)
+    currency = models.CharField(max_length=3, default="EUR")
+    finalized_at = models.DateTimeField(null=True, blank=True)
+    issuer_snapshot = models.JSONField(default=dict, blank=True)
     date_emission = models.DateField(default=timezone.localdate)
     status = models.CharField(
         max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING_PAYMENT
@@ -491,6 +497,102 @@ class Facture(models.Model):
 
     def __str__(self) -> str:
         return f"{self.numero} — {self.profile}"
+
+
+class InvoiceLine(models.Model):
+    invoice = models.ForeignKey(Facture, on_delete=models.CASCADE, related_name="lines")
+    description = models.TextField()
+    quantity = models.DecimalField(max_digits=12, decimal_places=4)
+    unit = models.CharField(max_length=3, default="HUR")
+    unit_price_excl_tax = models.DecimalField(max_digits=12, decimal_places=4)
+    tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    total_excl_tax = models.DecimalField(max_digits=12, decimal_places=2)
+
+    class Meta:
+        ordering = ["id"]
+
+
+class ElectronicInvoiceAccount(models.Model):
+    owner = models.OneToOneField(AccountProfile, on_delete=models.CASCADE, related_name="electronic_account")
+    provider = models.CharField(max_length=30, default="superpdp")
+    provider_account_id = models.CharField(max_length=30, blank=True)
+    connection_status = models.CharField(max_length=30, default="disconnected")
+    encrypted_tokens = models.TextField(blank=True)
+    token_expires_at = models.DateTimeField(null=True, blank=True)
+    environment = models.CharField(max_length=20, blank=True)
+    company_metadata = models.JSONField(default=dict)
+    event_cursor = models.BigIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["provider", "provider_account_id"], condition=~models.Q(provider_account_id=""), name="unique_einvoice_company")]
+
+
+class ElectronicInvoiceTransmission(models.Model):
+    class Status(models.TextChoices):
+        SUBMITTING = "submitting", "Envoi en cours"
+        SUBMITTED = "submitted", "Déposée"
+        VALIDATED = "validated", "Validée"
+        SENT = "sent", "Émise"
+        RECEIVED = "received", "Reçue"
+        AVAILABLE = "available", "Mise à disposition"
+        ACKNOWLEDGED = "acknowledged", "Prise en charge"
+        ACCEPTED = "accepted", "Approuvée"
+        PARTIAL = "partial", "Partiellement approuvée"
+        DISPUTED = "disputed", "En litige"
+        HELD = "held", "Suspendue"
+        COMPLETED = "completed", "Complétée"
+        REFUSED = "refused", "Refusée"
+        PAYMENT_SENT = "payment_sent", "Paiement transmis"
+        PAYMENT_RECEIVED = "payment_received", "Encaissée"
+        REJECTED = "rejected", "Rejetée"
+        UNKNOWN = "unknown", "Résultat incertain, réconciliation requise"
+        FAILED = "failed", "Échec avant transmission"
+
+    invoice = models.OneToOneField(Facture, on_delete=models.PROTECT, related_name="electronic_transmission")
+    account = models.ForeignKey(ElectronicInvoiceAccount, on_delete=models.PROTECT)
+    provider = models.CharField(max_length=30, default="superpdp")
+    provider_invoice_id = models.CharField(max_length=30, blank=True)
+    external_id = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    status = models.CharField(max_length=30, choices=Status.choices, default=Status.SUBMITTING)
+    submitted_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    last_error = models.TextField(blank=True)
+    metadata = models.JSONField(default=dict)
+    payment_report_status = models.CharField(max_length=20, blank=True)
+    last_event_id = models.BigIntegerField(default=0)
+
+
+class ElectronicInvoiceEvent(models.Model):
+    account = models.ForeignKey(ElectronicInvoiceAccount, on_delete=models.CASCADE)
+    provider_event_id = models.CharField(max_length=30)
+    transmission = models.ForeignKey(ElectronicInvoiceTransmission, on_delete=models.CASCADE)
+    payload = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["account", "provider_event_id"], name="unique_einvoice_event")]
+
+
+class ElectronicInvoiceOAuthState(models.Model):
+    owner = models.ForeignKey(AccountProfile, on_delete=models.CASCADE)
+    digest = models.CharField(max_length=64, unique=True)
+    browser_digest = models.CharField(max_length=64)
+    verifier = models.CharField(max_length=128)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class Payment(models.Model):
+    invoice = models.OneToOneField(Facture, on_delete=models.PROTECT, related_name="payment")
+    provider = models.CharField(max_length=20, default="stripe")
+    provider_session_id = models.CharField(max_length=255, unique=True, null=True, blank=True)
+    checkout_url = models.URLField(max_length=2048, blank=True)
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    currency = models.CharField(max_length=3, default="EUR")
+    status = models.CharField(max_length=20, default="pending")
+    created_at = models.DateTimeField(auto_now_add=True)
+    paid_at = models.DateTimeField(null=True, blank=True)
 
 
 # ---------------------------------------------------------------------------

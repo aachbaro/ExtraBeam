@@ -5,6 +5,8 @@
  */
 
 import type { Facture, FactureStatus } from "../../types";
+import { useState } from "react";
+import { electronicAccount, finalizeFacture, fetchFacture, invoiceCheckout, submitElectronicFacture, syncElectronicAccount } from "../../api";
 
 const STATUS_STYLE: Record<
   FactureStatus,
@@ -33,6 +35,8 @@ interface Props {
   onDownload: () => void;
   onMarkPaid?: () => void;
   onReuse?: () => void;
+  token: string;
+  onElectronicUpdated: (invoice: Facture) => void;
 }
 
 export default function FactureCard({
@@ -42,8 +46,34 @@ export default function FactureCard({
   onDownload,
   onMarkPaid,
   onReuse,
+  token,
+  onElectronicUpdated,
 }: Props) {
   const style = STATUS_STYLE[facture.status];
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  async function electronicAction() {
+    if (busy) return;
+    setBusy(true); setError("");
+    try {
+      if (facture.electronic) {
+        await syncElectronicAccount(token);
+        onElectronicUpdated(await fetchFacture(facture.profile_slug!, facture.id, token));
+      } else if (!facture.finalized_at) {
+        onElectronicUpdated(await finalizeFacture(facture.id, token));
+      } else {
+        if ((await electronicAccount(token)).connection_status !== "connected") throw new Error("Connecter SUPER PDP dans les paramètres du compte.");
+        onElectronicUpdated(await submitElectronicFacture(facture.id, token));
+      }
+    } catch (err) { setError((err as Error).message); }
+    finally { setBusy(false); }
+  }
+  async function paymentLink() {
+    setBusy(true); setError("");
+    try { const { url } = await invoiceCheckout(facture.id, token); await navigator.clipboard.writeText(url); setError("Lien Stripe copié."); }
+    catch (err) { setError((err as Error).message); }
+    finally { setBusy(false); }
+  }
 
   return (
     <div
@@ -89,6 +119,13 @@ export default function FactureCard({
       ) : null}
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
+        {facture.finalized_at && facture.status === "pending_payment" && <button type="button" disabled={busy}
+          className="rounded border px-3 py-2 text-xs" onClick={(event) => { event.stopPropagation(); void paymentLink(); }}>Copier le lien Stripe</button>}
+        {facture.status !== "canceled" && <button type="button" disabled={busy}
+          className="rounded border px-3 py-2 text-xs disabled:opacity-50"
+          onClick={(event) => { event.stopPropagation(); void electronicAction(); }}>
+          {busy ? "Chargement…" : facture.electronic ? "Synchroniser le statut" : facture.finalized_at ? "Envoyer électroniquement" : "Finaliser la facture"}
+        </button>}
         {onReuse && (
           <button
             type="button"
@@ -124,9 +161,13 @@ export default function FactureCard({
           </button>
         )}
       </div>
+      <p className="mt-2 text-xs">{facture.finalized_at ? "Finalisée" : "Brouillon"} · Électronique : {facture.electronic?.label ?? "Non envoyée"}</p>
+      {facture.electronic?.payment_report_status && <p className="mt-1 text-xs">Déclaration d'encaissement : {facture.electronic.payment_report_status}</p>}
+      {(error || facture.electronic?.last_error) && <p role="alert" className="mt-2 text-xs text-red-700">{error || facture.electronic?.last_error}</p>}
 
       <button
         type="button"
+        disabled={Boolean(facture.finalized_at)}
         onClick={(event) => {
           event.stopPropagation();
           onDelete();

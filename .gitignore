@@ -38,3 +38,11 @@ trash
 supabase/.branches/
 supabase/.temp/
 supabase/.shadow/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+v2/backend/venv/
+v2/.venv/

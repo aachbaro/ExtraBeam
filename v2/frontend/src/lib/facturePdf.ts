@@ -58,13 +58,16 @@ export function downloadFacturePdf(
   facture: Facture,
   profile: FreelancerProfile
 ) {
+  if (facture.finalized_at && facture.issuer_snapshot) {
+    profile = { ...profile, ...facture.issuer_snapshot,
+      display_name: facture.issuer_snapshot.legal_name || profile.display_name };
+  }
   const doc = new jsPDF({ unit: "mm", format: "a4" });
 
   const amountHt = parseAmount(facture.montant_ht);
   const vatRate = parseAmount(facture.tva) ?? 0;
   const amountTtc = parseAmount(facture.montant_ttc);
-  const vatAmount =
-    amountHt === null ? null : Number((amountHt * vatRate) / 100);
+  const vatAmount = amountHt === null || amountTtc === null ? null : amountTtc - amountHt;
   const hasRateDetail = !!(facture.hours?.trim() || facture.rate?.trim());
   const quantityLabel = facture.hours?.trim() || "1";
   const unitPrice = parseAmount(facture.rate) ?? amountHt;
@@ -97,7 +100,7 @@ export function downloadFacturePdf(
   doc.setFontSize(10);
 
   const sellerLines: string[] = [];
-  pushLine(sellerLines, profile.display_name);
+  pushLine(sellerLines, profile.legal_name || profile.display_name);
   pushLine(sellerLines, profile.address_line1);
   pushLine(sellerLines, profile.address_line2);
   pushLine(
@@ -107,6 +110,7 @@ export function downloadFacturePdf(
   pushLine(sellerLines, profile.country);
   pushLabelLine(sellerLines, "Statut", profile.legal_status);
   pushLabelLine(sellerLines, "SIRET", profile.siret);
+  pushLabelLine(sellerLines, "SIREN", profile.siren || profile.siret?.slice(0, 9));
   pushLabelLine(sellerLines, "TVA", profile.vat_number);
   pushLabelLine(sellerLines, "Tél", profile.phone);
   pushLabelLine(sellerLines, "Email", profile.email);
@@ -141,7 +145,11 @@ export function downloadFacturePdf(
     alternateRowStyles: { fillColor: [248, 248, 248] as [number, number, number] },
   };
 
-  if (hasRateDetail) {
+  if (facture.lines?.length) {
+    autoTable(doc, { startY: tableStartY, head: [["Description", "Qté", "PU HT", "TVA %", "Total HT"]],
+      body: facture.lines.map((line) => [line.description, `${line.quantity} ${line.unit}`, formatMoney(parseAmount(line.unit_price_excl_tax)), line.tax_rate, formatMoney(parseAmount(line.total_excl_tax))]),
+      ...sharedTableStyles });
+  } else if (hasRateDetail) {
     autoTable(doc, {
       startY: tableStartY,
       head: [["Description", "Qté", "PU HT", "Total HT"]],
@@ -176,7 +184,7 @@ export function downloadFacturePdf(
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
   doc.text(`Montant HT : ${formatMoney(amountHt)}`, 125, summaryY + 8);
-  doc.text(`TVA (${vatRate.toFixed(2)} %) : ${formatMoney(vatAmount)}`, 125, summaryY + 15);
+  doc.text(`${facture.lines?.length ? "TVA" : `TVA (${vatRate.toFixed(2)} %)`} : ${formatMoney(vatAmount)}`, 125, summaryY + 15);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(13);
   doc.text(`Total TTC : ${formatMoney(amountTtc)}`, 125, summaryY + 24);

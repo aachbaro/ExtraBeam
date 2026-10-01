@@ -119,6 +119,31 @@ function authHeaders(token?: string | null): Record<string, string> {
   return token ? { Authorization: `Token ${token}` } : {};
 }
 
+export interface ElectronicAccount { connection_status: string; environment: string; provider: string }
+export async function electronicAccount(token: string): Promise<ElectronicAccount> {
+  return getJson<ElectronicAccount>("/einvoicing/status/", token);
+}
+export async function connectElectronicAccount(token: string): Promise<{ authorization_url: string }> {
+  const response = await fetch(`${API_URL}/einvoicing/connect/`, { headers: authHeaders(token), credentials: "include" });
+  if (!response.ok) throw new Error(await readErrorMessage(response));
+  return response.json();
+}
+export async function syncElectronicAccount(token: string): Promise<ElectronicAccount> {
+  return postJson<ElectronicAccount>("/einvoicing/sync/", {}, token);
+}
+export async function finalizeFacture(id: number, token: string): Promise<Facture> {
+  return postJson<Facture>(`/invoices/${id}/finalize/`, {}, token);
+}
+export async function fetchFacture(slug: string, id: number, token: string): Promise<Facture> {
+  return getJson<Facture>(`/profiles/${slug}/factures/${id}/`, token);
+}
+export async function invoiceCheckout(id: number, token: string): Promise<{ url: string }> {
+  return postJson<{ url: string }>(`/invoices/${id}/checkout/`, {}, token);
+}
+export async function submitElectronicFacture(id: number, token: string): Promise<Facture> {
+  return postJson<Facture>(`/invoices/${id}/submit-electronic/`, {}, token);
+}
+
 async function postJson<T>(path: string, body: object, token?: string | null): Promise<T> {
   let response: Response;
   try {
@@ -322,6 +347,8 @@ export async function updateProfile(
       | "city"
       | "country"
       | "siret"
+      | "legal_name"
+      | "siren"
       | "legal_status"
       | "vat_number"
       | "vat_notice"
@@ -543,6 +570,7 @@ export async function deleteMission(slug: string, missionId: number, token: stri
 // ---------------------------------------------------------------------------
 
 export interface FacturePayload {
+  lines?: import("./types").InvoiceLine[];
   mission_id?: number | null;
   numero: string;
   date_emission: string;

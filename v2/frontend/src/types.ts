@@ -65,6 +65,8 @@ export interface FreelancerProfile {
   city: string;
   country: string;
   siret: string;
+  legal_name?: string;
+  siren?: string;
   legal_status: string;
   vat_number: string;
   vat_notice: string;
@@ -170,6 +172,11 @@ export interface Mission {
 export type FactureStatus = "pending_payment" | "paid" | "canceled";
 
 export interface Facture {
+  issuer_snapshot?: Partial<FreelancerProfile>;
+  lines?: InvoiceLine[];
+  finalized_at?: string | null;
+  currency?: string;
+  electronic?: { status: string; label: string; provider_invoice_id: string; last_error: string; payment_report_status: string } | null;
   id: number;
   mission_id: number | null;
   mission_title: string | null;
@@ -204,6 +211,15 @@ export interface Facture {
   profile_display_name: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface InvoiceLine {
+  description: string;
+  quantity: string;
+  unit: string;
+  unit_price_excl_tax: string;
+  tax_rate: string;
+  total_excl_tax: string;
 }
 
 // ---------------------------------------------------------------------------

@@ -27,6 +27,8 @@ interface Props {
 }
 
 interface ProfileFormState {
+  legal_name: string;
+  siren: string;
   display_name: string;
   job_title: string;
   location: string;
@@ -55,6 +57,8 @@ const AVATAR_PREVIEW_SIZE = 112;
 
 function buildInitialForm(profile: FreelancerProfile): ProfileFormState {
   return {
+    legal_name: profile.legal_name ?? "",
+    siren: profile.siren ?? "",
     display_name: profile.display_name,
     job_title: profile.job_title,
     location: profile.location,
@@ -193,6 +197,8 @@ export default function ProfileCard({ profile, isOwner, onProfileUpdated, noCard
 
     try {
       const payload: Parameters<typeof updateProfile>[1] = {
+        legal_name: form.legal_name.trim(),
+        siren: form.siren.trim(),
         display_name: form.display_name.trim(),
         job_title: form.job_title.trim(),
         location: form.location.trim(),
@@ -528,6 +534,10 @@ export default function ProfileCard({ profile, isOwner, onProfileUpdated, noCard
 
                   <SectionTitle>Informations Legales</SectionTitle>
                   <div className="grid gap-3 md:grid-cols-2">
+                    <input className="eb-input" aria-label="Raison sociale" placeholder="Raison sociale légale"
+                      value={form.legal_name} onChange={(event) => setForm((current) => ({ ...current, legal_name: event.target.value }))} />
+                    <input className="eb-input" aria-label="SIREN" placeholder="SIREN (9 chiffres)"
+                      value={form.siren} onChange={(event) => setForm((current) => ({ ...current, siren: event.target.value }))} />
                     <input
                       className="eb-input"
                       value={form.siret}

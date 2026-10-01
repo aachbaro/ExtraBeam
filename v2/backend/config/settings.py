@@ -23,6 +23,7 @@ SECRET_KEY = env("SECRET_KEY")
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS")
 CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS")
 CORS_ALLOW_ALL_ORIGINS = DEBUG  # in production DEBUG=False so the explicit list is enforced
+CORS_ALLOW_CREDENTIALS = True
 from corsheaders.defaults import default_headers
 CORS_ALLOW_HEADERS = (*default_headers, "x-resto-session")
 CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS")
@@ -134,3 +135,14 @@ REST_FRAMEWORK = {
 
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+SUPERPDP_BASE_URL = env("SUPERPDP_BASE_URL", default="https://api.superpdp.tech").rstrip("/")
+SUPERPDP_CLIENT_ID = env("SUPERPDP_CLIENT_ID", default="")
+SUPERPDP_CLIENT_SECRET = env("SUPERPDP_CLIENT_SECRET", default="")
+SUPERPDP_REDIRECT_URI = env("SUPERPDP_REDIRECT_URI", default="")
+SUPERPDP_WEBHOOK_SECRET = env("SUPERPDP_WEBHOOK_SECRET", default="")  # Reserved; no published signature contract.
+SUPERPDP_ENVIRONMENT = env("SUPERPDP_ENVIRONMENT", default="sandbox")
+EINVOICE_TOKEN_KEY = env("EINVOICE_TOKEN_KEY", default="")  # Dedicated Fernet key, never SECRET_KEY.
+STRIPE_SECRET_KEY = env("STRIPE_SECRET_KEY", default="")
+STRIPE_WEBHOOK_SECRET = env("STRIPE_WEBHOOK_SECRET", default="")
+STRIPE_LIVE_MODE = env.bool("STRIPE_LIVE_MODE", default=False)

@@ -12,6 +12,7 @@ from uuid import NAMESPACE_URL, uuid5
 
 from django.conf import settings
 from django.db.models import Count, Q
+from django.db import transaction
 from django.http import FileResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers, status
@@ -595,6 +596,9 @@ class ProfileAccountDeleteView(APIView):
                 status=400,
             )
 
+        if profile.factures.filter(finalized_at__isnull=False).exists():
+            return Response({"error": "Ce compte possède des factures finalisées. Leur conservation empêche la suppression automatique du compte."}, status=409)
+
         delete_profile_avatar_file(profile)
         profile.user.delete()
         return Response({"success": True})
@@ -1019,7 +1023,7 @@ class FactureDetailView(APIView):
         if profile.user != request.user:
             return None, Response({"error": "Accès refusé."}, status=403)
         facture = get_object_or_404(
-            Facture.objects.select_related("mission"), pk=facture_id, profile=profile
+            (Facture.objects.select_for_update() if request.method in {"PATCH", "DELETE"} else Facture.objects).select_related("mission"), pk=facture_id, profile=profile
         )
         return facture, None
 
@@ -1029,6 +1033,7 @@ class FactureDetailView(APIView):
             return err
         return Response(FactureSerializer(facture).data)
 
+    @transaction.atomic
     def patch(self, request: Request, slug: str, facture_id: int) -> Response:
         facture, err = self._get_owned_facture(request, slug, facture_id)
         if err:
@@ -1042,12 +1047,18 @@ class FactureDetailView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         facture.refresh_from_db()
+        if facture.status == Facture.STATUS_PAID:
+            from .einvoicing.services import report_invoice_payment
+            transaction.on_commit(lambda: report_invoice_payment(facture))
         return Response(FactureSerializer(facture).data)
 
+    @transaction.atomic
     def delete(self, request: Request, slug: str, facture_id: int) -> Response:
         facture, err = self._get_owned_facture(request, slug, facture_id)
         if err:
             return err
+        if facture.finalized_at or hasattr(facture, "electronic_transmission"):
+            return Response({"error": "Une facture finalisée ou transmise ne peut pas être supprimée."}, status=409)
         facture.delete()
         return Response(status=204)
 

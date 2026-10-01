@@ -208,7 +208,10 @@ export default function FacturesSection({
             <FactureCard
               key={facture.id}
               facture={facture}
+              token={token}
+              onElectronicUpdated={(updated) => setFactures((previous) => previous.map((entry) => entry.id === updated.id ? updated : entry))}
               onClick={() => {
+                if (facture.finalized_at) return;
                 setEditing(facture);
                 setReusing(undefined);
                 setShowForm(true);

@@ -11,6 +11,7 @@ from decimal import Decimal
 
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.validators import URLValidator
+from django.db import transaction
 from rest_framework import serializers
 
 from .avatar_storage import (
@@ -24,6 +25,7 @@ from .models import (
     ClientContact,
     Experience,
     Facture,
+    InvoiceLine,
     Mission,
     MissionTemplate,
     ProfileContact,
@@ -267,6 +269,8 @@ class ProfilePublicSerializer(serializers.ModelSerializer):
     """Sérialise un profil public (lecture seule, inclut skills + experiences)."""
 
     PRIVATE_OWNER_FIELDS = {
+        "legal_name",
+        "siren",
         "siret",
         "legal_status",
         "vat_number",
@@ -305,6 +309,8 @@ class ProfilePublicSerializer(serializers.ModelSerializer):
             "city",
             "country",
             "siret",
+            "legal_name",
+            "siren",
             "legal_status",
             "vat_number",
             "vat_notice",
@@ -444,6 +450,8 @@ class ProfileUpdateSerializer(serializers.ModelSerializer):
             "avatar_url",
             "avatar_upload_data",
             "avatar_remove",
+            "legal_name",
+            "siren",
             "role",
             "job_title",
             "location",
@@ -665,6 +673,21 @@ class MissionSerializer(serializers.ModelSerializer):
         return instance
 
 
+class InvoiceLineSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = InvoiceLine
+        fields = ["id", "description", "quantity", "unit", "unit_price_excl_tax", "tax_rate", "total_excl_tax"]
+        read_only_fields = ["id"]
+
+    def validate(self, attrs):
+        from .einvoicing.mapper import money
+        if attrs["quantity"] <= 0 or attrs["unit_price_excl_tax"] < 0 or not 0 <= attrs.get("tax_rate", Decimal("0")) <= 100:
+            raise serializers.ValidationError("Quantité, prix ou TVA invalide.")
+        if money(attrs["quantity"] * attrs["unit_price_excl_tax"]) != attrs["total_excl_tax"]:
+            raise serializers.ValidationError("Total de ligne incohérent.")
+        return attrs
+
+
 class FactureSerializer(serializers.ModelSerializer):
     """Sérialise une facture owner-only avec mission liée optionnelle."""
 
@@ -681,6 +704,9 @@ class FactureSerializer(serializers.ModelSerializer):
     mission_title = serializers.SerializerMethodField()
     profile_slug = serializers.SerializerMethodField()
     profile_display_name = serializers.SerializerMethodField()
+    lines = InvoiceLineSerializer(many=True, required=False)
+    electronic = serializers.SerializerMethodField()
+    tax_total = serializers.SerializerMethodField()
 
     class Meta:
         model = Facture
@@ -689,6 +715,12 @@ class FactureSerializer(serializers.ModelSerializer):
             "mission_id",
             "mission_title",
             "numero",
+            "currency",
+            "finalized_at",
+            "issuer_snapshot",
+            "lines",
+            "electronic",
+            "tax_total",
             "date_emission",
             "status",
             "client_name",
@@ -720,7 +752,34 @@ class FactureSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "mission_title", "created_at", "updated_at"]
+        read_only_fields = ["id", "mission_title", "created_at", "updated_at", "finalized_at", "electronic", "issuer_snapshot"]
+
+    def get_electronic(self, obj):
+        transmission = getattr(obj, "electronic_transmission", None)
+        if not transmission:
+            return None
+        return {"status": transmission.status, "label": transmission.get_status_display(),
+                "provider_invoice_id": transmission.provider_invoice_id,
+                "last_error": transmission.last_error, "payment_report_status": transmission.payment_report_status}
+
+    def get_tax_total(self, obj):
+        return str(obj.montant_ttc - obj.montant_ht)
+
+    @transaction.atomic
+    def create(self, validated_data):
+        lines = validated_data.pop("lines", [])
+        invoice = super().create(validated_data)
+        InvoiceLine.objects.bulk_create([InvoiceLine(invoice=invoice, **line) for line in lines])
+        return invoice
+
+    @transaction.atomic
+    def update(self, instance, validated_data):
+        lines = validated_data.pop("lines", None)
+        instance = super().update(instance, validated_data)
+        if lines is not None:
+            instance.lines.all().delete()
+            InvoiceLine.objects.bulk_create([InvoiceLine(invoice=instance, **line) for line in lines])
+        return instance
 
     def get_mission_title(self, obj: Facture) -> str | None:
         return obj.mission.title if obj.mission_id else None
@@ -741,6 +800,9 @@ class FactureSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs: dict) -> dict:
         profile = self.context.get("profile") or getattr(self.instance, "profile", None)
+        if self.instance and self.instance.finalized_at:
+            if set(attrs) - {"status"} or attrs.get("status", self.instance.status) != "paid":
+                raise serializers.ValidationError("Facture finalisée : seul l'enregistrement de l'encaissement est autorisé.")
         mission = attrs.get("mission", getattr(self.instance, "mission", None))
         numero = attrs.get("numero", getattr(self.instance, "numero", ""))
 

@@ -13,6 +13,7 @@ import type {
   FactureStatus,
   FreelancerProfile,
   Mission,
+  InvoiceLine,
 } from "../../types";
 
 const STATUS_LABELS: Record<FactureStatus, string> = {
@@ -302,6 +303,16 @@ export default function FactureForm({
   const [showRateDetail, setShowRateDetail] = useState(
     !!(initial?.hours || initial?.rate),
   );
+  const [lines, setLines] = useState<InvoiceLine[]>(initial?.lines ?? []);
+  const lineNet = (line: InvoiceLine) => Number((Number(line.quantity) * Number(line.unit_price_excl_tax)).toFixed(2));
+  const lineSubtotal = lines.reduce((total, line) => total + lineNet(line), 0);
+  const taxGroups = lines.reduce<Record<string, number>>((groups, line) => {
+    groups[line.tax_rate] = (groups[line.tax_rate] ?? 0) + lineNet(line); return groups;
+  }, {});
+  const lineTax = Object.entries(taxGroups).reduce((total, [rate, net]) => total + Number((net * Number(rate) / 100).toFixed(2)), 0);
+  function editLine(index: number, field: keyof InvoiceLine, value: string) {
+    setLines((previous) => previous.map((line, key) => key === index ? { ...line, [field]: value } : line));
+  }
   function toggleRateDetail() {
     setShowRateDetail((v) => {
       if (v) setForm((prev) => ({ ...prev, hours: "", rate: "" }));
@@ -463,7 +474,7 @@ export default function FactureForm({
       return;
     }
 
-    const montantHt = parseNumber(form.montant_ht);
+    const montantHt = lines.length ? lineSubtotal : parseNumber(form.montant_ht);
     if (montantHt === null || montantHt < 0) {
       setError("Le montant HT doit etre renseigne.");
       return;
@@ -474,6 +485,7 @@ export default function FactureForm({
 
     try {
       await onSave({
+        lines: lines.map((line) => ({ ...line, total_excl_tax: toFixedAmount(lineNet(line)) })),
         mission_id: form.mission_id ? Number(form.mission_id) : null,
         numero: form.numero.trim(),
         date_emission: form.date_emission,
@@ -492,15 +504,15 @@ export default function FactureForm({
         contact_phone: form.contact_phone.trim(),
         contact_email: form.contact_email.trim(),
         description: form.description.trim(),
-        hours: form.hours.trim()
+        hours: !lines.length && form.hours.trim()
           ? toFixedAmount(parseNumber(form.hours) ?? 0)
           : null,
-        rate: form.rate.trim()
+        rate: !lines.length && form.rate.trim()
           ? toFixedAmount(parseNumber(form.rate) ?? 0)
           : null,
         montant_ht: toFixedAmount(montantHt),
         tva: toFixedAmount(parseNumber(form.tva) ?? 0),
-        montant_ttc: computeTtc(toFixedAmount(montantHt), form.tva),
+        montant_ttc: lines.length ? toFixedAmount(lineSubtotal + lineTax) : computeTtc(toFixedAmount(montantHt), form.tva),
         mention_tva: form.mention_tva.trim(),
         conditions_paiement: form.conditions_paiement.trim(),
         escompte: form.escompte.trim(),
@@ -940,6 +952,26 @@ export default function FactureForm({
             <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-eb-muted">
               Montants
             </p>
+            <div className="my-3 space-y-2">
+              {lines.map((line, index) => <div key={index} className="grid gap-2 sm:grid-cols-6">
+                <input className="eb-input sm:col-span-2" aria-label={`Description ligne ${index + 1}`} placeholder="Prestation"
+                  value={line.description} onChange={(event) => editLine(index, "description", event.target.value)} required />
+                <input className="eb-input" aria-label={`Quantité ligne ${index + 1}`} type="number" min="0.0001" step="0.0001"
+                  value={line.quantity} onChange={(event) => editLine(index, "quantity", event.target.value)} required />
+                <select className="eb-input" aria-label={`Unité ligne ${index + 1}`} value={line.unit} onChange={(event) => editLine(index, "unit", event.target.value)}>
+                  <option value="HUR">Heures</option><option value="DAY">Jours</option><option value="C62">Unités</option>
+                </select>
+                <input className="eb-input" aria-label={`Prix HT ligne ${index + 1}`} placeholder="Prix HT" type="number" min="0" step="0.0001"
+                  value={line.unit_price_excl_tax} onChange={(event) => editLine(index, "unit_price_excl_tax", event.target.value)} required />
+                <div className="flex gap-1"><input className="eb-input min-w-0" aria-label={`TVA ligne ${index + 1}`} placeholder="TVA %" type="number" min="0" max="100" step="0.01"
+                  value={line.tax_rate} onChange={(event) => editLine(index, "tax_rate", event.target.value)} required />
+                  <button type="button" aria-label={`Retirer ligne ${index + 1}`} onClick={() => setLines((previous) => previous.filter((_, key) => key !== index))}>×</button></div>
+              </div>)}
+              <button type="button" className="rounded border px-3 py-2 text-xs" onClick={() => setLines((previous) => [...previous, {
+                description: previous.length ? "" : form.description, quantity: "1", unit: "C62", unit_price_excl_tax: previous.length ? "0" : form.montant_ht || "0", tax_rate: form.tva || "0", total_excl_tax: "0",
+              }])}>Ajouter une ligne de prestation</button>
+              {lines.length > 0 && <p className="text-sm">Totaux calculés depuis les lignes : HT {toFixedAmount(lineSubtotal)} € · TVA {toFixedAmount(lineTax)} € · TTC {toFixedAmount(lineSubtotal + lineTax)} €</p>}
+            </div>
             <div className="mt-1 flex items-center justify-between">
               <p className="text-[12px] text-eb-muted">
                 {showRateDetail ? "Qté × taux → montant HT calculé automatiquement." : "Prix forfaitaire, sans détail du taux horaire."}

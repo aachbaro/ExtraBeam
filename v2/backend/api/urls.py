@@ -6,6 +6,8 @@ Role   : Déclare toutes les URLs de l'API ExtraBeam v2.
 """
 
 from django.urls import path
+from .einvoicing.views import ConnectView, CallbackView, StatusView, SyncView, FinalizeView, SubmitView, WebhookView
+from .payments import InvoiceCheckoutView, StripeWebhookView
 
 from .contact_views import ContactDetailView, ContactsView, ContactStatusView, ProfileSearchView
 from .dev_views import DevAccountDeleteView, DevAccountsView, DevLoginView
@@ -39,6 +41,15 @@ from .views import (
 )
 
 urlpatterns = [
+    path("invoices/<int:invoice_id>/checkout/", InvoiceCheckoutView.as_view()),
+    path("webhooks/stripe/", StripeWebhookView.as_view()),
+    path("einvoicing/connect/", ConnectView.as_view()),
+    path("einvoicing/callback/", CallbackView.as_view()),
+    path("einvoicing/status/", StatusView.as_view()),
+    path("einvoicing/sync/", SyncView.as_view()),
+    path("invoices/<int:invoice_id>/finalize/", FinalizeView.as_view()),
+    path("invoices/<int:invoice_id>/submit-electronic/", SubmitView.as_view()),
+    path("webhooks/superpdp/", WebhookView.as_view()),
     # --- Santé ---
     path("health/", HealthView.as_view(), name="health"),
 

@@ -2,6 +2,8 @@
 
 Backend Django minimal pour la reconstruction d'ExtraBeam v2.
 
+Facturation électronique et paiements optionnels : voir [EINVOICING.md](EINVOICING.md) pour configuration, connexion OAuth, tests sandbox et production.
+
 ## Ce qui est en place
 
 - projet Django configure pour du dev local
