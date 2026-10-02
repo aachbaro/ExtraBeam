@@ -100,6 +100,25 @@ s’abonne séparément. Sur iPhone : application ajoutée à l’écran d’acc
 Le son reste soumis aux réglages du système, aucune sonnerie d’appel garantie.
 Référence : [Push API — MDN](https://developer.mozilla.org/en-US/docs/Web/API/Push_API).
 
+## Demandes sans compte
+
+`POST /api/guest/requests/` reçoit l'adresse email et le formulaire. Il crée un
+brouillon privé et une notification de confirmation, sans contacter les extras.
+Le lien email `/guest/<uuid>#access=<signature>` confirme l'adresse et diffuse
+la demande. La signature n'est pas dans les requêtes URL ni dans les journaux
+d'accès : le navigateur la transmet via `X-Guest-Access`. Le lien est limité à
+sa demande, expire après 90 jours et autorise sélection, chat, annulation avant
+confirmation, heures et coordonnées de facturation. Il ne connecte pas à un
+compte et ne donne pas accès aux autres demandes ni aux préférences.
+
+L'identité technique est inactive, sans mot de passe ; son email de connexion
+reste vide pour permettre une inscription normale à la même adresse. L'email
+de suivi est privé. Le rattachement nécessite un compte restaurateur, le lien
+personnel et la même adresse email ; il reprend les missions et conversations
+et révoque le lien invité. Le compte conserve ses coordonnées existantes.
+L'email est envoyé via le worker avec ses reprises habituelles. Sans fournisseur
+email configuré, l'API refuse l'envoi invité avec un message proposant la connexion.
+
 ## Heures et facturation
 
 Après le service, l’extra soumet ses heures. Le restaurateur valide ou propose une
@@ -148,8 +167,8 @@ npm test
 npm run build
 ```
 
-Les migrations `0020` à `0023` ajoutent le parcours, les préférences, l’email
-comptabilité et la précision des heures. Sauvegarder SQLite avant déploiement. Le déploiement full stack doit
+Les migrations `0020` à `0024` ajoutent le parcours, les préférences, l’email
+comptabilité, la précision des heures et les liens invités. Sauvegarder SQLite avant déploiement. Le déploiement full stack doit
 reconstruire et démarrer les trois services ; vérifier avec `docker compose ps`
 que le worker est lancé et consulter ses logs. Le webhook décrit dans `AGENTS.md`
 reste le point d’entrée, avec le token fourni localement. Une validation mobile

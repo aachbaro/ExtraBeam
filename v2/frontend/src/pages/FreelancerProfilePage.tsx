@@ -248,6 +248,7 @@ export default function FreelancerProfilePage() {
       <main className="rivebelle-public min-h-screen bg-[#f5efe4] text-[#352b1d]" style={{ animation: "ebFadeUp 0.4s ease both" }}>
         <style>{`@keyframes ebFadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
           .rivebelle-public .text-eb-primary { color: #956818; }
+          .rivebelle-public h1 { font-family: Georgia, 'Times New Roman', serif; font-size: clamp(32px, 6vw, 42px); font-weight: 400; color: #352b1d; }
           .rivebelle-public .eb-input { border-color: #decfb5; border-radius: 12px; background: #fffdf7; }
           .rivebelle-public .eb-input:focus { outline-color: #dba52a; }
           .rivebelle-public [class*="bg-eb-primary/"] { background-color: #f9e8ad; }

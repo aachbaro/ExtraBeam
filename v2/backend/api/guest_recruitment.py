@@ -1,9 +1,12 @@
 """Email-verified, request-scoped access. No account login or raw secret in URLs/logs."""
 import uuid
+import hashlib
+import requests
 from datetime import timedelta
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core import signing
+from django.core.cache import cache
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -17,6 +20,23 @@ from .models import AccountProfile, GuestRequestLink, AppNotification, RequestMe
 from . import recruitment as service
 
 SALT = 'rivebelle.guest-request.v1'
+
+
+def email_available():
+    if settings.EMAIL_BACKEND == 'api.brevo_email.BrevoEmailBackend':
+        if not settings.BREVO_API_KEY:
+            return False
+        key = 'guest-brevo-ready:' + hashlib.sha256(settings.BREVO_API_KEY.encode()).hexdigest()
+        ready = cache.get(key)
+        if ready is None:
+            try:
+                response = requests.get('https://api.brevo.com/v3/account', headers={'api-key': settings.BREVO_API_KEY}, timeout=5, allow_redirects=False)
+                ready = response.status_code == 200
+            except requests.RequestException:
+                ready = False
+            cache.set(key, ready, 60 if ready else 15)
+        return ready
+    return bool(settings.EMAIL_HOST) or settings.EMAIL_BACKEND != 'django.core.mail.backends.smtp.EmailBackend'
 
 
 def link_token(link):
@@ -63,7 +83,7 @@ class GuestCreateView(APIView):
     @transaction.atomic
     def post(self, request):
         from .recruitment_views import RequestInput
-        if not settings.EMAIL_HOST and not settings.BREVO_API_KEY and settings.EMAIL_BACKEND == 'django.core.mail.backends.smtp.EmailBackend':
+        if not email_available():
             return Response({'detail': 'L’envoi sans compte est momentanément indisponible. Connectez-vous pour envoyer votre demande.'}, status=503)
         email = serializers.EmailField(max_length=254).run_validation(request.data.get('email'))
         target = get_object_or_404(AccountProfile, slug=request.data.get('target_slug'), role='freelance', user__is_active=True)

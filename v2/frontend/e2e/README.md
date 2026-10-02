@@ -9,7 +9,7 @@ et l'impression de la carte ne sont pas testées.
 
 ## Résultat
 
-Les 17 étapes passent : formulaire conservé après inscription du restaurant,
+Les 23 étapes passent : formulaire conservé après inscription du restaurant,
 demande de deux extras, Adam passe, Extra B reçoit par un contact explicite,
 Adam est relancé, deux sélections, chat privé inaccessible à l'autre candidat,
 6 h 20 déclarées et validées, coordonnées client réutilisées, deux brouillons
@@ -17,6 +17,11 @@ puis deux factures finalisées de 114 € HT à 18 €/h, visibles côté restau
 Chaque émetteur possède sa séquence RB-AAAA-00001. Adam accepte ensuite une
 autre mission sans nouvelle connexion. Aucun débordement horizontal ni erreur
 JavaScript constaté dans ce scénario.
+
+Le scénario vérifie également la page crème/jaune, la diffusion cochée par
+défaut, l'envoi sans compte, le mail de confirmation via le transport local,
+l'ouverture du lien personnel, la sélection et le chat sans compte, puis la
+création d'un compte avec le même email et le rattachement de la demande.
 
 ## Frictions corrigées
 

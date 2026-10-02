@@ -1,5 +1,6 @@
 from datetime import timedelta
 from decimal import Decimal
+from unittest.mock import patch
 from django.core import mail
 from django.core.cache import cache
 from django.test import TestCase, override_settings
@@ -112,3 +113,11 @@ class GuestRecruitmentTests(TestCase):
         self.assertEqual(profile.role, 'client')
         again = get_or_create_google_account(email='google-new@example.org', display_name='Google Client', avatar_url=None, google_sub='new-sub', role='freelance')
         self.assertEqual(again.role, 'client')
+
+    @override_settings(EMAIL_BACKEND='api.brevo_email.BrevoEmailBackend', BREVO_API_KEY='invalid-test-key')
+    @patch('api.guest_recruitment.requests.get')
+    def test_rejected_brevo_key_does_not_promise_an_email(self, get):
+        get.return_value.status_code = 401
+        response = APIClient().post('/api/guest/requests/', {}, format='json')
+        self.assertEqual(response.status_code, 503)
+        self.assertFalse(GuestRequestLink.objects.exists())
