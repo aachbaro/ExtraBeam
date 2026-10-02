@@ -52,18 +52,18 @@ class AuthApiTests(APITestCase):
     def test_login_with_test_password(self):
         response = self.client.post(
             reverse("login"),
-            {"email": "adam@extrabeam.fr", "password": "test"},
+            {"email": "adam@rivebelle.fr", "password": "test"},
             format="json",
         )
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["user"]["email"], "adam@extrabeam.fr")
+        self.assertEqual(response.data["user"]["email"], "adam@rivebelle.fr")
 
     def test_register_creates_local_account(self):
         response = self.client.post(
             reverse("register"),
             {
                 "display_name": "Adam",
-                "email": "adam@extrabeam.fr",
+                "email": "adam@rivebelle.fr",
                 "password": "bonjour123",
             },
             format="json",
@@ -73,15 +73,15 @@ class AuthApiTests(APITestCase):
         self.assertEqual(response.data["user"]["display_name"], "Adam")
         self.assertEqual(response.data["user"]["auth_provider"], "local")
         self.assertEqual(response.data["user"]["role"], AccountProfile.ROLE_FREELANCE)
-        self.assertTrue(User.objects.filter(email="adam@extrabeam.fr").exists())
-        self.assertTrue(AccountProfile.objects.filter(user__email="adam@extrabeam.fr").exists())
+        self.assertTrue(User.objects.filter(email="adam@rivebelle.fr").exists())
+        self.assertTrue(AccountProfile.objects.filter(user__email="adam@rivebelle.fr").exists())
 
     def test_register_allows_client_role(self):
         response = self.client.post(
             reverse("register"),
             {
                 "display_name": "Client Adam",
-                "email": "client@extrabeam.fr",
+                "email": "client@rivebelle.fr",
                 "password": "bonjour123",
                 "role": AccountProfile.ROLE_CLIENT,
             },
@@ -90,16 +90,16 @@ class AuthApiTests(APITestCase):
 
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data["user"]["role"], AccountProfile.ROLE_CLIENT)
-        self.assertTrue(AccountProfile.objects.filter(user__email="client@extrabeam.fr", role=AccountProfile.ROLE_CLIENT).exists())
+        self.assertTrue(AccountProfile.objects.filter(user__email="client@rivebelle.fr", role=AccountProfile.ROLE_CLIENT).exists())
 
     def test_register_rejects_duplicate_email(self):
-        User.objects.create_user(username="adam@extrabeam.fr", email="adam@extrabeam.fr", password="bonjour123")
+        User.objects.create_user(username="adam@rivebelle.fr", email="adam@rivebelle.fr", password="bonjour123")
 
         response = self.client.post(
             reverse("register"),
             {
                 "display_name": "Adam",
-                "email": "adam@extrabeam.fr",
+                "email": "adam@rivebelle.fr",
                 "password": "bonjour123",
             },
             format="json",
@@ -113,7 +113,7 @@ class AuthApiTests(APITestCase):
             reverse("register"),
             {
                 "display_name": "Adam",
-                "email": "adam@extrabeam.fr",
+                "email": "adam@rivebelle.fr",
                 "password": "bonjour123",
             },
             format="json",
@@ -122,12 +122,12 @@ class AuthApiTests(APITestCase):
 
         login_response = self.client.post(
             reverse("login"),
-            {"email": "adam@extrabeam.fr", "password": "bonjour123"},
+            {"email": "adam@rivebelle.fr", "password": "bonjour123"},
             format="json",
         )
 
         self.assertEqual(login_response.status_code, 200)
-        self.assertEqual(login_response.data["user"]["email"], "adam@extrabeam.fr")
+        self.assertEqual(login_response.data["user"]["email"], "adam@rivebelle.fr")
         self.assertEqual(login_response.data["user"]["auth_provider"], "local")
 
     def test_login_preserves_client_role(self):
@@ -135,7 +135,7 @@ class AuthApiTests(APITestCase):
             reverse("register"),
             {
                 "display_name": "Client Adam",
-                "email": "client-login@extrabeam.fr",
+                "email": "client-login@rivebelle.fr",
                 "password": "bonjour123",
                 "role": AccountProfile.ROLE_CLIENT,
             },
@@ -145,7 +145,7 @@ class AuthApiTests(APITestCase):
 
         login_response = self.client.post(
             reverse("login"),
-            {"email": "client-login@extrabeam.fr", "password": "bonjour123"},
+            {"email": "client-login@rivebelle.fr", "password": "bonjour123"},
             format="json",
         )
 
@@ -187,7 +187,7 @@ class AuthApiTests(APITestCase):
             DummyHttpResponse(
                 {
                     "sub": "google-sub-123",
-                    "email": "adam@extrabeam.fr",
+                    "email": "adam@rivebelle.fr",
                     "email_verified": True,
                     "name": "Adam",
                     "picture": "https://example.com/avatar.png",
@@ -204,9 +204,9 @@ class AuthApiTests(APITestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["user"]["email"], "adam@extrabeam.fr")
+        self.assertEqual(response.data["user"]["email"], "adam@rivebelle.fr")
         self.assertEqual(response.data["user"]["auth_provider"], "google")
-        self.assertTrue(AccountProfile.objects.filter(google_sub="google-sub-123", user__email="adam@extrabeam.fr").exists())
+        self.assertTrue(AccountProfile.objects.filter(google_sub="google-sub-123", user__email="adam@rivebelle.fr").exists())
         created_profile = AccountProfile.objects.get(google_sub="google-sub-123")
         self.assertEqual(response.data["access_token"], created_profile.api_token.token)
 
@@ -238,8 +238,8 @@ class AuthApiTests(APITestCase):
     @override_settings(FRONTEND_URL="http://127.0.0.1:5180")
     def test_social_bridge_redirects_with_serialized_profile(self):
         user = User.objects.create_user(
-            username="adam@extrabeam.fr",
-            email="adam@extrabeam.fr",
+            username="adam@rivebelle.fr",
+            email="adam@rivebelle.fr",
             password="bonjour123",
             first_name="Adam",
         )
@@ -262,7 +262,7 @@ class AuthApiTests(APITestCase):
 
         params = parse_qs(parsed.query)
         self.assertEqual(params["id"], [str(profile.pk)])
-        self.assertEqual(params["email"], ["adam@extrabeam.fr"])
+        self.assertEqual(params["email"], ["adam@rivebelle.fr"])
         self.assertEqual(params["display_name"], ["Adam"])
         self.assertEqual(params["role"], [AccountProfile.ROLE_CLIENT])
         self.assertEqual(params["auth_provider"], [AccountProfile.AUTH_PROVIDER_PASCUANS])
@@ -271,8 +271,8 @@ class AuthApiTests(APITestCase):
     @override_settings(FRONTEND_URL="http://127.0.0.1:5180", OIDC_ISSUER_URL="http://127.0.0.1:8001")
     def test_social_logout_clears_session_and_redirects_to_auth_server(self):
         user = User.objects.create_user(
-            username="adam@extrabeam.fr",
-            email="adam@extrabeam.fr",
+            username="adam@rivebelle.fr",
+            email="adam@rivebelle.fr",
             password="bonjour123",
         )
         self.client.force_login(user)
@@ -285,8 +285,8 @@ class AuthApiTests(APITestCase):
 
     def test_sync_pascuans_profile_uses_role_stored_in_session(self):
         user = User.objects.create_user(
-            username="role-choice@extrabeam.fr",
-            email="role-choice@extrabeam.fr",
+            username="role-choice@rivebelle.fr",
+            email="role-choice@rivebelle.fr",
             password="bonjour123",
         )
         backend = SimpleNamespace(
@@ -310,8 +310,8 @@ class AuthApiTests(APITestCase):
 
     def test_sync_pascuans_profile_handles_missing_role_in_session(self):
         user = User.objects.create_user(
-            username="role-missing@extrabeam.fr",
-            email="role-missing@extrabeam.fr",
+            username="role-missing@rivebelle.fr",
+            email="role-missing@rivebelle.fr",
             password="bonjour123",
         )
         backend = SimpleNamespace(
@@ -335,8 +335,8 @@ class AuthApiTests(APITestCase):
 class ProfileApiTests(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(
-            username="profile@extrabeam.fr",
-            email="profile@extrabeam.fr",
+            username="profile@rivebelle.fr",
+            email="profile@rivebelle.fr",
             password="bonjour123",
         )
         self.profile = AccountProfile.objects.create(
@@ -383,7 +383,7 @@ class ProfileApiTests(APITestCase):
         self.profile.iban = "FR7612345987650123456789014"
         self.profile.vat_number = "FR00123456789"
         self.profile.subscription_status = "active"
-        self.profile.subscription_plan = "ExtraBeam Pro"
+        self.profile.subscription_plan = "Rivebelle Pro"
         self.profile.subscription_period_end = timezone.now() + datetime.timedelta(days=30)
         self.profile.subscription_cancel_at_period_end = True
         self.profile.address_line1 = "12 rue des Halles"
@@ -420,7 +420,7 @@ class ProfileApiTests(APITestCase):
     def test_profile_owner_view_includes_subscription_fields(self):
         subscription_end = timezone.now() + datetime.timedelta(days=14)
         self.profile.subscription_status = "active"
-        self.profile.subscription_plan = "ExtraBeam Pro"
+        self.profile.subscription_plan = "Rivebelle Pro"
         self.profile.subscription_period_end = subscription_end
         self.profile.subscription_cancel_at_period_end = True
         self.profile.save(
@@ -441,7 +441,7 @@ class ProfileApiTests(APITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["mode"], "owner")
         self.assertEqual(response.data["profile"]["subscription_status"], "active")
-        self.assertEqual(response.data["profile"]["subscription_plan"], "ExtraBeam Pro")
+        self.assertEqual(response.data["profile"]["subscription_plan"], "Rivebelle Pro")
         self.assertEqual(
             response.data["profile"]["subscription_period_end"],
             subscription_end.isoformat().replace("+00:00", "Z"),
@@ -543,8 +543,8 @@ class ProfileApiTests(APITestCase):
 class ExperiencesApiTests(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(
-            username="experiences@extrabeam.fr",
-            email="experiences@extrabeam.fr",
+            username="experiences@rivebelle.fr",
+            email="experiences@rivebelle.fr",
             password="bonjour123",
         )
         self.profile = AccountProfile.objects.create(
@@ -557,8 +557,8 @@ class ExperiencesApiTests(APITestCase):
         self.token = UserApiToken.get_or_create_for_profile(self.profile)
 
         self.other_user = User.objects.create_user(
-            username="other-experiences@extrabeam.fr",
-            email="other-experiences@extrabeam.fr",
+            username="other-experiences@rivebelle.fr",
+            email="other-experiences@rivebelle.fr",
             password="bonjour123",
         )
         self.other_profile = AccountProfile.objects.create(
@@ -643,8 +643,8 @@ class ExperiencesApiTests(APITestCase):
 class SlotsApiTests(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(
-            username="adam@extrabeam.fr",
-            email="adam@extrabeam.fr",
+            username="adam@rivebelle.fr",
+            email="adam@rivebelle.fr",
             password="bonjour123",
         )
         self.profile = AccountProfile.objects.create(
@@ -652,7 +652,7 @@ class SlotsApiTests(APITestCase):
             display_name="Adam",
             role=AccountProfile.ROLE_FREELANCE,
             auth_provider=AccountProfile.AUTH_PROVIDER_LOCAL,
-            slug="adam-extrabeam",
+            slug="adam-rivebelle",
         )
         self.token = UserApiToken.get_or_create_for_profile(self.profile)
 
@@ -694,8 +694,8 @@ class SlotsApiTests(APITestCase):
 class FacturesApiTests(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(
-            username="factures@extrabeam.fr",
-            email="factures@extrabeam.fr",
+            username="factures@rivebelle.fr",
+            email="factures@rivebelle.fr",
             password="bonjour123",
         )
         self.profile = AccountProfile.objects.create(
@@ -717,8 +717,8 @@ class FacturesApiTests(APITestCase):
         )
 
         self.other_user = User.objects.create_user(
-            username="other@extrabeam.fr",
-            email="other@extrabeam.fr",
+            username="other@rivebelle.fr",
+            email="other@rivebelle.fr",
             password="bonjour123",
         )
         self.other_profile = AccountProfile.objects.create(
@@ -861,8 +861,8 @@ class FacturesApiTests(APITestCase):
 class UnavailabilityApiTests(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(
-            username="indispo@extrabeam.fr",
-            email="indispo@extrabeam.fr",
+            username="indispo@rivebelle.fr",
+            email="indispo@rivebelle.fr",
             password="bonjour123",
         )
         self.profile = AccountProfile.objects.create(
@@ -916,8 +916,8 @@ class UnavailabilityApiTests(APITestCase):
 class AdminApiTests(APITestCase):
     def setUp(self):
         self.admin_user = User.objects.create_user(
-            username="admin@extrabeam.fr",
-            email="admin@extrabeam.fr",
+            username="admin@rivebelle.fr",
+            email="admin@rivebelle.fr",
             password="bonjour123",
             is_staff=True,
         )
@@ -930,8 +930,8 @@ class AdminApiTests(APITestCase):
         self.admin_token = UserApiToken.get_or_create_for_profile(self.admin_profile)
 
         self.freelance_user = User.objects.create_user(
-            username="freelance@extrabeam.fr",
-            email="freelance@extrabeam.fr",
+            username="freelance@rivebelle.fr",
+            email="freelance@rivebelle.fr",
             password="bonjour123",
         )
         self.freelance_profile = AccountProfile.objects.create(
@@ -969,8 +969,8 @@ class AdminApiTests(APITestCase):
         )
 
         self.client_user = User.objects.create_user(
-            username="client@extrabeam.fr",
-            email="client@extrabeam.fr",
+            username="client@rivebelle.fr",
+            email="client@rivebelle.fr",
             password="bonjour123",
         )
         self.client_profile = AccountProfile.objects.create(
@@ -1009,7 +1009,7 @@ class AdminApiTests(APITestCase):
 
         freelance_entry = next(
             account for account in response.data["accounts"]
-            if account["email"] == "freelance@extrabeam.fr"
+            if account["email"] == "freelance@rivebelle.fr"
         )
         self.assertEqual(freelance_entry["skill_count"], 2)
         self.assertEqual(freelance_entry["mission_count"], 1)
@@ -1025,7 +1025,7 @@ class AdminApiTests(APITestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data["accounts"]), 1)
-        self.assertEqual(response.data["accounts"][0]["email"], "freelance@extrabeam.fr")
+        self.assertEqual(response.data["accounts"][0]["email"], "freelance@rivebelle.fr")
 
     def test_admin_account_detail_returns_full_account_payload(self):
         response = self.client.get(
@@ -1034,7 +1034,7 @@ class AdminApiTests(APITestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["account"]["email"], "freelance@extrabeam.fr")
+        self.assertEqual(response.data["account"]["email"], "freelance@rivebelle.fr")
         self.assertEqual(response.data["account"]["role"], AccountProfile.ROLE_FREELANCE)
         self.assertEqual(response.data["stats"]["skill_count"], 2)
         self.assertEqual(len(response.data["skills"]), 2)
@@ -1046,8 +1046,8 @@ class AdminApiTests(APITestCase):
 class ClientWorkspaceApiTests(APITestCase):
     def setUp(self):
         self.client_user = User.objects.create_user(
-            username="client-workspace@extrabeam.fr",
-            email="client-workspace@extrabeam.fr",
+            username="client-workspace@rivebelle.fr",
+            email="client-workspace@rivebelle.fr",
             password="bonjour123",
         )
         self.client_profile = AccountProfile.objects.create(
@@ -1060,8 +1060,8 @@ class ClientWorkspaceApiTests(APITestCase):
         self.client_token = UserApiToken.get_or_create_for_profile(self.client_profile)
 
         self.freelance_user = User.objects.create_user(
-            username="freelance-contact@extrabeam.fr",
-            email="freelance-contact@extrabeam.fr",
+            username="freelance-contact@rivebelle.fr",
+            email="freelance-contact@rivebelle.fr",
             password="bonjour123",
         )
         self.freelance_profile = AccountProfile.objects.create(
@@ -1160,8 +1160,8 @@ class ClientWorkspaceApiTests(APITestCase):
 
     def test_client_can_add_and_remove_contact_by_slug(self):
         other_freelance_user = User.objects.create_user(
-            username="other-freelance@extrabeam.fr",
-            email="other-freelance@extrabeam.fr",
+            username="other-freelance@rivebelle.fr",
+            email="other-freelance@rivebelle.fr",
             password="bonjour123",
         )
         other_freelance_profile = AccountProfile.objects.create(

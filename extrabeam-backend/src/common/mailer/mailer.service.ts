@@ -19,8 +19,8 @@ export class MailerService {
     to,
     subject,
     html,
-    fromName = 'ExtraBeam',
-    fromEmail = 'adam.achbarou@gmail.com',
+    fromName = 'Rivebelle',
+    fromEmail = 'notifications@rivebelle.app',
     replyTo,
   }: SendRawEmailParams) {
     if (!this.apiKey) {

@@ -1,11 +1,12 @@
 """
 api/urls.py
 Layer  : Backend — routage API
-Role   : Déclare toutes les URLs de l'API ExtraBeam v2.
+Role   : Déclare toutes les URLs de l'API Rivebelle v2.
          Préfixe /api/ ajouté dans config/urls.py.
 """
 
 from django.urls import path
+from .guest_recruitment import GuestCreateView, GuestOpenView, GuestBillingView, GuestClaimView
 from .recruitment_views import (RequestListView, RequestDetailView, OfferActionView,
     MessageView, TimesheetView, PrepareInvoiceView, PreferencesView, NotificationsView, PushView)
 from .einvoicing.views import ConnectView, CallbackView, StatusView, SyncView, FinalizeView, SubmitView, WebhookView
@@ -43,6 +44,10 @@ from .views import (
 )
 
 urlpatterns = [
+    path('guest/requests/', GuestCreateView.as_view()),
+    path('guest/<uuid:guest_id>/open/', GuestOpenView.as_view()),
+    path('requests/<uuid:pk>/guest/billing/', GuestBillingView.as_view()),
+    path('requests/<uuid:pk>/guest/claim/', GuestClaimView.as_view()),
     path('requests/', RequestListView.as_view()),
     path('requests/<uuid:pk>/', RequestDetailView.as_view()),
     path('requests/<uuid:pk>/offers/<int:offer_id>/action/', OfferActionView.as_view()),

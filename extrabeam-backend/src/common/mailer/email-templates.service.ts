@@ -55,7 +55,7 @@ const wrap = (title: string, body: string) => `
       ${body}
     </div>
     <hr style="margin:24px 0;border:none;border-top:1px solid #e5e5e5;" />
-    <p style="font-size:12px;color:#666;">Envoyé par <b>ExtraBeam</b> • Version beta</p>
+    <p style="font-size:12px;color:#666;">Envoyé par <b>Rivebelle</b> • Version beta</p>
   </div>
 `;
 

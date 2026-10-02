@@ -1,4 +1,4 @@
-# Generated manually for ExtraBeam v2 experience timeline support.
+# Generated manually for Rivebelle v2 experience timeline support.
 
 import django.db.models.deletion
 from django.db import migrations, models

@@ -1,7 +1,7 @@
 """
 api/models.py
 Layer  : Backend — modèles de données
-Role   : Définit tous les modèles Django de l'application ExtraBeam v2.
+Role   : Définit tous les modèles Django de l'application Rivebelle v2.
          AccountProfile centralise le profil utilisateur (auth + CV).
          Skill, Experience, Slot, Unavailability, UserApiToken complètent le domaine métier.
 Depends: settings.AUTH_USER_MODEL (Django User standard)
@@ -11,7 +11,7 @@ import secrets
 import uuid
 
 from .recruitment_models import (MissionRequest, CandidateOffer, RequestMessage,
-    MissionTimesheet, NotificationPreference, AppNotification, WebPushSubscription)
+    MissionTimesheet, NotificationPreference, AppNotification, WebPushSubscription, GuestRequestLink)
 
 from django.conf import settings
 from django.db import models

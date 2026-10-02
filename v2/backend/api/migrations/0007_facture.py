@@ -1,4 +1,4 @@
-# Generated manually for ExtraBeam v2 invoice support.
+# Generated manually for Rivebelle v2 invoice support.
 
 import django.db.models.deletion
 import django.utils.timezone

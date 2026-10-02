@@ -1,7 +1,7 @@
 """
 api/views.py
 Layer  : Backend — vues REST
-Role   : Endpoints de l'API ExtraBeam v2.
+Role   : Endpoints de l'API Rivebelle v2.
          Auth (login, register, Google OAuth) + Profile/Slots/Unavailabilities.
 Depends: api.accounts, api.models, api.serializers, api.token_auth
 """
@@ -165,6 +165,7 @@ class RegisterSerializer(serializers.Serializer):
 
 class GoogleLoginSerializer(serializers.Serializer):
     code = serializers.CharField()
+    role = serializers.ChoiceField(choices=['client', 'freelance'], required=False, default='freelance')
 
 
 # ---------------------------------------------------------------------------
@@ -173,7 +174,7 @@ class GoogleLoginSerializer(serializers.Serializer):
 
 class HealthView(APIView):
     def get(self, request: Request) -> Response:
-        return Response({"status": "ok", "service": "extrabeam-v2-backend"})
+        return Response({"status": "ok", "service": "rivebelle-v2-backend"})
 
 
 class LoginView(APIView):
@@ -367,6 +368,7 @@ class GoogleLoginView(APIView):
                 display_name=claims["display_name"],
                 avatar_url=claims["avatar_url"],
                 google_sub=claims["sub"],
+                role=serializer.validated_data['role'],
             )
         except GoogleOAuthError as exc:
             return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)

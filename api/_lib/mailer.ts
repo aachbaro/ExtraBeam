@@ -15,7 +15,7 @@
 //   - Lit process.env.BREVO_API_KEY
 //
 // ⚠️ Remarques :
-//   - Centraliser ici l’expéditeur par défaut (no-reply@extrabeam.app)
+//   - Centraliser ici l’expéditeur par défaut (notifications@rivebelle.app)
 //   - Prévoir un flag DRY_RUN pour dev si besoin
 //
 // -------------------------------------------------------------
@@ -40,8 +40,8 @@ export async function sendRawEmail({
   to,
   subject,
   html,
-  fromName = "ExtraBeam",
-  fromEmail = "adam.achbarou@gmail.com",
+  fromName = "Rivebelle",
+  fromEmail = "notifications@rivebelle.app",
   replyTo,
 }: SendRawEmailParams) {
   if (!API_KEY) {

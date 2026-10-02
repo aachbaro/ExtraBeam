@@ -158,7 +158,7 @@ def members(request, slug):
         try:
             linked = AccountProfile.objects.get(slug=extra_slug)
         except AccountProfile.DoesNotExist:
-            raise ValidationError({"extra_slug": "Profil ExtraBeam introuvable."})
+            raise ValidationError({"extra_slug": "Profil Rivebelle introuvable."})
         if RestaurantMember.objects.filter(restaurant=restaurant, profile=linked).exists():
             raise ValidationError({"extra_slug": "Cette personne est déjà membre."})
 

@@ -1,4 +1,4 @@
-# Generated manually for ExtraBeam v2 business profile fields.
+# Generated manually for Rivebelle v2 business profile fields.
 
 from django.db import migrations, models
 
