@@ -348,13 +348,13 @@ def shift_assignments(request, slug, shift_id):
 
     assignment, created = ShiftAssignment.objects.get_or_create(
         shift=shift, member=member,
-        defaults={"assigned_by": profile, "status": "proposed"},
+        # A manager's explicit choice survives automatic regeneration.
+        defaults={"assigned_by": profile, "status": "proposed", "locked": True},
     )
     if not created:
         assignment.status = "proposed"
-        if not assignment.locked:  # ne pas désactiver un poste fixe
-            pass
-        assignment.save(update_fields=["status"])
+        assignment.locked = True
+        assignment.save(update_fields=["status", "locked"])
 
     shift.status = "draft"
     shift.save(update_fields=["status"])

@@ -443,8 +443,8 @@ class ProfileApiTests(APITestCase):
         self.assertEqual(response.data["profile"]["subscription_status"], "active")
         self.assertEqual(response.data["profile"]["subscription_plan"], "Rivebelle Pro")
         self.assertEqual(
-            response.data["profile"]["subscription_period_end"],
-            subscription_end.isoformat().replace("+00:00", "Z"),
+            datetime.datetime.fromisoformat(response.data["profile"]["subscription_period_end"].replace("Z", "+00:00")),
+            subscription_end,
         )
         self.assertTrue(response.data["profile"]["subscription_cancel_at_period_end"])
 
@@ -474,6 +474,7 @@ class ProfileApiTests(APITestCase):
             avatar_response = self.client.get(avatar_path)
             self.assertEqual(avatar_response.status_code, 200)
             self.assertEqual(avatar_response["Content-Type"], "image/jpeg")
+            avatar_response.close()
 
     def test_profile_patch_rejects_invalid_avatar_data(self):
         response = self.client.patch(

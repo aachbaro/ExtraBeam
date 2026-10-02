@@ -40,16 +40,31 @@ class PlanningTests(APITestCase):
         self.assertEqual(s.assignments.get().member_id,self.member.id)
         self.assertEqual(other.assignments.count(),0)
 
-    def test_unknown_and_unqualified_not_generated(self):
+    def test_unqualified_excluded_and_unknown_requires_confirmation_before_publication(self):
         s=self.shift(required_skills=["clés"])
         self.client.post(self.base+"generate/",{"from":"2026-09-07","to":"2026-09-13"})
         self.assertEqual(s.assignments.count(),0)
         self.member.skills=["clés"];self.member.default_availability="unknown";self.member.save()
         self.client.post(self.base+"generate/",{"from":"2026-09-07","to":"2026-09-13"})
-        self.assertEqual(s.assignments.count(),0)
+        self.assertEqual(s.assignments.get().member_id,self.member.id)
+        self.assertEqual(self.client.patch(f"{self.base}shifts/{s.id}/",{"status":"published"},format="json").status_code,400)
         self.member.default_availability="maybe";self.member.save()
         self.client.post(self.base+"generate/",{"from":"2026-09-07","to":"2026-09-13"})
         self.assertEqual(s.assignments.get().member_id,self.member.id)
+
+    def test_regeneration_does_not_replace_manual_choice_with_lower_scored_member(self):
+        s=self.shift()
+        RestaurantMember.objects.create(restaurant=self.restaurant,name="Bob",position="serveur",default_availability="available",weekly_hours=48)
+        self.assertEqual(self.client.post(f"{self.base}shifts/{s.id}/assignments/",{"member_id":self.member.id}).status_code,201)
+        self.assertEqual(self.client.post(self.base+"generate/",{"from":"2026-09-07","to":"2026-09-13"}).status_code,200)
+        self.assertEqual(s.assignments.get().member_id,self.member.id)
+
+    def test_explicit_selection_preserves_an_existing_automatic_assignment(self):
+        s=self.shift()
+        assignment=s.assignments.create(member=self.member,locked=False)
+        self.assertEqual(self.client.post(f"{self.base}shifts/{s.id}/assignments/",{"member_id":self.member.id}).status_code,200)
+        assignment.refresh_from_db()
+        self.assertTrue(assignment.locked)
 
     def test_profile_unavailability_and_hours(self):
         self.member.profile=self.profile;self.member.save()
