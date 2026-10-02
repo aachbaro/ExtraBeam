@@ -62,16 +62,13 @@ export default function HomePage() {
 
       {/* Hero */}
       <section className="mx-auto max-w-5xl px-4 pt-16 pb-12 text-center">
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-eb-primary/70">
-          La plateforme de la restauration indépendante
-        </p>
-        <h1 className="mt-4 text-[38px] font-light leading-tight tracking-tight text-eb-primary md:text-[52px]">
-          Extras et restaurants,<br />
-          <span className="font-semibold">enfin connectés</span>
+        <h1 className="text-[38px] font-light leading-tight tracking-tight text-eb-primary md:text-[52px]">
+          L'outil de travail<br />
+          <span className="font-semibold">des extras et des restaurants</span>
         </h1>
         <p className="mx-auto mt-5 max-w-xl text-[15px] leading-7 text-eb-secondary">
-          Rivebelle est un espace partagé où les extras gèrent leur activité
-          et où les restaurants trouvent les bonnes personnes, disponibles, au bon moment.
+          Côté extra : gérez vos disponibilités, vos contacts clients et vos factures depuis un seul endroit.
+          Côté restaurant : organisez votre planning, votre équipe, et faites appel aux bons profils quand vous en avez besoin.
         </p>
         {!user && (
           <div className="mt-8 flex flex-wrap justify-center gap-3">
