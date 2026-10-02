@@ -146,7 +146,7 @@ class ShiftAssignment(models.Model):
     member = models.ForeignKey(
         RestaurantMember, on_delete=models.CASCADE, related_name="assignments"
     )
-    locked = models.BooleanField(default=True)
+    locked = models.BooleanField(default=False)
     assigned_by = models.ForeignKey(
         AccountProfile, on_delete=models.SET_NULL, null=True, blank=True
     )
