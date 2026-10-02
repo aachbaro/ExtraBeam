@@ -10,6 +10,9 @@ Depends: settings.AUTH_USER_MODEL (Django User standard)
 import secrets
 import uuid
 
+from .recruitment_models import (MissionRequest, CandidateOffer, RequestMessage,
+    MissionTimesheet, NotificationPreference, AppNotification, WebPushSubscription)
+
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
@@ -82,6 +85,7 @@ class AccountProfile(models.Model):
     siret = models.CharField(max_length=20, blank=True)
     legal_name = models.CharField(max_length=200, blank=True)
     siren = models.CharField(max_length=9, blank=True)
+    billing_email = models.EmailField(blank=True)
     legal_status = models.CharField(
         max_length=120, blank=True, default="micro-entreprise"
     )
@@ -471,7 +475,7 @@ class Facture(models.Model):
     contact_email = models.EmailField(blank=True)
 
     description = models.TextField(blank=True)
-    hours = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    hours = models.DecimalField(max_digits=10, decimal_places=4, null=True, blank=True)
     rate = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     montant_ht = models.DecimalField(max_digits=12, decimal_places=2)
     tva = models.DecimalField(max_digits=5, decimal_places=2, default=0)

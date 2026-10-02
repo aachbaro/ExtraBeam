@@ -1,3 +1,4 @@
+import { consumeHiringReturn } from '../recruitmentApi';
 ﻿/**
  * src/pages/AuthCallbackPage.tsx
  * Layer  : Frontend — pages
@@ -64,7 +65,7 @@ export default function AuthCallbackPage() {
     }
 
     setUser(parsed);
-    const target = getDefaultAppPath(parsed);
+    const target = consumeHiringReturn(getDefaultAppPath(parsed));
     navigate(target, { replace: true });
   }, [navigate, setUser]);
 

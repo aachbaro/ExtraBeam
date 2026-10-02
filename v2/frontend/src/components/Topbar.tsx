@@ -11,6 +11,7 @@ import { Link } from "react-router-dom";
 import { getOidcLogoutUrl } from "../api";
 import { useUserContext } from "../context/UserContext";
 import MobileFullscreenButton from "./MobileFullscreenButton";
+import NotificationBell from './recruitment/NotificationBell';
 
 interface Props {
   /** Slug de la page courante — masque le lien "Mon profil" si identique */
@@ -20,8 +21,8 @@ interface Props {
 export default function Topbar({ currentSlug }: Props) {
   const { user, clearUser } = useUserContext();
 
-  function handleLogout() {
-    clearUser();
+  async function handleLogout() {
+    await clearUser();
     window.location.href = getOidcLogoutUrl(`${window.location.origin}/`);
   }
 
@@ -34,7 +35,8 @@ export default function Topbar({ currentSlug }: Props) {
           Rivebelle
         </Link>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3">
+          <NotificationBell />
           {user ? (
             <>
               <span className="hidden text-[13px] text-eb-secondary sm:block">

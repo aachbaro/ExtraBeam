@@ -349,6 +349,7 @@ export async function updateProfile(
       | "siret"
       | "legal_name"
       | "siren"
+      | "billing_email"
       | "legal_status"
       | "vat_number"
       | "vat_notice"

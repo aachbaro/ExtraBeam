@@ -5,7 +5,7 @@ from django.db.models import F
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
-from ..models import Facture, ElectronicInvoiceAccount, ElectronicInvoiceTransmission as Transmission, ElectronicInvoiceEvent
+from ..models import AccountProfile, Facture, MissionTimesheet, ElectronicInvoiceAccount, ElectronicInvoiceTransmission as Transmission, ElectronicInvoiceEvent
 from .mapper import issuer_data, invoice_to_superpdp_payload
 from .providers import get_provider, ProviderError
 
@@ -23,6 +23,7 @@ STATUS_MAP = {
 
 def finalize(invoice):
     with transaction.atomic():
+        AccountProfile.objects.filter(pk=invoice.profile_id).update(updated_at=F('updated_at'))
         invoice = Facture.objects.select_for_update().get(pk=invoice.pk)
         if invoice.finalized_at:
             return invoice
@@ -30,10 +31,19 @@ def finalize(invoice):
             raise ValidationError("Facture annulée.")
         if invoice.mission_id and invoice.mission.status != invoice.mission.STATUS_COMPLETED:
             raise ValidationError("Terminer la mission avant de finaliser la facture.")
+        if invoice.mission_id and hasattr(invoice.mission, 'recruitment_offer'):
+            if not MissionTimesheet.objects.filter(offer=invoice.mission.recruitment_offer, state='approved').exists():
+                raise ValidationError('Valider les heures avant de finaliser la facture.')
+        if invoice.numero.startswith('B-') and hasattr(invoice, 'recruitment_timesheet'):
+            invoice.date_emission = timezone.localdate()
+            prefix = f'RB-{timezone.localdate().year}-'
+            numbers = Facture.objects.filter(profile=invoice.profile, numero__startswith=prefix).values_list('numero', flat=True)
+            sequence = max((int(number[len(prefix):]) for number in numbers if number[len(prefix):].isdigit()), default=0) + 1
+            invoice.numero = f'{prefix}{sequence:05d}'
         invoice.issuer_snapshot = issuer_data(invoice.profile)
         invoice_to_superpdp_payload(invoice)
         invoice.finalized_at = timezone.now()
-        invoice.save(update_fields=["issuer_snapshot", "finalized_at", "updated_at"])
+        invoice.save(update_fields=["numero", "date_emission", "issuer_snapshot", "finalized_at", "updated_at"])
         return invoice
 
 

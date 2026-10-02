@@ -1,3 +1,4 @@
+import { consumeHiringReturn, pendingHiringReturn } from '../recruitmentApi';
 ﻿import { useState, type FormEvent } from "react";
 import { useGoogleLogin, type CodeResponse } from "@react-oauth/google";
 import { Link, Navigate, useNavigate } from "react-router-dom";
@@ -22,12 +23,13 @@ const hasGoogleClientId = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID);
 export default function LoginPage() {
   const navigate = useNavigate();
   const { user, setUser } = useUserContext();
+  const [returnPath] = useState(pendingHiringReturn);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loadingTarget, setLoadingTarget] = useState<LoadingTarget>(null);
-  const oidcLoginUrl = getOidcLoginUrl();
+  const oidcLoginUrl = getOidcLoginUrl(sessionStorage.getItem("rivebelle-hiring-return")?.startsWith("/extras/") ? "client" : undefined);
   const oidcForgotPasswordUrl = getOidcForgotPasswordUrl(oidcLoginUrl);
 
   async function handleLoginSubmit(event: FormEvent<HTMLFormElement>) {
@@ -39,7 +41,7 @@ export default function LoginPage() {
       const response = await login(email, password);
       const nextUser = { ...response.user, token: response.access_token };
       setUser(nextUser);
-      navigate(getDefaultAppPath(nextUser), { replace: true });
+      navigate(consumeHiringReturn(getDefaultAppPath(nextUser)), { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue.");
     } finally {
@@ -55,7 +57,7 @@ export default function LoginPage() {
       const response = await googleLogin(code);
       const nextUser = { ...response.user, token: response.access_token };
       setUser(nextUser);
-      navigate(getDefaultAppPath(nextUser), { replace: true });
+      navigate(consumeHiringReturn(getDefaultAppPath(nextUser)), { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue.");
     } finally {
@@ -76,7 +78,7 @@ export default function LoginPage() {
   });
 
   if (user) {
-    return <Navigate to="/profile" replace />;
+    return <Navigate to={returnPath || getDefaultAppPath(user)} replace />;
   }
 
   return (

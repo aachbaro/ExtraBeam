@@ -146,3 +146,20 @@ EINVOICE_TOKEN_KEY = env("EINVOICE_TOKEN_KEY", default="")  # Dedicated Fernet k
 STRIPE_SECRET_KEY = env("STRIPE_SECRET_KEY", default="")
 STRIPE_WEBHOOK_SECRET = env("STRIPE_WEBHOOK_SECRET", default="")
 STRIPE_LIVE_MODE = env.bool("STRIPE_LIVE_MODE", default=False)
+
+# Durable recruitment worker: in-app always works; SMTP and push require credentials.
+RECRUITMENT_WAVE_MINUTES = max(1, env.int('RECRUITMENT_WAVE_MINUTES', default=15))
+BREVO_API_KEY = env('BREVO_API_KEY', default='')
+EMAIL_BACKEND = env('EMAIL_BACKEND', default='api.brevo_email.BrevoEmailBackend' if BREVO_API_KEY else 'django.core.mail.backends.smtp.EmailBackend')
+EMAIL_HOST = env('EMAIL_HOST', default='')
+EMAIL_PORT = env.int('EMAIL_PORT', default=587)
+EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
+EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=True)
+EMAIL_TIMEOUT = 15
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='Rivebelle <notifications@rivebelle.app>')
+RECRUITMENT_PUBLIC_URL = env('RECRUITMENT_PUBLIC_URL', default='https://rivebelle.app').rstrip('/')
+WEBPUSH_PUBLIC_KEY = env('WEBPUSH_PUBLIC_KEY', default='')
+WEBPUSH_PRIVATE_KEY = env('WEBPUSH_PRIVATE_KEY', default='')
+WEBPUSH_SUBJECT = env('WEBPUSH_SUBJECT', default='mailto:contact@rivebelle.app')
+WEBPUSH_ALLOWED_HOSTS = env.list('WEBPUSH_ALLOWED_HOSTS', default=['fcm.googleapis.com', 'updates.push.services.mozilla.com', 'notify.windows.com', 'push.apple.com'])

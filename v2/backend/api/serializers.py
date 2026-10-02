@@ -271,6 +271,7 @@ class ProfilePublicSerializer(serializers.ModelSerializer):
     PRIVATE_OWNER_FIELDS = {
         "legal_name",
         "siren",
+        "billing_email",
         "siret",
         "legal_status",
         "vat_number",
@@ -311,6 +312,7 @@ class ProfilePublicSerializer(serializers.ModelSerializer):
             "siret",
             "legal_name",
             "siren",
+            "billing_email",
             "legal_status",
             "vat_number",
             "vat_notice",
@@ -376,6 +378,12 @@ class ProfileUpdateSerializer(serializers.ModelSerializer):
             return ""
         if not re.fullmatch(r"\d{14}", normalized):
             raise serializers.ValidationError("Le SIRET doit contenir 14 chiffres.")
+        return normalized
+
+    def validate_siren(self, value: str) -> str:
+        normalized = re.sub(r'\s+', '', value or '')
+        if normalized and not re.fullmatch(r'\d{9}', normalized):
+            raise serializers.ValidationError('Le SIREN doit contenir 9 chiffres.')
         return normalized
 
     def validate_currency(self, value: str) -> str:
@@ -452,6 +460,7 @@ class ProfileUpdateSerializer(serializers.ModelSerializer):
             "avatar_remove",
             "legal_name",
             "siren",
+            "billing_email",
             "role",
             "job_title",
             "location",

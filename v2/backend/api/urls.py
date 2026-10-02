@@ -6,6 +6,8 @@ Role   : Déclare toutes les URLs de l'API ExtraBeam v2.
 """
 
 from django.urls import path
+from .recruitment_views import (RequestListView, RequestDetailView, OfferActionView,
+    MessageView, TimesheetView, PrepareInvoiceView, PreferencesView, NotificationsView, PushView)
 from .einvoicing.views import ConnectView, CallbackView, StatusView, SyncView, FinalizeView, SubmitView, WebhookView
 from .payments import InvoiceCheckoutView, StripeWebhookView
 
@@ -41,6 +43,15 @@ from .views import (
 )
 
 urlpatterns = [
+    path('requests/', RequestListView.as_view()),
+    path('requests/<uuid:pk>/', RequestDetailView.as_view()),
+    path('requests/<uuid:pk>/offers/<int:offer_id>/action/', OfferActionView.as_view()),
+    path('requests/<uuid:pk>/offers/<int:offer_id>/messages/', MessageView.as_view()),
+    path('requests/<uuid:pk>/offers/<int:offer_id>/timesheet/', TimesheetView.as_view()),
+    path('requests/<uuid:pk>/offers/<int:offer_id>/invoice/', PrepareInvoiceView.as_view()),
+    path('notifications/', NotificationsView.as_view()),
+    path('notifications/preferences/', PreferencesView.as_view()),
+    path('notifications/push/', PushView.as_view()),
     path("invoices/<int:invoice_id>/checkout/", InvoiceCheckoutView.as_view()),
     path("webhooks/stripe/", StripeWebhookView.as_view()),
     path("einvoicing/connect/", ConnectView.as_view()),

@@ -67,6 +67,7 @@ export interface FreelancerProfile {
   siret: string;
   legal_name?: string;
   siren?: string;
+  billing_email?: string;
   legal_status: string;
   vat_number: string;
   vat_notice: string;

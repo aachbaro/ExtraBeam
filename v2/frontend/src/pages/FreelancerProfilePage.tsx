@@ -7,7 +7,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
 import {
   addContact,
@@ -25,7 +25,8 @@ import ContactsSection from "../components/contacts/ContactsSection";
 import ExperiencesSection from "../components/experiences/ExperiencesSection";
 import FacturesSection from "../components/factures/FacturesSection";
 import MissionsSection from "../components/missions/MissionsSection";
-import PublicMissionProposalCard from "../components/missions/PublicMissionProposalCard";
+import PublicMissionProposalCard from "../components/recruitment/ProposalForm";
+import RequestsSection from '../components/recruitment/RequestsSection';
 import ProfileCard from "../components/ProfileCard";
 import ProfileContactSection from "../components/ProfileContactSection";
 import AccountSettingsSection from "../components/settings/AccountSettingsSection";
@@ -42,6 +43,11 @@ import type {
 } from "../types";
 
 type OwnerTab = "profil" | "agenda" | "missions" | "factures" | "contacts" | "reglages";
+
+function requestedOwnerTab(search: string): OwnerTab {
+  const tab = new URLSearchParams(search).get('tab');
+  return tab === 'missions' || tab === 'factures' ? tab : 'profil';
+}
 
 const BASE_OWNER_NAV: NavItem[] = [
   { id: "profil", label: "Profil" },
@@ -107,16 +113,19 @@ export default function FreelancerProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [pendingSlot, setPendingSlot] = useState<{ date: string; start: string; end: string } | null>(null);
   const [myRestaurants, setMyRestaurants] = useState<Restaurant[]>([]);
-  const [activeTab, setActiveTab] = useState<OwnerTab>("profil");
+  const [activeTab, setActiveTab] = useState<OwnerTab>(() => {
+    return requestedOwnerTab(window.location.search);
+  });
   const [isContact, setIsContact] = useState<boolean | null>(null);
   const [contactBusy, setContactBusy] = useState(false);
 
   const alreadyTriedRefresh = useRef(sessionStorage.getItem(REFRESH_KEY) === slug);
+  const location = useLocation();
 
   useEffect(() => {
-    setActiveTab("profil");
+    setActiveTab(requestedOwnerTab(location.search));
     setPreviewPublic(false);
-  }, [slug]);
+  }, [slug, location.search]);
 
   useEffect(() => {
     if (!slug) return;
@@ -410,6 +419,7 @@ export default function FreelancerProfilePage() {
       {/* ── Missions ── */}
       {activeTab === "missions" && (
         <div className="max-w-[860px]">
+          {token && <RequestsSection token={token} />}
           <MissionsSection slug={slug} token={token} onMissionsChange={setMissions} />
         </div>
       )}

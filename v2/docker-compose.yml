@@ -7,6 +7,17 @@ services:
     volumes:
       - extrabeam-v2-data:/app/data
 
+  extrabeam-v2-worker:
+    build: ./backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env.prod
+    volumes:
+      - extrabeam-v2-data:/app/data
+    entrypoint: ["python", "manage.py", "recruitment_worker", "--loop"]
+    depends_on:
+      - extrabeam-v2-back
+
   extrabeam-v2-front:
     build:
       context: ./frontend

@@ -1,3 +1,4 @@
+import { consumeHiringReturn, pendingHiringReturn } from '../recruitmentApi';
 ﻿import { useState, type FormEvent } from "react";
 import { useGoogleLogin, type CodeResponse } from "@react-oauth/google";
 import { Link, Navigate, useNavigate } from "react-router-dom";
@@ -15,9 +16,10 @@ const hasGoogleClientId = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID);
 export default function RegisterPage() {
   const navigate = useNavigate();
   const { user, setUser } = useUserContext();
+  const [returnPath] = useState(pendingHiringReturn);
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState<AccountRole>("freelance");
+  const [role, setRole] = useState<AccountRole>(() => new URLSearchParams(window.location.search).get("role") === "client" ? "client" : "freelance");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -50,7 +52,7 @@ export default function RegisterPage() {
       const response = await register(displayName.trim(), email, password, role);
       const nextUser = { ...response.user, token: response.access_token };
       setUser(nextUser);
-      navigate(getDefaultAppPath(nextUser), { replace: true });
+      navigate(consumeHiringReturn(getDefaultAppPath(nextUser)), { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue.");
     } finally {
@@ -66,7 +68,7 @@ export default function RegisterPage() {
       const response = await googleLogin(code);
       const nextUser = { ...response.user, token: response.access_token };
       setUser(nextUser);
-      navigate(getDefaultAppPath(nextUser), { replace: true });
+      navigate(consumeHiringReturn(getDefaultAppPath(nextUser)), { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue.");
     } finally {
@@ -87,7 +89,7 @@ export default function RegisterPage() {
   });
 
   if (user) {
-    return <Navigate to="/profile" replace />;
+    return <Navigate to={returnPath || getDefaultAppPath(user)} replace />;
   }
 
   return (

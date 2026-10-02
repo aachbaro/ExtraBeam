@@ -6,14 +6,16 @@ import AccountRoleCard from "../components/AccountRoleCard";
 import AppShell, { type NavItem } from "../components/AppShell";
 import ContactsSection from "../components/contacts/ContactsSection";
 import ClientTemplatesSection from "../components/client/ClientTemplatesSection";
+import RequestsSection from '../components/recruitment/RequestsSection';
 import AccountSettingsSection from "../components/settings/AccountSettingsSection";
 import { useUserContext } from "../context/UserContext";
 import type { ClientDashboardResponse, Facture, FreelancerProfile, Mission } from "../types";
 
-type ClientTab = "apercu" | "contacts" | "modeles" | "missions" | "reglages";
+type ClientTab = "apercu" | "contacts" | "modeles" | "missions" | "reglages" | "demandes";
 
 const CLIENT_NAV: NavItem[] = [
   { id: "apercu", label: "Vue d'ensemble" },
+  { id: 'demandes', label: 'Demandes' },
   { id: "contacts", label: "Contacts" },
   { id: "modeles", label: "Modèles" },
   { id: "missions", label: "Missions" },
@@ -91,7 +93,7 @@ function FactureList({ factures }: { factures: Facture[] }) {
     <section className="rounded-eb-card border border-eb-layout bg-white p-4">
       <div className="mb-4">
         <p className="text-[12px] font-medium uppercase tracking-[0.12em] text-eb-muted">Factures reçues</p>
-        <p className="mt-1 text-[13px] text-eb-secondary">Lecture seule des factures où ton email apparaît comme contact client.</p>
+        <p className="mt-1 text-[13px] text-eb-secondary">Factures liées à vos missions et à votre compte. Un brouillon doit encore être finalisé par l’extra.</p>
       </div>
       {factures.length > 0 ? (
         <div className="space-y-3">
@@ -110,7 +112,7 @@ function FactureList({ factures }: { factures: Facture[] }) {
                     )}
                   </div>
                   <p className="mt-1 text-[12px] uppercase tracking-[0.08em] text-eb-muted">
-                    {formatDate(facture.date_emission)} · {facture.status}
+                    {formatDate(facture.date_emission)} · {!facture.finalized_at ? 'Brouillon' : facture.status === 'paid' ? 'Payée' : facture.status === 'canceled' ? 'Annulée' : 'À régler'}
                   </p>
                 </div>
                 <span className="text-[13px] font-semibold text-eb-text">{formatAmount(facture.montant_ttc)}</span>
@@ -243,6 +245,7 @@ export default function ClientDashboardPage() {
       )}
 
       {/* ── Contacts ── */}
+      {activeTab === 'demandes' && <RequestsSection token={user.token!} />}
       {activeTab === "contacts" && (
         <ContactsSection token={token} />
       )}

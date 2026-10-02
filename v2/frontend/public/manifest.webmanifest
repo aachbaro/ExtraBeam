@@ -1,0 +1,10 @@
+{
+  "name": "Rivebelle",
+  "short_name": "Rivebelle",
+  "start_url": "/profile",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [{ "src": "/favicon.png", "type": "image/png", "sizes": "any" }]
+}

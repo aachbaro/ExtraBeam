@@ -7,8 +7,8 @@ export default function HomePage() {
 
   const appPath = user ? getDefaultAppPath(user) : null;
 
-  function handleLogout() {
-    clearUser();
+  async function handleLogout() {
+    await clearUser();
     window.location.href = getOidcLogoutUrl(`${window.location.origin}/`);
   }
 

@@ -397,8 +397,8 @@ class ClientDashboardView(APIView):
             Q(client_profile=profile) | Q(client_email__iexact=profile.user.email)
         ).distinct()
         factures = Facture.objects.select_related("profile__user", "mission").filter(
-            contact_email__iexact=profile.user.email
-        )
+            Q(mission__client_profile=profile) | Q(contact_email__iexact=profile.user.email)
+        ).distinct()
 
         return Response(
             {
@@ -599,6 +599,9 @@ class ProfileAccountDeleteView(APIView):
         if profile.factures.filter(finalized_at__isnull=False).exists():
             return Response({"error": "Ce compte possède des factures finalisées. Leur conservation empêche la suppression automatique du compte."}, status=409)
 
+        if profile.mission_requests.exists() or profile.targeted_requests.exists() or profile.candidate_offers.exists():
+            return Response({'error': 'Ce compte possède un historique de recrutement. Contactez le support pour traiter sa suppression.'}, status=409)
+
         delete_profile_avatar_file(profile)
         profile.user.delete()
         return Response({"success": True})
@@ -762,6 +765,8 @@ class SlotDetailView(APIView):
             return Response({"error": "Accès refusé."}, status=403)
         slot = get_object_or_404(Slot, pk=slot_id, profile=profile)
         serializer = SlotSerializer(slot, data=request.data, partial=True)
+        if slot.mission_id and hasattr(slot.mission, 'recruitment_offer'):
+            return Response({'error': 'Le créneau d’une mission confirmée ne peut pas être modifié ici.'}, status=409)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(SlotSerializer(slot).data)
@@ -773,6 +778,8 @@ class SlotDetailView(APIView):
         if profile.user != request.user:
             return Response({"error": "Accès refusé."}, status=403)
         slot = get_object_or_404(Slot, pk=slot_id, profile=profile)
+        if slot.mission_id and hasattr(slot.mission, "recruitment_offer"):
+            return Response({"error": "Un créneau confirmé ne peut pas être supprimé ici."}, status=409)
         slot.delete()
         return Response(status=204)
 
@@ -950,6 +957,8 @@ class MissionDetailView(APIView):
         mission, err = self._get_owned_mission(request, slug, mission_id)
         if err:
             return err
+        if hasattr(mission, 'recruitment_offer') and set(request.data) - {'notes'}:
+            return Response({'error': 'Cette mission se gère depuis sa demande et son relevé d’heures.'}, status=409)
         serializer = MissionSerializer(
             mission,
             data=request.data,
@@ -964,6 +973,8 @@ class MissionDetailView(APIView):
         mission, err = self._get_owned_mission(request, slug, mission_id)
         if err:
             return err
+        if hasattr(mission, 'recruitment_offer'):
+            return Response({'error': 'Une mission confirmée ne peut pas être supprimée.'}, status=409)
         mission.delete()
         return Response(status=204)
 

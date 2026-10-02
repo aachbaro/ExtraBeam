@@ -8,16 +8,29 @@
 
 import { createContext, useContext, useState, type ReactNode } from "react";
 import type { AuthUser } from "../types";
+import { recruitmentApi } from '../recruitmentApi';
 
 interface UserContextValue {
   user: AuthUser | null;
   setUser: (user: AuthUser) => void;
-  clearUser: () => void;
+  clearUser: () => Promise<void>;
 }
 
 const UserContext = createContext<UserContextValue | undefined>(undefined);
 
 const STORAGE_KEY = "eb_user";
+
+async function disconnectPush(token?: string | null) {
+  if (!token || !('serviceWorker' in navigator)) return;
+  try {
+    const registration = await navigator.serviceWorker.getRegistration('/');
+    const subscription = await registration?.pushManager?.getSubscription();
+    if (subscription) {
+      await subscription.unsubscribe();
+      await recruitmentApi('notifications/push/', token, 'DELETE', { endpoint: subscription.endpoint });
+    }
+  } catch { /* Local logout succeeds even if the browser or API is offline. */ }
+}
 
 function loadUser(): AuthUser | null {
   try {
@@ -32,13 +45,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUserState] = useState<AuthUser | null>(loadUser);
 
   function setUser(next: AuthUser) {
+    if (user && user.id !== next.id) void disconnectPush(user.token);
     setUserState(next);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
   }
 
-  function clearUser() {
+  async function clearUser() {
     setUserState(null);
     localStorage.removeItem(STORAGE_KEY);
+    await Promise.race([disconnectPush(user?.token), new Promise<void>(resolve => window.setTimeout(resolve, 2000))]);
   }
 
   return (

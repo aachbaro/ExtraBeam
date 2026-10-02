@@ -9,6 +9,7 @@ import { Fragment, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { getOidcLogoutUrl } from "../api";
 import { useUserContext } from "../context/UserContext";
+import NotificationBell from './recruitment/NotificationBell';
 
 export interface NavItem {
   id: string;
@@ -51,8 +52,8 @@ export default function AppShell({
 }: AppShellProps) {
   const { user, clearUser } = useUserContext();
 
-  function handleLogout() {
-    clearUser();
+  async function handleLogout() {
+    await clearUser();
     const isOidc = user?.auth_provider === "pascuans";
     if (isOidc) {
       window.location.href = getOidcLogoutUrl(`${window.location.origin}/`);
@@ -116,6 +117,7 @@ export default function AppShell({
       <aside className="hidden sm:flex flex-col w-56 shrink-0 bg-white border-r border-eb-layout sticky top-0 h-screen">
         {/* Logo / back link */}
         <div className="px-4 pt-5 pb-3">
+          <NotificationBell />
           <Link
             to={backHref}
             className="font-logo text-[18px] leading-none text-eb-text hover:text-eb-primary transition-colors"
@@ -191,6 +193,7 @@ export default function AppShell({
           </Link>
           <span className="text-eb-muted text-[13px]">·</span>
           <p className="font-semibold text-[13px] text-eb-text flex-1 truncate">{title}</p>
+          <NotificationBell />
           {user && (
             <button
               onClick={handleLogout}

@@ -46,3 +46,4 @@ __pycache__/
 *.pyd
 v2/backend/venv/
 v2/.venv/
+v2/frontend/e2e/artifacts/

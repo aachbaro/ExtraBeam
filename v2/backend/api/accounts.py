@@ -110,11 +110,16 @@ def authenticate_local_account(*, email: str, password: str) -> AccountProfile |
     if not authenticated_user:
         return None
 
-    return get_or_create_profile_for_user(
+    profile = get_or_create_profile_for_user(
         authenticated_user,
-        display_name=authenticated_user.first_name or get_display_name_for_email(authenticated_user.email or authenticated_user.username),
         auth_provider=AccountProfile.AUTH_PROVIDER_LOCAL,
     )
+    # A locally edited profile name is the identity users see in recruitment.
+    # Reconnecting must not replace it with a stale Django User.first_name.
+    if not profile.display_name:
+        profile.display_name = authenticated_user.first_name or get_display_name_for_email(authenticated_user.email or authenticated_user.username)
+        profile.save(update_fields=['display_name', 'updated_at'])
+    return profile
 
 
 @transaction.atomic
