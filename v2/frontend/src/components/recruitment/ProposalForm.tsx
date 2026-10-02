@@ -1,8 +1,9 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useId, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useUserContext } from '../../context/UserContext';
 import { JOBS, recruitmentApi, rememberHiringReturn, type HiringRequest } from '../../recruitmentApi';
 import type { Unavailability } from '../../types';
+import SoftReveal from '../SoftReveal';
 
 interface Props { slug: string; extraName?: string; hourlyRate?: string | null; unavailabilities?: Unavailability[];
   externalSlot?: { date: string; start: string; end: string } | null }
@@ -14,6 +15,7 @@ const empty: Form = { establishment: '', address: '', starts_at: '', ends_at: ''
 export default function ProposalForm({ slug, extraName, hourlyRate, externalSlot }: Props) {
   const { user } = useUserContext();
   const navigate = useNavigate();
+  const revealId = useId();
   const storageKey = `rivebelle-proposal-${slug}`;
   const [form, setForm] = useState<Form>(() => {
     try { const draft = JSON.parse(sessionStorage.getItem(storageKey) || 'null'); return { ...empty, rate: hourlyRate || '', ...draft }; }
@@ -53,8 +55,9 @@ export default function ProposalForm({ slug, extraName, hourlyRate, externalSlot
       maxLength={key === 'address' ? 500 : 200} min={type === 'number' ? '.01' : undefined} step={type === 'number' ? '.01' : undefined} /></label>;
   return <section className="rounded-[24px] border border-[#dec99c] bg-[#fffaf0] p-5 shadow-[0_12px_35px_-20px_#9a702e] sm:p-7">
     <p className="mb-2 text-xs font-semibold uppercase tracking-[.18em] text-[#86652f]">Un coup de main pour votre prochain service</p>
-    <button className="min-h-[56px] w-full rounded-2xl bg-[#f3c64c] px-5 py-3 text-base font-semibold text-[#352b1d] transition hover:bg-[#edba32] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#86652f]" onClick={() => setExpanded(!expanded)} aria-expanded={expanded}>Proposer une mission à {extraName || 'cet extra'}</button>
-    {pendingEmail ? <div role="status" className="mt-5 rounded-2xl bg-white p-5"><h2 className="font-semibold">Un dernier clic dans votre boîte mail</h2><p className="mt-2 text-sm">Confirmez votre adresse pour envoyer la demande. Vous recevrez ensuite les candidatures et votre lien personnel de suivi à {email}.</p></div> : expanded && <form onSubmit={submit} className="mt-5 space-y-4">
+    <button className="min-h-[56px] w-full rounded-2xl bg-[#f3c64c] px-5 py-3 text-base font-semibold text-[#352b1d] transition hover:bg-[#edba32] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#86652f]" onClick={() => setExpanded(!expanded)} aria-expanded={expanded} aria-controls={revealId}>Proposer une mission à {extraName || 'cet extra'}</button>
+    <SoftReveal open={expanded} id={revealId}>
+    {pendingEmail ? <div role="status" className="mt-5 rounded-2xl bg-white p-5"><h2 className="font-semibold">Un dernier clic dans votre boîte mail</h2><p className="mt-2 text-sm">Confirmez votre adresse pour envoyer la demande. Vous recevrez ensuite les candidatures et votre lien personnel de suivi à {email}.</p></div> : <form onSubmit={submit} className="mt-5 space-y-4">
       <p className="text-sm text-eb-secondary">La proposition arrive d’abord à {extraName || 'cet extra'}. Vous choisirez ensuite les candidats intéressés.</p>
       {field('establishment', 'Établissement', 'text', true)}{field('address', 'Adresse complète du service', 'text', true)}
       <div className="grid gap-3 sm:grid-cols-2">{field('starts_at', 'Début du service', 'datetime-local', true)}{field('ends_at', 'Fin du service', 'datetime-local', true)}</div>
@@ -71,5 +74,6 @@ export default function ProposalForm({ slug, extraName, hourlyRate, externalSlot
       {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
       <button className="min-h-[52px] w-full rounded-2xl bg-[#f3c64c] px-4 font-semibold text-[#352b1d] hover:bg-[#edba32] disabled:opacity-60" disabled={busy || (!!user && user.role !== 'client')}>{busy ? 'Envoi…' : user ? 'Envoyer la demande' : 'Recevoir mon lien et envoyer la demande'}</button>
     </form>}
+    </SoftReveal>
   </section>;
 }

@@ -6,7 +6,7 @@
  * Public : Layout simple (topbar + scroll) pour un visiteur externe
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
 import {
@@ -31,6 +31,7 @@ import ProfileCard from "../components/ProfileCard";
 import ProfileContactSection from "../components/ProfileContactSection";
 import AccountSettingsSection from "../components/settings/AccountSettingsSection";
 import Topbar from "../components/Topbar";
+import SoftReveal from '../components/SoftReveal';
 import UnavailabilitySection from "../components/unavailabilities/UnavailabilitySection";
 import { useUserContext } from "../context/UserContext";
 import type {
@@ -73,6 +74,7 @@ function CollapsibleExperiences({
   profile: FreelancerProfile;
 }) {
   const [open, setOpen] = useState(false);
+  const revealId = useId();
   const hasExp = profile.experiences.length > 0 || isOwner;
   if (!hasExp) return null;
   return (
@@ -80,6 +82,8 @@ function CollapsibleExperiences({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        aria-controls={revealId}
         className="flex w-full items-center justify-between border-t border-eb-layout px-6 py-3 text-left transition-colors hover:bg-eb-page"
       >
         <span className="text-[12px] font-medium text-eb-secondary">
@@ -87,13 +91,13 @@ function CollapsibleExperiences({
             ? "Masquer les expériences"
             : `Expériences${profile.experiences.length > 0 ? ` (${profile.experiences.length})` : ""}`}
         </span>
-        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3 shrink-0 text-eb-muted transition-transform duration-300" style={{ transform: open ? "rotate(0deg)" : "rotate(180deg)" }}>
+        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="eb-disclosure-chevron h-3 w-3 shrink-0 text-eb-muted" style={{ transform: open ? "rotate(0deg)" : "rotate(180deg)" }}>
           <polyline points="1,8 6,3 11,8" />
         </svg>
       </button>
-      <div style={{ maxHeight: open ? "4000px" : "0px", overflow: "hidden", transition: "max-height 0.35s ease" }}>
+      <SoftReveal open={open} id={revealId}>
         <ExperiencesSection key={isOwner ? "owner" : "public"} slug={slug} isOwner={isOwner} token={token} initialExperiences={profile.experiences} noCard />
-      </div>
+      </SoftReveal>
     </>
   );
 }
