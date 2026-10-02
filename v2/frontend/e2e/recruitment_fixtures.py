@@ -38,6 +38,20 @@ if action == 'seed':
     print(json.dumps({'adam': profiles[0], 'extra_b': profiles[1], 'restaurant_email': f'restaurant-{suffix}@scenario.invalid',
         'password': 'Scenario-local-2026', 'start_local': start.strftime('%Y-%m-%dT%H:%M'),
         'end_local': (start + timedelta(hours=5)).strftime('%Y-%m-%dT%H:%M')}))
+elif action == 'email-link':
+    from django.core import mail
+    from django.test import override_settings
+    from api.models import GuestRequestLink
+    from api.notification_delivery import deliver_pending
+    email = sys.argv[2]
+    if not email.endswith('@scenario.invalid'):
+        raise SystemExit('Only scenario email addresses are permitted.')
+    link = GuestRequestLink.objects.get(email=email)
+    with override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend'):
+        deliver_pending(limit=5000)
+    message = next(item for item in mail.outbox if item.to == [email] and '#access=' in item.body)
+    url = next(line for line in message.body.splitlines() if '#access=' in line)
+    print(json.dumps({'url': url}))
 else:
     req = MissionRequest.objects.get(pk=sys.argv[2], client__user__email__endswith='@scenario.invalid')
     if action == 'advance':

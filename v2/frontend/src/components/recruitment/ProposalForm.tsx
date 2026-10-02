@@ -9,7 +9,7 @@ interface Props { slug: string; extraName?: string; hourlyRate?: string | null; 
 interface Form { establishment: string; address: string; starts_at: string; ends_at: string; job: string; custom_job: string; dress_code: string;
   quantity: number; cascade: boolean; rate_kind: string; rate: string; notes: string }
 const empty: Form = { establishment: '', address: '', starts_at: '', ends_at: '', job: 'service', custom_job: '', dress_code: '',
-  quantity: 1, cascade: false, rate_kind: 'none', rate: '', notes: '' };
+  quantity: 1, cascade: true, rate_kind: 'none', rate: '', notes: '' };
 
 export default function ProposalForm({ slug, extraName, hourlyRate, externalSlot }: Props) {
   const { user } = useUserContext();
@@ -22,6 +22,8 @@ export default function ProposalForm({ slug, extraName, hourlyRate, externalSlot
   const [expanded, setExpanded] = useState(() => !!sessionStorage.getItem(storageKey));
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [email, setEmail] = useState('');
+  const [pendingEmail, setPendingEmail] = useState(false);
   useEffect(() => {
     if (externalSlot) {
       setExpanded(true);
@@ -35,13 +37,13 @@ export default function ProposalForm({ slug, extraName, hourlyRate, externalSlot
   const preserve = () => { sessionStorage.setItem(storageKey, JSON.stringify(form)); rememberHiringReturn(`/extras/${slug}`); };
   async function submit(event: FormEvent) {
     event.preventDefault();
-    if (!user?.token) { preserve(); navigate('/login'); return; }
     setBusy(true); setError('');
     try {
-      const req = await recruitmentApi<HiringRequest>('requests/', user.token, 'POST', { ...form, target_slug: slug,
+      const req = await recruitmentApi<HiringRequest & { pending_email?: boolean }>(user?.token ? 'requests/' : 'guest/requests/', user?.token || '', 'POST', { ...form, email, target_slug: slug,
         starts_at: new Date(form.starts_at).toISOString(), ends_at: new Date(form.ends_at).toISOString(),
         rate: form.rate_kind === 'none' ? null : form.rate });
       sessionStorage.removeItem(storageKey);
+      if (req.pending_email) { setPendingEmail(true); return; }
       navigate(`/requests/${req.id}`);
     } catch (e) { setError(e instanceof Error ? e.message : 'Envoi impossible.'); }
     finally { setBusy(false); }
@@ -49,9 +51,10 @@ export default function ProposalForm({ slug, extraName, hourlyRate, externalSlot
   const field = (key: 'establishment' | 'address' | 'starts_at' | 'ends_at' | 'dress_code' | 'custom_job' | 'rate', label: string, type = 'text', required = false) =>
     <label className="block text-sm">{label}<input className="eb-input mt-1 w-full" type={type} value={form[key]} onChange={e => change(key, e.target.value)} required={required}
       maxLength={key === 'address' ? 500 : 200} min={type === 'number' ? '.01' : undefined} step={type === 'number' ? '.01' : undefined} /></label>;
-  return <section className="rounded-xl border border-eb-layout bg-white p-5">
-    <button className="eb-btn-primary w-full" onClick={() => setExpanded(!expanded)} aria-expanded={expanded}>Proposer une mission à {extraName || 'cet extra'}</button>
-    {expanded && <form onSubmit={submit} className="mt-5 space-y-4">
+  return <section className="rounded-[24px] border border-[#dec99c] bg-[#fffaf0] p-5 shadow-[0_12px_35px_-20px_#9a702e] sm:p-7">
+    <p className="mb-2 text-xs font-semibold uppercase tracking-[.18em] text-[#86652f]">Un coup de main pour votre prochain service</p>
+    <button className="min-h-[56px] w-full rounded-2xl bg-[#f3c64c] px-5 py-3 text-base font-semibold text-[#352b1d] transition hover:bg-[#edba32] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#86652f]" onClick={() => setExpanded(!expanded)} aria-expanded={expanded}>Proposer une mission à {extraName || 'cet extra'}</button>
+    {pendingEmail ? <div role="status" className="mt-5 rounded-2xl bg-white p-5"><h2 className="font-semibold">Un dernier clic dans votre boîte mail</h2><p className="mt-2 text-sm">Confirmez votre adresse pour envoyer la demande. Vous recevrez ensuite les candidatures et votre lien personnel de suivi à {email}.</p></div> : expanded && <form onSubmit={submit} className="mt-5 space-y-4">
       <p className="text-sm text-eb-secondary">La proposition arrive d’abord à {extraName || 'cet extra'}. Vous choisirez ensuite les candidats intéressés.</p>
       {field('establishment', 'Établissement', 'text', true)}{field('address', 'Adresse complète du service', 'text', true)}
       <div className="grid gap-3 sm:grid-cols-2">{field('starts_at', 'Début du service', 'datetime-local', true)}{field('ends_at', 'Fin du service', 'datetime-local', true)}</div>
@@ -62,11 +65,11 @@ export default function ProposalForm({ slug, extraName, hourlyRate, externalSlot
       <label className="block text-sm">Tarif HT par extra<select className="eb-input mt-1 w-full" value={form.rate_kind} onChange={e => change('rate_kind', e.target.value)}><option value="none">À convenir</option><option value="hourly">Taux horaire</option><option value="fixed">Forfait du service</option></select></label>
       {form.rate_kind !== 'none' && field('rate', form.rate_kind === 'hourly' ? '€/heure HT' : 'Forfait € HT', 'number', true)}
       <label className="block text-sm">Informations utiles (facultatif)<textarea className="eb-input mt-1 w-full" maxLength={5000} value={form.notes} onChange={e => change('notes', e.target.value)} /></label>
-      <label className="flex gap-3 rounded-lg border-2 border-eb-primary/40 bg-eb-primary/5 p-4 text-sm"><input type="checkbox" checked={form.cascade} onChange={e => change('cascade', e.target.checked)} /><span>Si {extraName || 'cet extra'} est indisponible, proposer aussi à d’autres extras Rivebelle.<br /><span className="text-eb-secondary">Vos contacts d’abord, puis son réseau et les extras qui ont activé les propositions.</span></span></label>
-      {!user && <p className="text-sm">Connectez-vous pour envoyer et suivre la demande. Les informations saisies seront conservées. <Link className="text-eb-primary underline" to="/register?role=client" onClick={preserve}>Créer un compte restaurateur</Link></p>}
+      <label className="flex cursor-pointer items-start gap-4 rounded-2xl border-2 border-[#dba52a] bg-[#f9e8ad] p-5 text-base"><input className="mt-1 h-7 w-7 shrink-0 accent-[#91661a]" type="checkbox" checked={form.cascade} onChange={e => change('cascade', e.target.checked)} /><span><strong className="block">Chercher aussi dans le réseau Rivebelle</strong><span className="mt-2 block text-sm">Si {extraName || 'cet extra'} est indisponible ou que des places restent, proposer aussi à d’autres extras Rivebelle.</span><span className="mt-2 block text-sm text-[#705425]">Vos contacts d’abord, puis son réseau et les extras qui ont activé les propositions. Vous gardez le choix des candidats.</span></span></label>
+      {!user && <div className="space-y-3 rounded-2xl bg-white p-4"><label className="block text-sm font-medium">Votre adresse email<input type="email" autoComplete="email" className="eb-input mt-2 w-full" value={email} onChange={e => setEmail(e.target.value)} required maxLength={254} /></label><p className="text-sm text-[#705425]">Aucun compte nécessaire. Un lien personnel envoyé par email vous permettra de choisir les extras et de gérer la mission.</p><p className="text-sm">Déjà un compte ? <Link className="font-semibold underline" to="/login" onClick={preserve}>Se connecter</Link> · <Link className="font-semibold underline" to="/register?role=client" onClick={preserve}>Créer un compte restaurateur</Link></p></div>}
       {user && user.role !== 'client' && <p role="alert" className="text-sm">Ce formulaire nécessite un compte restaurateur.</p>}
       {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
-      <button className="eb-btn-primary w-full" disabled={busy || (!!user && user.role !== 'client')}>{busy ? 'Envoi…' : user ? 'Envoyer la demande' : 'Se connecter pour envoyer'}</button>
+      <button className="min-h-[52px] w-full rounded-2xl bg-[#f3c64c] px-4 font-semibold text-[#352b1d] hover:bg-[#edba32] disabled:opacity-60" disabled={busy || (!!user && user.role !== 'client')}>{busy ? 'Envoi…' : user ? 'Envoyer la demande' : 'Recevoir mon lien et envoyer la demande'}</button>
     </form>}
   </section>;
 }

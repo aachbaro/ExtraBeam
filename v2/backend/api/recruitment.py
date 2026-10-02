@@ -181,7 +181,7 @@ def select(offer_id, client, accept):
         title=f'{JOBS[req.job] if req.job != "other" else req.custom_job} · {req.establishment}',
         status=Mission.STATUS_ONGOING, establishment=req.establishment,
         establishment_address_line1=req.address, client_name=client.legal_name or client.display_name,
-        client_email=client.user.email, contact_name=client.display_name, contact_phone=client.phone,
+        client_email=client.billing_email or client.user.email, contact_name=client.display_name, contact_phone=client.phone,
         instructions=f'Tenue : {req.dress_code}\n{req.notes}',
         start_date=timezone.localtime(req.starts_at).date(), end_date=timezone.localtime(req.ends_at).date(),
         total_amount=req.rate if req.rate_kind == 'fixed' else None)

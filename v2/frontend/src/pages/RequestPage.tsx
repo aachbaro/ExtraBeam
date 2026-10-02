@@ -69,15 +69,15 @@ function Timesheet({ req, offer, act, busy }: { req: HiringRequest; offer: Offer
   </div>;
 }
 
-function BillingForm({ slug, token, refresh }: { slug: string; token: string; refresh: () => Promise<void> }) {
+function BillingForm({ slug, token, refresh, guestRequestId }: { slug: string; token: string; refresh: () => Promise<void>; guestRequestId?: string }) {
   const [form, setForm] = useState({ legal_name: '', siren: '', address_line1: '', address_line2: '', postal_code: '', city: '', country: 'France', vat_number: '', billing_email: '' });
   const [error, setError] = useState(''); const [saved, setSaved] = useState(false); const [busy, setBusy] = useState(false);
-  useEffect(() => { let active = true; void fetchProfileOverview(slug, token).then(value => {
+  useEffect(() => { let active = true; void (guestRequestId ? recruitmentApi<Record<string, string>>(`requests/${guestRequestId}/guest/billing/`, token).then(profile => ({ profile })) : fetchProfileOverview(slug, token)).then(value => {
     if (active) setForm(current => Object.fromEntries(Object.keys(current).map(key => [key, value.profile[key as keyof typeof value.profile] || current[key as keyof typeof current]])) as typeof current);
-  }).catch(e => { if (active) setError(e.message); }); return () => { active = false; }; }, [slug, token]);
+  }).catch(e => { if (active) setError(e.message); }); return () => { active = false; }; }, [slug, token, guestRequestId]);
   async function save(event: FormEvent) {
     event.preventDefault(); setBusy(true); setError(''); setSaved(false);
-    try { await updateProfile(slug, form, token); setSaved(true); await refresh(); }
+    try { if (guestRequestId) await recruitmentApi(`requests/${guestRequestId}/guest/billing/`, token, 'PATCH', form); else await updateProfile(slug, form, token); setSaved(true); await refresh(); }
     catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   }
   const labels: Record<keyof typeof form, string> = { legal_name: 'Raison sociale', siren: 'SIREN (9 chiffres)', address_line1: 'Adresse de facturation', address_line2: 'Complément (facultatif)', postal_code: 'Code postal', city: 'Ville', country: 'Pays', vat_number: 'TVA intracommunautaire (si applicable)', billing_email: 'Email comptabilité (facultatif)' };
@@ -89,23 +89,25 @@ function BillingForm({ slug, token, refresh }: { slug: string; token: string; re
   </form></details>;
 }
 
-export default function RequestPage() {
-  const { id } = useParams(); const { user } = useUserContext();
+export default function RequestPage({ guestAccess }: { guestAccess?: { id: string; token: string } }) {
+  const params = useParams(); const { user } = useUserContext();
+  const id = guestAccess?.id || params.id;
+  const token = guestAccess ? `guest:${guestAccess.token}` : user?.token;
   const [req, setReq] = useState<HiringRequest | null>(null); const [error, setError] = useState(''); const [busy, setBusy] = useState(false);
   const [conversationId, setConversationId] = useState<number | null>(null);
-  const load = useCallback(async () => { if (user?.token && id) setReq(await recruitmentApi<HiringRequest>(`requests/${id}/`, user.token)); }, [id, user?.token]);
+  const load = useCallback(async () => { if (token && id) setReq(await recruitmentApi<HiringRequest>(`requests/${id}/`, token)); }, [id, token]);
   useEffect(() => { let active = true;
     const refresh = () => { if (active) void load().catch(e => { if (active) setError(e.message); }); };
     refresh(); const timer = window.setInterval(refresh, 15000); return () => { active = false; clearInterval(timer); };
   }, [load]);
   async function act(path: string, body: unknown) {
-    if (!user?.token) return; setBusy(true); setError('');
-    try { await recruitmentApi(path, user.token, 'POST', body); await load(); }
+    if (!token) return; setBusy(true); setError('');
+    try { await recruitmentApi(path, token, 'POST', body); await load(); }
     catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   }
-  if (!user?.token) return <main className="mx-auto max-w-3xl p-6"><Topbar /><p className="mt-8">Connectez-vous pour consulter cette demande.</p><Link to="/login" onClick={() => rememberHiringReturn(`/requests/${id}`)} className="eb-btn-primary mt-4">Se connecter</Link></main>;
+  if (!token) return <main className="mx-auto max-w-3xl p-6"><Topbar /><p className="mt-8">Connectez-vous pour consulter cette demande.</p><Link to="/login" onClick={() => rememberHiringReturn(`/requests/${id}`)} className="eb-btn-primary mt-4">Se connecter</Link></main>;
   return <main className="mx-auto max-w-4xl space-y-5 px-4 py-6"><Topbar />
-    <Link className="text-sm text-eb-primary" to={user.role === 'client' ? '/client' : `/extras/${user.slug}?tab=missions`}>← Mon espace</Link>
+    {!guestAccess && user && <Link className="text-sm text-eb-primary" to={user.role === 'client' ? '/client' : `/extras/${user.slug}?tab=missions`}>← Mon espace</Link>}
     {error && <p role="alert" className="rounded-lg bg-red-50 p-4 text-red-700">{error}</p>}
     {!req && !error && <p role="status">Chargement de la demande…</p>}
     {req && <>
@@ -119,7 +121,7 @@ export default function RequestPage() {
         {!req.is_client && ['recruiting', 'exhausted'].includes(req.status) && req.offers.some(o => ['offered', 'interested', 'deferred'].includes(o.state)) && <p className="rounded-lg bg-eb-page p-3 text-sm">{req.compatible_after} extra(s) compatible(s) après vous, dont {req.available_after} avec une disponibilité déclarée. Les autres disponibilités restent inconnues.{req.own_availability === 'unavailable' && <span className="block text-red-700">Vous avez une indisponibilité ou une mission sur ce créneau.</span>}</p>}
         {req.is_client && ['recruiting', 'exhausted'].includes(req.status) && !req.offers.some(o => o.state === 'selected') && <button className="eb-btn-ghost" disabled={busy} onClick={() => void act(`requests/${req.id}/`, { action: 'cancel' })}>Annuler cette demande</button>}
       </section>
-      {req.is_client && req.offers.some(o => o.state === 'selected') && <><p className="text-sm">{req.billing_complete ? 'Coordonnées de facturation complètes.' : 'Complétez votre identité de facturation pour que les extras puissent préparer leurs factures.'}</p><BillingForm slug={user.slug!} token={user.token!} refresh={load} /></>}
+      {req.is_client && req.offers.some(o => o.state === 'selected') && <><p className="text-sm">{req.billing_complete ? 'Coordonnées de facturation complètes.' : 'Complétez votre identité de facturation pour que les extras puissent préparer leurs factures.'}</p><BillingForm slug={user?.slug || ''} token={token!} refresh={load} guestRequestId={guestAccess ? req.id : undefined} /></>}
       {req.offers.map(offer => <section key={offer.id} className="rounded-xl border border-eb-layout bg-white p-5">
         <div className="flex flex-wrap justify-between gap-2"><Link className="font-semibold text-eb-primary" to={`/extras/${offer.extra.slug}`}>{offer.extra.display_name || offer.extra.slug}</Link><span className="text-sm">{STATES[offer.state]}</span></div>
         <p className="mt-1 text-xs text-eb-secondary">{offer.wave === 0 ? 'Profil destinataire de la demande' : offer.wave === 1 ? 'Contact ou ancien collaborateur du restaurant' : offer.wave === 2 ? `Contact ajouté au réseau de ${req.target.display_name}` : 'Extra ayant activé les propositions Rivebelle'}</p>
@@ -136,7 +138,7 @@ export default function RequestPage() {
         {!req.is_client && offer.state === 'deferred' && <p className="mt-2 text-sm text-eb-secondary">Vous avez passé votre tour. Si des places restent après la diffusion, Rivebelle vous proposera de revenir.</p>}
         {offer.state === 'selected' && <p className="mt-2 text-sm text-eb-primary">Mission confirmée. Retrouvez les détails ci-dessus et échangez dans la conversation privée.</p>}
         {offer.state === 'selected' && <Timesheet req={req} offer={offer} act={act} busy={busy} />}
-        {conversationId === offer.id && <Conversation req={req} offer={offer} token={user.token!} />}
+        {conversationId === offer.id && <Conversation req={req} offer={offer} token={token!} />}
       </section>)}
     </>}
   </main>;

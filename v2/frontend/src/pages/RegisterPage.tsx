@@ -65,7 +65,7 @@ export default function RegisterPage() {
     setLoadingTarget("google");
 
     try {
-      const response = await googleLogin(code);
+      const response = await googleLogin(code, role);
       const nextUser = { ...response.user, token: response.access_token };
       setUser(nextUser);
       navigate(consumeHiringReturn(getDefaultAppPath(nextUser)), { replace: true });
@@ -144,6 +144,7 @@ export default function RegisterPage() {
             </p>
           </div>
 
+          {hasGoogleClientId && !showLocalDebugAuth && <button type="button" className="eb-btn-ghost w-full" disabled={loadingTarget !== null} onClick={() => { setLoadingTarget('google'); triggerGoogleSignup(); }}><GoogleIcon /> Continuer avec Google</button>}
           {showLocalDebugAuth ? (
             <>
               <div className="flex items-center gap-3 text-[13px] text-eb-muted">
@@ -162,7 +163,7 @@ export default function RegisterPage() {
                   }
 
                   if (!hasGoogleClientId) {
-                    setError("Google n'est pas configure cote frontend. Renseigne VITE_GOOGLE_CLIENT_ID dans frontend/.env.");
+                    setError("La connexion Google n’est pas encore disponible. Continuez avec votre adresse email.");
                     return;
                   }
 

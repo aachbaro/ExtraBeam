@@ -231,9 +231,9 @@ export async function register(
   return postJson<AuthResponse>("/auth/register/", { display_name, email, password, role });
 }
 
-export async function googleLogin(code: string): Promise<AuthResponse> {
+export async function googleLogin(code: string, role?: AccountRole): Promise<AuthResponse> {
   if (isMockApiEnabled) return mockGoogleLogin(code);
-  return postJson<AuthResponse>("/auth/google/", { code });
+  return postJson<AuthResponse>("/auth/google/", { code, role });
 }
 
 // ---------------------------------------------------------------------------

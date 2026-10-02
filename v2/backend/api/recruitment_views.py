@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied, ValidationError
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, BasePermission
 from rest_framework.response import Response
 from rest_framework.throttling import UserRateThrottle
 from rest_framework.views import APIView
@@ -67,6 +67,7 @@ def request_data(req, profile):
         'remaining': req.quantity - req.offers.filter(state='selected').count(),
         'interested_count': req.offers.filter(state='interested').count(),
         'created_at': req.created_at})
+    result['guest'] = hasattr(req, 'guest_link') and not req.guest_link.revoked_at and req.client_id == profile.pk
     if req.client_id == profile.pk:
         result['offers'] = [offer_data(offer) for offer in req.offers.select_related('extra')]
         result['billing_complete'] = all(getattr(profile, field) for field in ('legal_name', 'siren', 'address_line1', 'postal_code', 'city'))
@@ -88,6 +89,21 @@ class AuthView(APIView):
 
     def profile(self, request):
         return get_object_or_404(AccountProfile, user=request.user)
+
+
+class RequestAccessPermission(BasePermission):
+    def has_permission(self, request, view):
+        return bool(request.user.is_authenticated or (view.kwargs.get('pk') and request.headers.get('X-Guest-Access')))
+
+
+class ScopedRequestView(AuthView):
+    permission_classes = [RequestAccessPermission]
+
+    def profile(self, request):
+        if request.headers.get('X-Guest-Access'):
+            from .guest_recruitment import resolve_link
+            return resolve_link(request.headers['X-Guest-Access'], self.kwargs['pk']).profile
+        return super().profile(request)
 
 
 def accessible_request(pk, profile):
@@ -113,7 +129,7 @@ class RequestListView(AuthView):
         return Response(request_data(req, profile), status=201)
 
 
-class RequestDetailView(AuthView):
+class RequestDetailView(ScopedRequestView):
     def get(self, request, pk):
         profile = self.profile(request)
         return Response(request_data(accessible_request(pk, profile), profile))
@@ -126,7 +142,7 @@ class RequestDetailView(AuthView):
         return Response(request_data(service.cancel(req.pk, profile), profile))
 
 
-class OfferActionView(AuthView):
+class OfferActionView(ScopedRequestView):
     def post(self, request, pk, offer_id):
         profile = self.profile(request)
         req = accessible_request(pk, profile)
@@ -150,7 +166,7 @@ def accessible_offer(req, offer_id, profile):
     return offer
 
 
-class MessageView(AuthView):
+class MessageView(ScopedRequestView):
     def get(self, request, pk, offer_id):
         profile = self.profile(request)
         req = accessible_request(pk, profile)
@@ -177,7 +193,7 @@ class MessageView(AuthView):
         return Response({'id': msg.pk}, status=201)
 
 
-class TimesheetView(AuthView):
+class TimesheetView(ScopedRequestView):
     def post(self, request, pk, offer_id):
         profile = self.profile(request)
         req = accessible_request(pk, profile)

@@ -6,7 +6,7 @@ from django.conf import settings
 from django.core.mail import send_mail
 from django.db.models import Q, F
 from django.utils import timezone
-from .models import AppNotification, NotificationPreference, MissionRequest
+from .models import AppNotification, NotificationPreference, MissionRequest, GuestRequestLink
 
 logger = logging.getLogger(__name__)
 
@@ -43,13 +43,15 @@ def deliver_pending(limit=50):
                 AppNotification.objects.filter(pk=pk, **{field: 'pending'}).update(**{field: 'skipped'})
             continue
         prefs, _ = NotificationPreference.objects.get_or_create(profile=notification.recipient)
+        guest = GuestRequestLink.objects.filter(profile=notification.recipient, revoked_at__isnull=True).first()
+        email_address = guest.email if guest else notification.recipient.user.email
         for channel in ('email', 'push'):
             field = f'{channel}_state'
             counter = f'{channel}_attempts'
             if getattr(notification, field) != 'pending' or getattr(notification, counter) >= 6:
                 continue
             enabled = getattr(prefs, channel)
-            if not enabled or (channel == 'email' and not notification.recipient.user.email):
+            if not enabled or (channel == 'email' and not email_address):
                 AppNotification.objects.filter(pk=pk).update(**{field: 'skipped'})
                 continue
             configured = (bool(settings.EMAIL_HOST) or settings.EMAIL_BACKEND != 'django.core.mail.backends.smtp.EmailBackend') if channel == 'email' else bool(settings.WEBPUSH_PRIVATE_KEY)
@@ -61,9 +63,11 @@ def deliver_pending(limit=50):
                 continue
             try:
                 if channel == 'email':
+                    from .guest_recruitment import notification_url
+                    url = notification_url(notification)
                     send_mail(notification.title,
-                        f'{notification.body}\n\n{settings.RECRUITMENT_PUBLIC_URL}{notification.url}\n\nVos préférences : {settings.RECRUITMENT_PUBLIC_URL}/notifications',
-                        settings.DEFAULT_FROM_EMAIL, [notification.recipient.user.email], fail_silently=False)
+                        f'{notification.body}\n\n{settings.RECRUITMENT_PUBLIC_URL}{url}\n\nRivebelle — le lien de suivi est personnel. Ne le partagez pas.',
+                        settings.DEFAULT_FROM_EMAIL, [email_address], fail_silently=False)
                 else:
                     send_push(notification, prefs)
                 AppNotification.objects.filter(pk=pk).update(**{field: 'sent'})

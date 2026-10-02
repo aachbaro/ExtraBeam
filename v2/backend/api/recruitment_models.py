@@ -2,6 +2,7 @@
 import uuid
 from django.db import models
 from django.utils import timezone
+from django.core.serializers.json import DjangoJSONEncoder
 
 
 class MissionRequest(models.Model):
@@ -28,6 +29,20 @@ class MissionRequest(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+
+
+class GuestRequestLink(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    nonce = models.UUIDField(default=uuid.uuid4, editable=False)
+    email = models.EmailField(max_length=254)
+    profile = models.OneToOneField('api.AccountProfile', on_delete=models.PROTECT, related_name='guest_request_link')
+    target = models.ForeignKey('api.AccountProfile', on_delete=models.PROTECT, related_name='+')
+    request = models.OneToOneField(MissionRequest, null=True, blank=True, on_delete=models.PROTECT, related_name='guest_link')
+    draft = models.JSONField(encoder=DjangoJSONEncoder, default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    verified_at = models.DateTimeField(null=True, blank=True)
+    revoked_at = models.DateTimeField(null=True, blank=True)
 
 
 class CandidateOffer(models.Model):

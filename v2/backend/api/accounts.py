@@ -123,7 +123,7 @@ def authenticate_local_account(*, email: str, password: str) -> AccountProfile |
 
 
 @transaction.atomic
-def get_or_create_google_account(*, email: str, display_name: str, avatar_url: str | None, google_sub: str) -> AccountProfile:
+def get_or_create_google_account(*, email: str, display_name: str, avatar_url: str | None, google_sub: str, role: str = 'freelance') -> AccountProfile:
     existing_profile = AccountProfile.objects.filter(google_sub=google_sub).select_related("user").first()
     if existing_profile:
         if display_name and existing_profile.display_name != display_name:
@@ -151,10 +151,12 @@ def get_or_create_google_account(*, email: str, display_name: str, avatar_url: s
         user.first_name = display_name
         user.save(update_fields=["first_name"])
 
+    requested_role = role if not AccountProfile.objects.filter(user=user).exists() else None
     return get_or_create_profile_for_user(
         user,
         display_name=display_name,
         avatar_url=avatar_url or "",
         auth_provider=AccountProfile.AUTH_PROVIDER_GOOGLE,
         google_sub=google_sub,
+        **({'role': requested_role} if requested_role else {}),
     )

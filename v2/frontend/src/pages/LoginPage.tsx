@@ -29,7 +29,8 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loadingTarget, setLoadingTarget] = useState<LoadingTarget>(null);
-  const oidcLoginUrl = getOidcLoginUrl(sessionStorage.getItem("rivebelle-hiring-return")?.startsWith("/extras/") ? "client" : undefined);
+  const hiringClient = /^(\/extras\/|\/guest\/)/.test(sessionStorage.getItem('rivebelle-hiring-return') || '');
+  const oidcLoginUrl = getOidcLoginUrl(hiringClient ? "client" : undefined);
   const oidcForgotPasswordUrl = getOidcForgotPasswordUrl(oidcLoginUrl);
 
   async function handleLoginSubmit(event: FormEvent<HTMLFormElement>) {
@@ -54,7 +55,7 @@ export default function LoginPage() {
     setLoadingTarget("google");
 
     try {
-      const response = await googleLogin(code);
+      const response = await googleLogin(code, hiringClient ? 'client' : undefined);
       const nextUser = { ...response.user, token: response.access_token };
       setUser(nextUser);
       navigate(consumeHiringReturn(getDefaultAppPath(nextUser)), { replace: true });
@@ -112,6 +113,7 @@ export default function LoginPage() {
             </a>
           </div>
 
+          {hasGoogleClientId && !showLocalDebugAuth && <button type="button" className="eb-btn-ghost w-full" disabled={loadingTarget !== null} onClick={() => { setLoadingTarget('google'); triggerGoogleLogin(); }}><GoogleIcon /> Continuer avec Google</button>}
           {showLocalDebugAuth ? (
             <>
               <div className="flex items-center gap-3 text-[13px] text-eb-muted">
@@ -130,7 +132,7 @@ export default function LoginPage() {
                   }
 
                   if (!hasGoogleClientId) {
-                    setError("Google n'est pas configure cote frontend. Renseigne VITE_GOOGLE_CLIENT_ID dans frontend/.env.");
+                    setError("La connexion Google n’est pas encore disponible. Continuez avec votre adresse email.");
                     return;
                   }
 

@@ -23,6 +23,7 @@ const LoginPage = lazy(() => import("./pages/LoginPage"));
 const RegisterPage = lazy(() => import("./pages/RegisterPage"));
 const AuthCallbackPage = lazy(() => import("./pages/AuthCallbackPage"));
 const RequestPage = lazy(() => import('./pages/RequestPage'));
+const GuestRequestPage = lazy(() => import('./pages/GuestRequestPage'));
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
 
 const Loading = () => <p role="status" className="p-8 text-center text-sm text-eb-secondary">Chargement…</p>;
@@ -35,6 +36,7 @@ export default function App() {
         future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
       >
         <Routes>
+          <Route path="/guest/:guestId" element={<Suspense fallback={<Loading />}><GuestRequestPage /></Suspense>} />
           <Route path="/requests/:id" element={<Suspense fallback={<Loading />}><RequestPage /></Suspense>} />
           <Route path="/notifications" element={<Suspense fallback={<Loading />}><NotificationsPage /></Suspense>} />
           <Route path="/" element={<HomePage />} />

@@ -245,8 +245,13 @@ export default function FreelancerProfilePage() {
   const showPublicLayout = !isOwner || previewPublic;
   if (showPublicLayout) {
     return (
-      <main className="min-h-screen bg-eb-page" style={{ animation: "ebFadeUp 0.4s ease both" }}>
-        <style>{`@keyframes ebFadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }`}</style>
+      <main className="rivebelle-public min-h-screen bg-[#f5efe4] text-[#352b1d]" style={{ animation: "ebFadeUp 0.4s ease both" }}>
+        <style>{`@keyframes ebFadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+          .rivebelle-public .text-eb-primary { color: #956818; }
+          .rivebelle-public .eb-input { border-color: #decfb5; border-radius: 12px; background: #fffdf7; }
+          .rivebelle-public .eb-input:focus { outline-color: #dba52a; }
+          .rivebelle-public [class*="bg-eb-primary/"] { background-color: #f9e8ad; }
+        `}</style>
         <div className="mx-auto max-w-[900px] px-4 py-6 space-y-4">
           <Topbar currentSlug={slug} />
 
@@ -287,12 +292,11 @@ export default function FreelancerProfilePage() {
             </section>
           )}
 
-          <section className="rounded-eb-card border border-eb-layout bg-white overflow-hidden">
+          <section className="overflow-hidden rounded-[26px] border border-[#e0d4bf] bg-[#fffdf7] shadow-[0_10px_35px_-25px_#947239]">
+            <div className="h-3 bg-[#f3c64c]" />
             <ProfileCard profile={profile} isOwner={false} noCard />
             <CollapsibleExperiences slug={slug} isOwner={false} profile={profile} />
           </section>
-
-          <ProfileContactSection profile={profile} />
 
           {canReceivePublicMission && (
             <div className="eb-proposal-anchor">
@@ -306,7 +310,9 @@ export default function FreelancerProfilePage() {
             </div>
           )}
 
-          <section className="rounded-eb-card border border-eb-layout bg-white p-4" style={{ height: "70vh" }}>
+          <ProfileContactSection profile={profile} />
+
+          <section className="rounded-[24px] border border-[#e0d4bf] bg-[#fffdf7] p-4" style={{ height: "70vh" }}>
             <Agenda
               key="public"
               slug={slug}

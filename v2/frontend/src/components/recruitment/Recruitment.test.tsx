@@ -39,13 +39,13 @@ describe('Parcours de recrutement', () => {
   it('envoie une demande avec une cascade facultative, sans utiliser les anciennes missions', async () => {
     vi.mocked(recruitmentApi).mockResolvedValue(base);
     wrap(<ProposalForm slug="adam" extraName="Adam" />); fillProposal();
-    fireEvent.click(screen.getByLabelText(/Si Adam est indisponible/));
+    expect((screen.getByLabelText(/Chercher aussi dans le réseau/) as HTMLInputElement).checked).toBe(true);
     fireEvent.click(screen.getByRole('button', { name: 'Envoyer la demande' }));
     await waitFor(() => expect(recruitmentApi).toHaveBeenCalledWith('requests/', 'token', 'POST', expect.objectContaining({ target_slug: 'adam', cascade: true, quantity: 1, rate: null })));
   });
   it('conserve le formulaire et la destination avant la connexion', () => {
     state.user = null; wrap(<ProposalForm slug="adam" extraName="Adam" />); fillProposal();
-    fireEvent.click(screen.getByRole('button', { name: 'Se connecter pour envoyer' }));
+    fireEvent.click(screen.getByRole('link', { name: /^Se connecter$/ }));
     expect(JSON.parse(sessionStorage.getItem('rivebelle-proposal-adam')!).establishment).toBe('Chez Test');
     expect(sessionStorage.getItem('rivebelle-hiring-return')).toBe('/extras/adam');
     expect(recruitmentApi).not.toHaveBeenCalled();
@@ -56,6 +56,14 @@ describe('Parcours de recrutement', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Envoyer la demande' }));
     expect((await screen.findByRole('alert')).textContent).toContain('Le tarif doit être positif.');
     expect((screen.getByRole('button', { name: 'Envoyer la demande' }) as HTMLButtonElement).disabled).toBe(false);
+  });
+  it('envoie sans compte avec un email et explique la confirmation attendue', async () => {
+    state.user = null; vi.mocked(recruitmentApi).mockResolvedValue({ pending_email: true } as never);
+    wrap(<ProposalForm slug="adam" extraName="Adam" />); fillProposal();
+    fireEvent.change(screen.getByLabelText('Votre adresse email'), { target: { value: 'restaurant@example.org' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Recevoir mon lien et envoyer la demande' }));
+    await waitFor(() => expect(recruitmentApi).toHaveBeenCalledWith('guest/requests/', '', 'POST', expect.objectContaining({ email: 'restaurant@example.org', cascade: true })));
+    expect(await screen.findByText('Un dernier clic dans votre boîte mail')).toBeTruthy();
   });
   it('affiche les compteurs disponibles et inconnus puis permet de passer', async () => {
     state.user = extra; mockRequest(base); showRequest();
