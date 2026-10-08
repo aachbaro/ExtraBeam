@@ -129,17 +129,9 @@ export default function RegisterPage() {
             }}
           />
           <div className="relative z-10">
-            <span className="font-logo text-[28px] leading-none select-none" style={{ color: "#956818" }}>
+            <Link to="/" className="font-logo text-[28px] leading-none select-none" style={{ color: "#956818" }}>
               Rivebelle
-            </span>
-          </div>
-          <div className="relative z-10">
-            <h2 className="riv-register-title text-[26px] leading-snug" style={{ color: "#352b1d" }}>
-              Votre équipe quand elle est là.<br />Les bons extras quand elle ne l’est pas.
-            </h2>
-            <p className="mt-3 text-[14px] leading-6" style={{ color: "#6b5540" }}>
-              Rejoignez Rivebelle et gérez vos missions, votre planning et votre facturation depuis un seul endroit.
-            </p>
+            </Link>
           </div>
         </div>
 
@@ -154,7 +146,7 @@ export default function RegisterPage() {
           >
             {/* Logo mobile uniquement */}
             <div className="mb-8 md:hidden">
-              <span className="font-logo text-[24px] leading-none" style={{ color: "#956818" }}>Rivebelle</span>
+              <Link to="/" className="font-logo text-[24px] leading-none" style={{ color: "#956818" }}>Rivebelle</Link>
             </div>
 
             <h2 className="riv-register-title text-[24px] leading-tight" style={{ color: "#352b1d" }}>
