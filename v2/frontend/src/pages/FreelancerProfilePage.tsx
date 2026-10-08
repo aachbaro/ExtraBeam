@@ -257,6 +257,27 @@ export default function FreelancerProfilePage() {
           .rivebelle-public .eb-input:focus { outline-color: #dba52a; }
           .rivebelle-public [class*="bg-eb-primary/"] { background-color: #f9e8ad; }
         `}</style>
+
+        {/* Bannière sticky "aperçu" — visible uniquement pour l'owner en mode preview */}
+        {isOwner && (
+          <div
+            className="sticky top-0 z-20 flex items-center justify-between px-5 py-2.5"
+            style={{ background: "#f9e8ad", borderBottom: "1px solid #e0c46a" }}
+          >
+            <p className="text-[12px] font-medium" style={{ color: "#6b3d00" }}>
+              Aperçu vue client — voici ce que voient les restaurateurs
+            </p>
+            <button
+              type="button"
+              onClick={() => setPreviewPublic(false)}
+              className="inline-flex min-h-[30px] items-center gap-1.5 rounded-lg px-3 text-[12px] font-medium transition-opacity hover:opacity-80"
+              style={{ background: "#352b1d", color: "#fdf8f1" }}
+            >
+              ← Retour au tableau de bord
+            </button>
+          </div>
+        )}
+
         <div className="mx-auto max-w-[900px] px-4 py-6 space-y-4">
           <Topbar currentSlug={slug} />
 
@@ -276,25 +297,6 @@ export default function FreelancerProfilePage() {
                 {contactBusy ? "…" : isContact ? "Contact ✓  Retirer" : "+ Ajouter aux contacts"}
               </button>
             </div>
-          )}
-
-          {/* Bascule vue détenteur / vue client (owner only) */}
-          {isOwner && (
-            <section className="rounded-eb-card border border-eb-layout bg-white p-4">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-[12px] font-medium uppercase tracking-[0.12em] text-eb-muted">Aperçu du profil</p>
-                  <p className="mt-1 text-[13px] text-eb-secondary">Tu vois ton profil tel qu'un client le verrait.</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setPreviewPublic(false)}
-                  className="inline-flex min-h-[36px] items-center justify-center rounded-eb bg-eb-primary px-4 text-[13px] font-medium text-white"
-                >
-                  ← Vue détenteur
-                </button>
-              </div>
-            </section>
           )}
 
           <section className="overflow-hidden rounded-[26px] border border-[#e0d4bf] bg-[#fffdf7] shadow-[0_10px_35px_-25px_#947239]">
@@ -363,12 +365,13 @@ export default function FreelancerProfilePage() {
       {/* ── Profil ── */}
       {activeTab === "profil" && (
         <div className="space-y-4 max-w-[860px]">
-          {/* Bascule vue client */}
+          {/* Toggle vue client */}
           <div className="flex justify-end">
             <button
               type="button"
               onClick={() => setPreviewPublic(true)}
-              className="text-[12px] text-eb-secondary hover:text-eb-text transition-colors border border-eb-layout rounded-eb px-3 py-1.5"
+              className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-[12px] font-medium transition-opacity hover:opacity-80"
+              style={{ background: "#f9e8ad", color: "#6b3d00" }}
             >
               Aperçu vue client →
             </button>

@@ -5,6 +5,7 @@ import { deleteAccount } from "../../api";
 import { useUserContext } from "../../context/UserContext";
 import type { FreelancerProfile } from "../../types";
 import ElectronicInvoiceSettings from "./ElectronicInvoiceSettings";
+import ProfileQrCode from "./ProfileQrCode";
 
 interface Props {
   profile: FreelancerProfile;
@@ -136,7 +137,14 @@ export default function AccountSettingsSection({ profile, token, authProvider }:
         </section>
       </div>
 
-      {profile.role === "freelance" && <ElectronicInvoiceSettings token={token} />}
+      {profile.role === "freelance" && (
+        <>
+          <div className="mt-4">
+            <ProfileQrCode slug={profile.slug} />
+          </div>
+          <ElectronicInvoiceSettings token={token} />
+        </>
+      )}
       <section className="mt-4 rounded-eb border border-red-200 bg-red-50 p-4">
         <p className="text-[14px] font-semibold text-red-800">Zone sensible</p>
         <p className="mt-2 text-[13px] leading-6 text-red-900/85">
