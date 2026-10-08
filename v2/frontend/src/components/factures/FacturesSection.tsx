@@ -133,7 +133,7 @@ export default function FacturesSection({
   const suggestedNumero = buildSuggestedNumero(factures);
 
   return (
-    <section className="rounded-eb-card border border-eb-layout bg-white p-4">
+    <section className="eb-content-stagger rounded-eb-card border border-eb-layout bg-white p-4">
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <p className="text-[12px] font-medium uppercase tracking-[0.12em] text-eb-muted">
@@ -203,7 +203,7 @@ export default function FacturesSection({
             : "Aucune facture pour l'instant."}
         </p>
       ) : (
-        <div className="space-y-3">
+        <div className="eb-content-stagger space-y-3">
           {shown.map((facture) => (
             <FactureCard
               key={facture.id}

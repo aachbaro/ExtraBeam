@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useUserContext } from '../../context/UserContext';
 import { recruitmentApi, type NotificationList } from '../../recruitmentApi';
 
-export default function NotificationBell() {
+export default function NotificationBell({ align = 'left' }: { align?: 'left' | 'right' }) {
   const { user } = useUserContext();
   const navigate = useNavigate();
   const [data, setData] = useState<NotificationList | null>(null);
@@ -61,7 +61,7 @@ export default function NotificationBell() {
 
       {open && (
         <div
-          className="absolute left-0 top-full z-50 mt-2 w-72 overflow-hidden rounded-xl border shadow-xl"
+          className={`absolute ${align === 'right' ? 'right-0' : 'left-0'} top-full z-50 mt-2 w-72 max-w-[calc(100vw-32px)] overflow-hidden rounded-xl border shadow-xl`}
           style={{ background: "#fdf8f1", borderColor: "#e0d4bf" }}
         >
           <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: "#e0d4bf" }}>

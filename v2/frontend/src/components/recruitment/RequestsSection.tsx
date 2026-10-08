@@ -13,7 +13,7 @@ export default function RequestsSection({ token }: { token: string }) {
     void load(); const interval = window.setInterval(load, 15000);
     return () => { active = false; clearInterval(interval); };
   }, [token]);
-  return <section className="mb-8 space-y-3">
+  return <section className="eb-content-stagger mb-8 space-y-3">
     <h2 className="text-xl font-semibold">Demandes et recrutement</h2>
     {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
     {!requests && !error && <p role="status">Chargement des demandes…</p>}

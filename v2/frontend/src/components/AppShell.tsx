@@ -47,6 +47,10 @@ interface AppShellProps {
   /** Lien "retour" affiché en haut de la sidebar */
   backHref?: string;
   backLabel?: string;
+  animateContent?: boolean;
+  contentClassName?: string;
+  headerActions?: ReactNode;
+  showContentHeader?: boolean;
 }
 
 export default function AppShell({
@@ -60,6 +64,10 @@ export default function AppShell({
   children,
   backHref = "/",
   backLabel = "Rivebelle",
+  animateContent = true,
+  contentClassName = "",
+  headerActions,
+  showContentHeader = false,
 }: AppShellProps) {
   const { user, clearUser } = useUserContext();
 
@@ -133,12 +141,12 @@ export default function AppShell({
         className="hidden sm:flex flex-col w-56 shrink-0 sticky top-0 h-screen border-r"
         style={{ background: "#fdf8f1", borderColor: "#e0d4bf" }}
       >
-        {/* Cloche (gauche) + logo (droite) */}
+        {/* Logo */}
         <div
           className="flex items-center justify-between px-4 pt-5 pb-3"
           style={{ animation: "ebSlideRight 0.3s ease both" }}
         >
-          <NotificationBell />
+          {!showContentHeader && <NotificationBell />}
           <Link
             to={backHref}
             className="font-logo text-[18px] leading-none transition-opacity hover:opacity-70"
@@ -224,7 +232,6 @@ export default function AppShell({
           className="sm:hidden flex items-center gap-3 border-b px-4 py-3 sticky top-0 z-10"
           style={{ background: "#fdf8f1", borderColor: "#e0d4bf" }}
         >
-          <NotificationBell />
           {logoUrl && (
             <img src={logoUrl} alt={title} className="h-7 w-7 rounded-full object-cover shrink-0" />
           )}
@@ -237,6 +244,7 @@ export default function AppShell({
           </Link>
           <span className="text-[13px]" style={{ color: "#b09070" }}>·</span>
           <p className="font-semibold text-[13px] flex-1 truncate" style={{ color: "#352b1d" }}>{title}</p>
+          <NotificationBell align="right" />
           {user && (
             <button
               onClick={handleLogout}
@@ -251,9 +259,22 @@ export default function AppShell({
         {/* Content */}
         <main
           className="flex-1 px-4 sm:px-8 py-6"
-          style={{ animation: "ebFadeUp 0.35s ease both", animationDelay: "80ms" }}
+          style={animateContent ? { animation: "ebFadeUp 0.35s ease both", animationDelay: "80ms" } : undefined}
         >
-          {children}
+          <div className={contentClassName}>
+            {showContentHeader && (
+              <div className="mb-6 flex min-h-[36px] flex-wrap items-center justify-between gap-3">
+                <h1 className="text-[22px] font-semibold" style={{ color: "#352b1d" }}>
+                  {nav.find(item => item.id === activeTab)?.label ?? title}
+                </h1>
+                <div className="ml-auto flex items-center gap-3">
+                  {headerActions}
+                  <div className="hidden sm:block"><NotificationBell align="right" /></div>
+                </div>
+              </div>
+            )}
+            {children}
+          </div>
         </main>
 
         {/* Mobile tab bar */}

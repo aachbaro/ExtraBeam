@@ -4,6 +4,30 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Animate content blocks independently, including cards loaded after the tab opens.
+   Backwards fill keeps the delay soft without retaining a transformed containing
+   block after arrival (important for fixed dialogs and menus). */
+@keyframes ebContentLand {
+  from { opacity: 0; transform: translateY(-16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.eb-owner-content .eb-content-stagger > :where(:not(.eb-content-stagger):not(.fixed)) {
+  animation: ebContentLand 650ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation-delay: 40ms;
+}
+.eb-owner-content .eb-content-stagger > :nth-child(2) { animation-delay: 125ms; }
+.eb-owner-content .eb-content-stagger > :nth-child(3) { animation-delay: 210ms; }
+.eb-owner-content .eb-content-stagger > :nth-child(4) { animation-delay: 295ms; }
+.eb-owner-content .eb-content-stagger > :nth-child(5) { animation-delay: 380ms; }
+.eb-owner-content .eb-content-stagger > :nth-child(n+6) { animation-delay: 465ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .eb-owner-content .eb-content-stagger > :where(:not(.eb-content-stagger):not(.fixed)) {
+    animation: none;
+  }
+}
+
 @keyframes cardEnter {
   from { opacity: 0; transform: translateY(-6px) scale(0.98); }
   to   { opacity: 1; transform: translateY(0)   scale(1);    }

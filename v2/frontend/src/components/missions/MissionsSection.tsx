@@ -91,7 +91,7 @@ export default function MissionsSection({ slug, token, onMissionsChange }: Props
   const shown = statusFilter ? missions.filter((m) => m.status === statusFilter) : missions;
 
   return (
-    <section className="rounded-eb-card border border-eb-layout bg-white p-4">
+    <section className="eb-content-stagger rounded-eb-card border border-eb-layout bg-white p-4">
 
       {/* En-tête */}
       <div className="flex items-center justify-between mb-4">
@@ -149,7 +149,7 @@ export default function MissionsSection({ slug, token, onMissionsChange }: Props
           {statusFilter ? "Aucune mission dans ce statut." : "Aucune mission pour l'instant."}
         </p>
       ) : (
-        <div className="space-y-3">
+        <div className="eb-content-stagger space-y-3">
           {shown.map((m) => (
             <MissionCard
               key={m.id}

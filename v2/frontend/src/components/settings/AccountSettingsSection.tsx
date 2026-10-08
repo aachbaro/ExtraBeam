@@ -106,7 +106,7 @@ export default function AccountSettingsSection({ profile, token, authProvider }:
   }
 
   return (
-    <section className="rounded-eb-card border border-eb-layout bg-white p-4">
+    <section className="eb-content-stagger rounded-eb-card border border-eb-layout bg-white p-4">
       <div className="mb-4">
         <p className="text-[12px] font-medium uppercase tracking-[0.12em] text-eb-muted">
           Paramètres
@@ -116,7 +116,7 @@ export default function AccountSettingsSection({ profile, token, authProvider }:
         </p>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      <div className="eb-content-stagger grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <section className="rounded-eb border border-eb-layout bg-[#FBFDFF] p-4">
           <p className="text-[14px] font-semibold text-eb-text">Compte</p>
           <div className="mt-3 space-y-2 text-[13px] text-eb-secondary">

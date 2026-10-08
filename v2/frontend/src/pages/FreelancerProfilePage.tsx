@@ -361,22 +361,24 @@ export default function FreelancerProfilePage() {
       nav={ownerNav}
       activeTab={activeTab}
       onTabChange={(id) => setActiveTab(id as OwnerTab)}
+      animateContent={false}
+      contentClassName="mx-auto w-full max-w-[1100px]"
+      showContentHeader
+      headerActions={activeTab === "profil" ? (
+        <button
+          type="button"
+          onClick={() => setPreviewPublic(true)}
+          className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-[12px] font-medium transition-opacity hover:opacity-80"
+          style={{ background: "#f9e8ad", color: "#6b3d00" }}
+        >
+          Aperçu vue client →
+        </button>
+      ) : undefined}
     >
+      <div key={activeTab} className="eb-owner-content">
       {/* ── Profil ── */}
       {activeTab === "profil" && (
-        <div className="space-y-4 max-w-[860px]">
-          {/* Toggle vue client */}
-          <div className="flex justify-end">
-            <button
-              type="button"
-              onClick={() => setPreviewPublic(true)}
-              className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-[12px] font-medium transition-opacity hover:opacity-80"
-              style={{ background: "#f9e8ad", color: "#6b3d00" }}
-            >
-              Aperçu vue client →
-            </button>
-          </div>
-
+        <div className="eb-content-stagger space-y-6">
           <AccountRoleCard slug={profile.slug} role={profile.role} token={token} onRoleChanged={handleProfileUpdated} />
 
           <section className="rounded-eb-card border border-eb-layout bg-white overflow-hidden">
@@ -408,7 +410,7 @@ export default function FreelancerProfilePage() {
 
       {/* ── Agenda ── */}
       {activeTab === "agenda" && (
-        <div className="space-y-4 max-w-[1000px]">
+        <div className="eb-content-stagger space-y-6">
           <section className="rounded-eb-card border border-eb-layout bg-white p-4" style={{ height: "68vh" }}>
             <Agenda
               key="owner"
@@ -432,7 +434,7 @@ export default function FreelancerProfilePage() {
 
       {/* ── Missions ── */}
       {activeTab === "missions" && (
-        <div className="max-w-[860px]">
+        <div>
           {token && <RequestsSection token={token} />}
           <MissionsSection slug={slug} token={token} onMissionsChange={setMissions} />
         </div>
@@ -440,7 +442,7 @@ export default function FreelancerProfilePage() {
 
       {/* ── Factures ── */}
       {activeTab === "factures" && (
-        <div className="max-w-[860px]">
+        <div>
           <FacturesSection slug={slug} token={token} missions={missions} profile={profile} />
         </div>
       )}
@@ -452,10 +454,11 @@ export default function FreelancerProfilePage() {
 
       {/* ── Réglages ── */}
       {activeTab === "reglages" && (
-        <div className="max-w-[640px]">
+        <div>
           <AccountSettingsSection profile={profile} token={token} authProvider={user!.auth_provider} />
         </div>
       )}
+      </div>
     </AppShell>
   );
 }

@@ -213,7 +213,7 @@ export default function ContactsSection({ token }: Props) {
   const contactSlugs = new Set(contacts.map((c) => c.profile.slug));
 
   return (
-    <div className="space-y-4 max-w-[860px]">
+    <div className="eb-content-stagger space-y-6">
       {/* Header + recherche */}
       <section className="rounded-eb-card border border-eb-layout bg-white p-6">
         <p className="text-[12px] font-medium uppercase tracking-[0.12em] text-eb-muted">Contacts</p>
@@ -271,7 +271,7 @@ export default function ContactsSection({ token }: Props) {
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-eb-layout">
+          <div className="eb-content-stagger divide-y divide-eb-layout">
             {contacts.map((c) => (
               <ContactCard key={c.link_id} contact={c} onRemove={handleRemove} />
             ))}
