@@ -279,7 +279,7 @@ export default function FreelancerProfilePage() {
         )}
 
         <div className="mx-auto max-w-[900px] px-4 py-6 space-y-4">
-          <Topbar currentSlug={slug} />
+          <Topbar currentSlug={slug} warm />
 
           {/* Bouton contact (visiteur connecté sur un profil tiers) */}
           {!isOwner && user && isContact !== null && (

@@ -29,12 +29,12 @@ export default function HomePage() {
     >
       <style>{WARM_CSS}</style>
 
-      {/* Keep the fixed background outside transformed/animated ancestors. */}
+      {/* Keep the fixed background outside transformed/animated ancestors. Hidden on mobile (overflow-x:hidden + fixed compress its width). */}
       <img
         src="/extra-sketch.png"
         alt=""
         aria-hidden="true"
-        className="pointer-events-none select-none"
+        className="pointer-events-none select-none hidden sm:block"
         style={{
           position: "fixed",
           right: "-60px",

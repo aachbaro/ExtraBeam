@@ -16,9 +16,11 @@ import NotificationBell from './recruitment/NotificationBell';
 interface Props {
   /** Slug de la page courante — masque le lien "Mon profil" si identique */
   currentSlug?: string;
+  /** Palette chaude (profil public / pages warm) */
+  warm?: boolean;
 }
 
-export default function Topbar({ currentSlug }: Props) {
+export default function Topbar({ currentSlug, warm }: Props) {
   const { user, clearUser } = useUserContext();
 
   async function handleLogout() {
@@ -26,12 +28,18 @@ export default function Topbar({ currentSlug }: Props) {
     window.location.href = getOidcLogoutUrl(`${window.location.origin}/`);
   }
 
+  const logoStyle = warm ? { color: "#956818" } : undefined;
+  const linkCls = warm
+    ? "text-[13px] transition-opacity hover:opacity-70"
+    : "eb-btn-ghost text-[13px]";
+  const linkStyle = warm ? { color: "#6b5540" } : undefined;
+
   return (
     <>
       <MobileFullscreenButton />
 
       <div className="flex items-center justify-between">
-        <Link to="/" className="font-logo text-[24px] leading-none text-eb-text select-none">
+        <Link to="/" className="font-logo text-[24px] leading-none select-none" style={logoStyle ?? { color: "var(--eb-text, #1a1a1a)" }}>
           Rivebelle
         </Link>
 
@@ -43,31 +51,31 @@ export default function Topbar({ currentSlug }: Props) {
                 {user.display_name} · {user.role}
               </span>
               {user.role === "admin" && (
-                <Link to="/admin" className="eb-btn-ghost text-[13px]">
+                <Link to="/admin" className={linkCls} style={linkStyle}>
                   Admin
                 </Link>
               )}
               {user.role === "client" ? (
-                <Link to="/client" className="eb-btn-ghost text-[13px]">
+                <Link to="/client" className={linkCls} style={linkStyle}>
                   Mon espace
                 </Link>
               ) : (
                 user.slug && user.slug !== currentSlug && (
-                  <Link to={`/extras/${user.slug}`} className="eb-btn-ghost text-[13px]">
+                  <Link to={`/extras/${user.slug}`} className={linkCls} style={linkStyle}>
                     Mon profil
                   </Link>
                 )
               )}
-              <button type="button" onClick={handleLogout} className="eb-btn-ghost text-[13px]">
+              <button type="button" onClick={handleLogout} className={linkCls} style={linkStyle}>
                 Se déconnecter
               </button>
             </>
           ) : (
             <>
-              <Link to="/register" className="eb-btn-ghost text-[13px]">
-                Creer un compte
+              <Link to="/register" className={linkCls} style={linkStyle}>
+                Créer un compte
               </Link>
-              <Link to="/login" className="eb-btn-ghost text-[13px]">
+              <Link to="/login" className={linkCls} style={linkStyle}>
                 Se connecter
               </Link>
             </>
