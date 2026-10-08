@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 
 import {
   createMission,
@@ -307,7 +307,7 @@ export default function PublicMissionProposalCard({ slug, unavailabilities = [],
   }
 
   return (
-    <section className="rounded-eb-card border border-eb-layout bg-white p-4">
+    <section className="rounded-eb-card border border-eb-layout bg-[#fffdf7] p-4">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <p className="text-[12px] font-medium uppercase tracking-[0.12em] text-eb-muted">
@@ -501,7 +501,7 @@ export default function PublicMissionProposalCard({ slug, unavailabilities = [],
               {form.slots.map((slot, index) => {
                 const avail = checkSlotAvailability(slot, unavailabilities);
                 return (
-                <div key={`${index}-${slot.start_date}-${slot.start_time}`} className="rounded-eb border border-eb-layout bg-white p-3">
+                <div key={`${index}-${slot.start_date}-${slot.start_time}`} className="rounded-eb border border-eb-layout bg-[#fffdf7] p-3">
                   <div className="mb-3 flex items-center justify-between gap-3">
                     <input
                       className="eb-input flex-1"

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ContactsSection
  * Composant partagé : liste de contacts mutuels + recherche + ajout.
  * Utilisé dans FreelancerProfilePage (onglet Contacts) et ClientDashboardPage.
@@ -215,7 +215,7 @@ export default function ContactsSection({ token }: Props) {
   return (
     <div className="eb-content-stagger space-y-6">
       {/* Header + recherche */}
-      <section className="rounded-eb-card border border-eb-layout bg-white p-6">
+      <section className="rounded-eb-card border border-eb-layout bg-[#fffdf7] p-6">
         <p className="text-[12px] font-medium uppercase tracking-[0.12em] text-eb-muted">Contacts</p>
         <h2 className="mt-2 text-[22px] font-semibold text-eb-text">Mes contacts</h2>
         <p className="mt-1 text-[13px] text-eb-secondary">
@@ -239,7 +239,7 @@ export default function ContactsSection({ token }: Props) {
 
         {/* Résultats de recherche */}
         {searchActive && (
-          <div className="mt-2 rounded-eb border border-eb-layout bg-white shadow-sm overflow-hidden divide-y divide-eb-layout">
+          <div className="mt-2 rounded-eb border border-eb-layout bg-[#fffdf7] shadow-sm overflow-hidden divide-y divide-eb-layout">
             {searchResults.length === 0 && !searching ? (
               <p className="px-4 py-3 text-[13px] text-eb-muted">
                 {query.trim().length < 2 ? "Tape au moins 2 caractères…" : "Aucun résultat."}
@@ -260,7 +260,7 @@ export default function ContactsSection({ token }: Props) {
       </section>
 
       {/* Liste des contacts */}
-      <section className="rounded-eb-card border border-eb-layout bg-white overflow-hidden">
+      <section className="rounded-eb-card border border-eb-layout bg-[#fffdf7] overflow-hidden">
         {loadingContacts ? (
           <p className="px-6 py-8 text-center text-[13px] text-eb-muted">Chargement…</p>
         ) : contacts.length === 0 ? (

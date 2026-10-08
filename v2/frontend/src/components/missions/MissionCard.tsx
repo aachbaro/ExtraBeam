@@ -39,7 +39,7 @@ export default function MissionCard({ mission, onClick, onDelete }: Props) {
 
   return (
     <div
-      className="group relative rounded-eb border border-eb-layout bg-white p-4 cursor-pointer hover:border-[#93c5fd] transition-colors"
+      className="group relative rounded-eb border border-eb-layout bg-[#fffdf7] p-4 cursor-pointer hover:border-[#c6a84b] transition-colors"
       onClick={onClick}
     >
       {/* Header : titre + statut */}

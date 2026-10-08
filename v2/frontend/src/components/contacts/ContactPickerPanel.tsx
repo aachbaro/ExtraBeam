@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ContactPickerPanel
  * Panneau latéral compact pour choisir un extra depuis ses contacts.
  * Utilisé depuis le planning restaurant pour pré-remplir une proposition de mission.
@@ -51,7 +51,7 @@ export default function ContactPickerPanel({ token, currentWeekStart, onClose }:
   }
 
   return (
-    <div className="rounded-eb-card border border-eb-layout bg-white shadow-sm overflow-hidden w-full max-w-sm">
+    <div className="rounded-eb-card border border-eb-layout bg-[#fffdf7] shadow-sm overflow-hidden w-full max-w-sm">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-eb-layout">
         <p className="text-[13px] font-semibold text-eb-text">Réserver un extra</p>

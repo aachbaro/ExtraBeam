@@ -538,7 +538,7 @@ export default function FactureForm({
     >
       <form
         onSubmit={handleSubmit}
-        className="relative w-full max-w-4xl rounded-eb-card border border-eb-layout bg-white p-6 shadow-lg"
+        className="relative w-full max-w-4xl rounded-eb-card border border-eb-layout bg-[#fffdf7] p-6 shadow-lg"
       >
         <div className="mb-5 flex items-center justify-between gap-4">
           <div>
@@ -656,7 +656,7 @@ export default function FactureForm({
               <button
                 type="button"
                 onClick={applyProfileDefaults}
-                className="inline-flex min-h-[34px] items-center justify-center rounded-eb border border-eb-layout px-3 text-[12px] font-medium text-eb-text transition-colors hover:bg-white"
+                className="inline-flex min-h-[34px] items-center justify-center rounded-eb border border-eb-layout px-3 text-[12px] font-medium text-eb-text transition-colors hover:bg-[#fffdf7]"
               >
                 Reprendre mes mentions du profil
               </button>

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * src/components/missions/MissionForm.tsx
  * Layer  : Frontend — composant UI
  * Role   : Formulaire owner complet pour créer / éditer une mission,
@@ -232,7 +232,7 @@ export default function MissionForm({ initial, onSave, onClose }: Props) {
     >
       <form
         onSubmit={handleSubmit}
-        className="relative w-full max-w-4xl rounded-eb-card border border-eb-layout bg-white p-6 shadow-lg"
+        className="relative w-full max-w-4xl rounded-eb-card border border-eb-layout bg-[#fffdf7] p-6 shadow-lg"
       >
         <div className="mb-5 flex items-center justify-between">
           <h2 className="text-[17px] font-semibold text-eb-text">
@@ -476,7 +476,7 @@ export default function MissionForm({ initial, onSave, onClose }: Props) {
             </div>
           </div>
 
-          <div className="rounded-eb border border-eb-layout bg-white p-4">
+          <div className="rounded-eb border border-eb-layout bg-[#fffdf7] p-4">
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-eb-muted">

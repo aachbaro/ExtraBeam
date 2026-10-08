@@ -81,7 +81,7 @@ function BillingForm({ slug, token, refresh, guestRequestId }: { slug: string; t
     catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   }
   const labels: Record<keyof typeof form, string> = { legal_name: 'Raison sociale', siren: 'SIREN (9 chiffres)', address_line1: 'Adresse de facturation', address_line2: 'Complément (facultatif)', postal_code: 'Code postal', city: 'Ville', country: 'Pays', vat_number: 'TVA intracommunautaire (si applicable)', billing_email: 'Email comptabilité (facultatif)' };
-  return <details className="rounded-xl border border-eb-layout bg-white p-5"><summary className="cursor-pointer font-semibold">Coordonnées de facturation réutilisables</summary><form onSubmit={save} className="mt-4 grid gap-3 sm:grid-cols-2">
+  return <details className="rounded-xl border border-eb-layout bg-[#fffdf7] p-5"><summary className="cursor-pointer font-semibold">Coordonnées de facturation réutilisables</summary><form onSubmit={save} className="mt-4 grid gap-3 sm:grid-cols-2">
     {(Object.keys(form) as (keyof typeof form)[]).map(key => <label key={key} className="text-sm">{labels[key]}<input className="eb-input mt-1 w-full" type={key === 'billing_email' ? 'email' : 'text'} value={form[key]} onChange={e => setForm({ ...form, [key]: e.target.value })} required={!['address_line2', 'vat_number', 'billing_email'].includes(key)} pattern={key === 'siren' ? '[0-9]{9}' : undefined} maxLength={key === 'siren' ? 9 : 200} /></label>)}
     <p className="text-xs text-eb-secondary sm:col-span-2">L’identité et l’adresse sont nécessaires à la facture. Ces coordonnées servent à toutes vos missions. L’email du compte est utilisé si vous ne renseignez pas d’email comptabilité.</p>
     {error && <p role="alert">{error}</p>}{saved && <p role="status">Coordonnées enregistrées.</p>}
@@ -105,13 +105,13 @@ export default function RequestPage({ guestAccess }: { guestAccess?: { id: strin
     try { await recruitmentApi(path, token, 'POST', body); await load(); }
     catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   }
-  if (!token) return <main className="mx-auto max-w-3xl p-6"><Topbar /><p className="mt-8">Connectez-vous pour consulter cette demande.</p><Link to="/login" onClick={() => rememberHiringReturn(`/requests/${id}`)} className="eb-btn-primary mt-4">Se connecter</Link></main>;
-  return <main className="mx-auto max-w-4xl space-y-5 px-4 py-6"><Topbar />
+  if (!token) return <main className="min-h-screen bg-eb-page"><div className="mx-auto max-w-3xl p-6"><Topbar warm /><p className="mt-8">Connectez-vous pour consulter cette demande.</p><Link to="/login" onClick={() => rememberHiringReturn(`/requests/${id}`)} className="eb-btn-primary mt-4 inline-block">Se connecter</Link></div></main>;
+  return <main className="min-h-screen bg-eb-page"><div className="mx-auto max-w-4xl space-y-5 px-4 py-6"><Topbar warm />
     {!guestAccess && user && <Link className="text-sm text-eb-primary" to={user.role === 'client' ? '/client' : `/extras/${user.slug}?tab=missions`}>← Mon espace</Link>}
     {error && <p role="alert" className="rounded-lg bg-red-50 p-4 text-red-700">{error}</p>}
     {!req && !error && <p role="status">Chargement de la demande…</p>}
     {req && <>
-      <section className="rounded-xl border border-eb-layout bg-white p-5 space-y-2">
+      <section className="rounded-xl border border-eb-layout bg-[#fffdf7] p-5 space-y-2">
         <p className="text-sm text-eb-primary">{STATES[req.status]}</p><h1 className="text-2xl font-semibold">{req.establishment} · {req.job === 'other' ? req.custom_job : JOBS[req.job]}</h1>
         <p>{new Date(req.starts_at).toLocaleString('fr-FR')} → {new Date(req.ends_at).toLocaleString('fr-FR')}</p>
         <p>{req.address}</p>{req.dress_code && <p>Tenue : {req.dress_code}</p>}{req.notes && <p className="whitespace-pre-wrap">{req.notes}</p>}
@@ -122,7 +122,7 @@ export default function RequestPage({ guestAccess }: { guestAccess?: { id: strin
         {req.is_client && ['recruiting', 'exhausted'].includes(req.status) && !req.offers.some(o => o.state === 'selected') && <button className="eb-btn-ghost" disabled={busy} onClick={() => void act(`requests/${req.id}/`, { action: 'cancel' })}>Annuler cette demande</button>}
       </section>
       {req.is_client && req.offers.some(o => o.state === 'selected') && <><p className="text-sm">{req.billing_complete ? 'Coordonnées de facturation complètes.' : 'Complétez votre identité de facturation pour que les extras puissent préparer leurs factures.'}</p><BillingForm slug={user?.slug || ''} token={token!} refresh={load} guestRequestId={guestAccess ? req.id : undefined} /></>}
-      {req.offers.map(offer => <section key={offer.id} className="rounded-xl border border-eb-layout bg-white p-5">
+      {req.offers.map(offer => <section key={offer.id} className="rounded-xl border border-eb-layout bg-[#fffdf7] p-5">
         <div className="flex flex-wrap justify-between gap-2"><Link className="font-semibold text-eb-primary" to={`/extras/${offer.extra.slug}`}>{offer.extra.display_name || offer.extra.slug}</Link><span className="text-sm">{STATES[offer.state]}</span></div>
         <p className="mt-1 text-xs text-eb-secondary">{offer.wave === 0 ? 'Profil destinataire de la demande' : offer.wave === 1 ? 'Contact ou ancien collaborateur du restaurant' : offer.wave === 2 ? `Contact ajouté au réseau de ${req.target.display_name}` : 'Extra ayant activé les propositions Rivebelle'}</p>
         <div className="mt-3 flex flex-wrap gap-2">
@@ -141,5 +141,5 @@ export default function RequestPage({ guestAccess }: { guestAccess?: { id: strin
         {conversationId === offer.id && <Conversation req={req} offer={offer} token={token!} />}
       </section>)}
     </>}
-  </main>;
+  </div></main>;
 }

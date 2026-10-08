@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { fetchRestaurantSkills, createRestaurantSkill } from "../api";
 import type { RestaurantMember } from "../types";
 export default function SkillsPicker({
@@ -170,7 +170,7 @@ export default function SkillsPicker({
           <button
             type="button"
             disabled={busy || !chosen.length}
-            className="border rounded bg-white px-3 py-2 text-sm disabled:opacity-50"
+            className="border rounded bg-[#fffdf7] px-3 py-2 text-sm disabled:opacity-50"
             onClick={() => void create()}
           >
             {busy ? "Enregistrement…" : "Créer la compétence et attribuer"}

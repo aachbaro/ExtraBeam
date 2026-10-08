@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+﻿import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import type { RestaurantMember, RestaurantService, ServiceDefinition, ServiceSlot, ServiceTask } from "../types";
 import { assignMember, deleteShift, editService, removeAssignment, toggleFixedAssignment } from "../api";
@@ -293,7 +293,7 @@ export default function ServiceDayCard({
   return (
     <div
       onContextMenu={(e) => { if (!manager || (e.target as HTMLElement).closest("[role=dialog]")) return; e.preventDefault(); e.stopPropagation(); setMenuPos({ top: Math.min(e.clientY, window.innerHeight - 300), right: Math.max(8, window.innerWidth - e.clientX - 190) }); setMenuOpen(true); }}
-      className={`bg-white border rounded-xl text-sm overflow-hidden ${busy ? "opacity-70 pointer-events-none" : ""}`}
+      className={`bg-[#fffdf7] border rounded-xl text-sm overflow-hidden ${busy ? "opacity-70 pointer-events-none" : ""}`}
       style={isNew ? { animation: "cardEnter 0.25s ease-out both" } : undefined}
     >
       {error && <p role="alert" className="px-3 pt-2 text-xs text-red-600">{error}</p>}
@@ -310,9 +310,9 @@ export default function ServiceDayCard({
               className="w-full font-semibold text-eb-text bg-transparent border-b border-eb-primary/40 focus:outline-none focus:border-eb-primary pb-0.5 text-sm"
             />
             <div className="flex items-center gap-2">
-              <TimePicker value={editStart} onChange={setEditStart} className="flex-1 text-xs rounded border border-eb-layout px-2 py-1.5 flex items-center gap-0.5 bg-white text-eb-text focus:border-eb-primary" />
+              <TimePicker value={editStart} onChange={setEditStart} className="flex-1 text-xs rounded border border-eb-layout px-2 py-1.5 flex items-center gap-0.5 bg-[#fffdf7] text-eb-text focus:border-eb-primary" />
               <span className="text-eb-muted text-xs shrink-0">–</span>
-              <TimePicker value={editEnd} onChange={setEditEnd} className="flex-1 text-xs rounded border border-eb-layout px-2 py-1.5 flex items-center gap-0.5 bg-white text-eb-text focus:border-eb-primary" />
+              <TimePicker value={editEnd} onChange={setEditEnd} className="flex-1 text-xs rounded border border-eb-layout px-2 py-1.5 flex items-center gap-0.5 bg-[#fffdf7] text-eb-text focus:border-eb-primary" />
             </div>
             <label className="block text-[11px] text-eb-secondary">Fermeture cuisine
               <TimePicker value={editKitchen} onChange={setEditKitchen} className="w-full border rounded px-2 py-1.5" />
@@ -371,7 +371,7 @@ export default function ServiceDayCard({
                 {menuOpen && menuPos && createPortal(
                   <div
                     ref={menuPanelRef}
-                    className="fixed z-[9999] bg-white border border-eb-layout rounded-xl shadow-xl py-1 min-w-[190px] overflow-hidden"
+                    className="fixed z-[9999] bg-[#fffdf7] border border-eb-layout rounded-xl shadow-xl py-1 min-w-[190px] overflow-hidden"
                     style={{ top: menuPos.top, right: menuPos.right, animation: "menuEnter 0.15s ease-out both" }}
                   >
                     <MenuItem
@@ -586,7 +586,7 @@ export default function ServiceDayCard({
                           <div key={`slot-${i}`} className="flex items-center gap-2 py-0.5">
                             <select
                               autoFocus
-                              className="flex-1 text-[12px] rounded border border-eb-layout px-2 py-1 bg-white focus:outline-none focus:border-eb-primary"
+                              className="flex-1 text-[12px] rounded border border-eb-layout px-2 py-1 bg-[#fffdf7] focus:outline-none focus:border-eb-primary"
                               defaultValue=""
                               onChange={(e) => {
                                 if (e.target.value) void assign(shift.id, Number(e.target.value));
@@ -876,7 +876,7 @@ function AddShiftPanel({
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-xl p-4 w-full max-w-xs max-h-[90vh] overflow-y-auto space-y-3 shadow-xl"
+        className="bg-[#fffdf7] rounded-xl p-4 w-full max-w-xs max-h-[90vh] overflow-y-auto space-y-3 shadow-xl"
         style={{ animation: "cardEnter 0.2s ease-out both" }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -889,7 +889,7 @@ function AddShiftPanel({
             <select
               value={position}
               onChange={(e) => setPosition(e.target.value)}
-              className="w-full text-sm rounded border border-eb-layout px-2 py-1.5 bg-white focus:outline-none focus:border-eb-primary"
+              className="w-full text-sm rounded border border-eb-layout px-2 py-1.5 bg-[#fffdf7] focus:outline-none focus:border-eb-primary"
             >
               {POSITIONS.map((p) => (
                 <option key={p.value} value={p.value}>{p.label}</option>
@@ -902,7 +902,7 @@ function AddShiftPanel({
               <TimePicker
                 value={startTime}
                 onChange={setStartTime}
-                className="w-full text-sm rounded border border-eb-layout px-2 py-1.5 flex items-center gap-0.5 bg-white text-eb-text"
+                className="w-full text-sm rounded border border-eb-layout px-2 py-1.5 flex items-center gap-0.5 bg-[#fffdf7] text-eb-text"
               />
             </div>
             <div className="flex-1">
@@ -910,7 +910,7 @@ function AddShiftPanel({
               <TimePicker
                 value={endTime}
                 onChange={setEndTime}
-                className="w-full text-sm rounded border border-eb-layout px-2 py-1.5 flex items-center gap-0.5 bg-white text-eb-text"
+                className="w-full text-sm rounded border border-eb-layout px-2 py-1.5 flex items-center gap-0.5 bg-[#fffdf7] text-eb-text"
               />
             </div>
           </div>
@@ -1039,7 +1039,7 @@ function NotesTasksPanel({
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-xl p-4 w-full max-w-sm max-h-[85vh] overflow-y-auto space-y-4 shadow-xl"
+        className="bg-[#fffdf7] rounded-xl p-4 w-full max-w-sm max-h-[85vh] overflow-y-auto space-y-4 shadow-xl"
         style={{ animation: "cardEnter 0.2s ease-out both" }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -1074,7 +1074,7 @@ function NotesTasksPanel({
                 onChange={(e) => setNewNote(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addNote(); } }}
                 placeholder="Nouvelle note…"
-                className="flex-1 text-[12px] rounded border border-eb-layout px-2 py-1.5 bg-white focus:outline-none focus:border-eb-primary"
+                className="flex-1 text-[12px] rounded border border-eb-layout px-2 py-1.5 bg-[#fffdf7] focus:outline-none focus:border-eb-primary"
               />
               <button type="button" onClick={addNote} className="text-[11px] px-2.5 py-1.5 bg-eb-primary text-white rounded-lg hover:opacity-90">+</button>
             </div>
@@ -1142,7 +1142,7 @@ function NotesTasksPanel({
                   onChange={(e) => setNewTask(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addTask(); } }}
                   placeholder="Nouvelle tâche…"
-                  className="flex-1 text-[12px] rounded border border-eb-layout px-2 py-1.5 bg-white focus:outline-none focus:border-eb-primary"
+                  className="flex-1 text-[12px] rounded border border-eb-layout px-2 py-1.5 bg-[#fffdf7] focus:outline-none focus:border-eb-primary"
                 />
                 <button type="button" onClick={addTask} className="text-[11px] px-2.5 py-1.5 bg-eb-primary text-white rounded-lg hover:opacity-90">+</button>
               </div>

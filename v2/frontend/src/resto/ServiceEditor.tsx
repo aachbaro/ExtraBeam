@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import type {
   RestaurantService,
   RestaurantMember,
@@ -158,7 +158,7 @@ export default function ServiceEditor({
     }
   }
   const input =
-    "w-full rounded-lg border border-eb-layout p-2 bg-white text-sm";
+    "w-full rounded-lg border border-eb-layout p-2 bg-[#fffdf7] text-sm";
   return (
     <div
       className="fixed inset-0 z-50 bg-black/40 flex justify-center items-center p-3"
@@ -178,7 +178,7 @@ export default function ServiceEditor({
           }
         }}
         onSubmit={submit}
-        className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[92vh] overflow-y-auto p-5 space-y-5"
+        className="bg-[#fffdf7] rounded-xl shadow-xl w-full max-w-3xl max-h-[92vh] overflow-y-auto p-5 space-y-5"
       >
         <div className="flex justify-between">
           <h2 id="service-editor-title" className="font-semibold">

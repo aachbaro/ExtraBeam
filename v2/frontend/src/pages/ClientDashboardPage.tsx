@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 
 import { fetchClientDashboard, getDefaultAppPath } from "../api";
@@ -38,7 +38,7 @@ function formatAmount(value: string | null): string {
 
 function MissionList({ missions }: { missions: Mission[] }) {
   return (
-    <section className="rounded-eb-card border border-eb-layout bg-white p-4">
+    <section className="rounded-eb-card border border-eb-layout bg-[#fffdf7] p-4">
       <div className="mb-4">
         <p className="text-[12px] font-medium uppercase tracking-[0.12em] text-eb-muted">Missions</p>
         <p className="mt-1 text-[13px] text-eb-secondary">Missions associées à ton email client dans Rivebelle.</p>
@@ -90,7 +90,7 @@ function MissionList({ missions }: { missions: Mission[] }) {
 
 function FactureList({ factures }: { factures: Facture[] }) {
   return (
-    <section className="rounded-eb-card border border-eb-layout bg-white p-4">
+    <section className="rounded-eb-card border border-eb-layout bg-[#fffdf7] p-4">
       <div className="mb-4">
         <p className="text-[12px] font-medium uppercase tracking-[0.12em] text-eb-muted">Factures reçues</p>
         <p className="mt-1 text-[13px] text-eb-secondary">Factures liées à vos missions et à votre compte. Un brouillon doit encore être finalisé par l’extra.</p>
@@ -135,7 +135,7 @@ function FactureList({ factures }: { factures: Facture[] }) {
 
 function ClientIdentityCard({ profile }: { profile: FreelancerProfile }) {
   return (
-    <section className="rounded-eb-card border border-eb-layout bg-white p-4">
+    <section className="rounded-eb-card border border-eb-layout bg-[#fffdf7] p-4">
       <div className="mb-4">
         <p className="text-[12px] font-medium uppercase tracking-[0.12em] text-eb-muted">Mes informations</p>
         <p className="mt-1 text-[13px] text-eb-secondary">Résumé du compte restaurateur actuellement connecté.</p>
@@ -196,7 +196,7 @@ export default function ClientDashboardPage() {
   if (error || !dashboard) {
     return (
       <AppShell title={user.display_name} nav={CLIENT_NAV} activeTab={activeTab} onTabChange={(id) => setActiveTab(id as ClientTab)}>
-        <div className="rounded-eb-card border border-eb-layout bg-white p-6">
+        <div className="rounded-eb-card border border-eb-layout bg-[#fffdf7] p-6">
           <h1 className="text-[22px] font-semibold text-eb-text">Bonjour {user.display_name}</h1>
           <p className="mt-3 text-[14px] leading-6 text-eb-google">{error ?? "Impossible de charger le compte restaurateur pour le moment."}</p>
         </div>
@@ -215,7 +215,7 @@ export default function ClientDashboardPage() {
       {/* ── Vue d'ensemble ── */}
       {activeTab === "apercu" && (
         <div className="space-y-4 max-w-[860px]">
-          <section className="rounded-eb-card border border-eb-layout bg-white p-6">
+          <section className="rounded-eb-card border border-eb-layout bg-[#fffdf7] p-6">
             <p className="text-[12px] font-medium uppercase tracking-[0.12em] text-eb-muted">Espace restaurateur</p>
             <h1 className="mt-3 text-[26px] font-semibold text-eb-text">Bonjour {dashboard.profile.display_name}</h1>
             <p className="mt-3 max-w-2xl text-[14px] leading-6 text-eb-secondary">

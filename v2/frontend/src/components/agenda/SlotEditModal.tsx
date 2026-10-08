@@ -1,4 +1,4 @@
-/**
+﻿/**
  * src/components/agenda/SlotEditModal.tsx
  * Layer  : Frontend — composants / agenda
  * Role   : Modal d'édition d'un créneau existant.
@@ -67,7 +67,7 @@ export default function SlotEditModal({ slot, missions, onSave, onDelete, onClos
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 px-4"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="w-full max-w-sm rounded-eb-card border border-eb-layout bg-white p-6 shadow-lg">
+      <div className="w-full max-w-sm rounded-eb-card border border-eb-layout bg-[#fffdf7] p-6 shadow-lg">
         <div className="flex items-center justify-between mb-1">
           <h2 className="text-[16px] font-semibold text-eb-text">Modifier le créneau</h2>
           <button type="button" onClick={onClose}

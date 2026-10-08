@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { createRestaurant, fetchMyRestaurants } from "../api";
 import AppShell, { type NavItem } from "../components/AppShell";
@@ -79,7 +79,7 @@ export default function RestoListPage() {
     >
       <div className="space-y-4 max-w-[860px]">
         {/* Header de section */}
-        <section className="rounded-eb-card border border-eb-layout bg-white p-6">
+        <section className="rounded-eb-card border border-eb-layout bg-[#fffdf7] p-6">
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-[12px] font-medium uppercase tracking-[0.12em] text-eb-muted">Espace restaurant</p>
@@ -102,7 +102,7 @@ export default function RestoListPage() {
         {showCreate && (
           <form
             onSubmit={(e) => void handleCreate(e)}
-            className="rounded-eb-card border border-eb-layout bg-white p-6 space-y-4"
+            className="rounded-eb-card border border-eb-layout bg-[#fffdf7] p-6 space-y-4"
           >
             <p className="text-[12px] font-medium uppercase tracking-[0.12em] text-eb-muted">Créer un restaurant</p>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -171,12 +171,12 @@ export default function RestoListPage() {
         {loading ? (
           <p className="py-8 text-center text-[14px] text-eb-secondary">Chargement…</p>
         ) : restaurants.length === 0 ? (
-          <section className="rounded-eb-card border border-eb-layout bg-white p-10 text-center">
+          <section className="rounded-eb-card border border-eb-layout bg-[#fffdf7] p-10 text-center">
             <p className="text-[15px] font-medium text-eb-text">Aucun restaurant pour le moment</p>
             <p className="mt-2 text-[13px] text-eb-secondary">Cliquez sur "+ Nouveau" pour créer votre premier établissement.</p>
           </section>
         ) : (
-          <section className="rounded-eb-card border border-eb-layout bg-white overflow-hidden">
+          <section className="rounded-eb-card border border-eb-layout bg-[#fffdf7] overflow-hidden">
             <div className="divide-y divide-eb-layout">
               {restaurants.map((r) => (
                 <Link

@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import type { Restaurant } from "../types";
 import { updateRestaurant } from "../api";
 
@@ -15,7 +15,7 @@ export default function RestaurantSettings({ restaurant, token, onSaved }: { res
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  return <section className="bg-white border rounded-xl p-5 max-w-2xl space-y-4">
+  return <section className="bg-[#fffdf7] border rounded-xl p-5 max-w-2xl space-y-4">
     <h1 className="font-semibold">Paramètres du planning</h1>
     <p className="text-sm text-eb-secondary">Le cycle définit la période d’équilibrage des heures. Le 1er correspond au mois civil ; le 15 couvre le 15 au 14 suivant. Si le jour choisi n’existe pas, le cycle commence le dernier jour du mois.</p>
     <form className="space-y-4" onSubmit={async e => {

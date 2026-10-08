@@ -216,7 +216,7 @@ export default function FreelancerProfilePage() {
     }
     return (
       <main className="flex min-h-screen items-center justify-center bg-eb-page px-6">
-        <div className="w-full max-w-md rounded-eb-card border border-eb-layout bg-white p-8">
+        <div className="w-full max-w-md rounded-eb-card border border-eb-layout bg-[#fffdf7] p-8">
           <p className="font-logo text-[28px] text-eb-text">Rivebelle</p>
           <h1 className="mt-6 text-[22px] font-semibold text-eb-text">Profil introuvable</h1>
           <p className="mt-3 text-[14px] leading-6 text-eb-secondary">
@@ -381,7 +381,7 @@ export default function FreelancerProfilePage() {
         <div className="eb-content-stagger space-y-6">
           <AccountRoleCard slug={profile.slug} role={profile.role} token={token} onRoleChanged={handleProfileUpdated} />
 
-          <section className="rounded-eb-card border border-eb-layout bg-white overflow-hidden">
+          <section className="rounded-eb-card border border-eb-layout bg-[#fffdf7] overflow-hidden">
             <ProfileCard key="owner" profile={profile} isOwner onProfileUpdated={handleProfileUpdated} noCard />
             <CollapsibleExperiences slug={slug} isOwner token={token} profile={profile} />
           </section>
@@ -390,11 +390,11 @@ export default function FreelancerProfilePage() {
 
           {/* Restaurants — visible uniquement sur mobile (sidebar sur desktop) */}
           {myRestaurants.length > 0 && (
-            <section className="sm:hidden rounded-eb-card border border-eb-layout bg-white p-4">
+            <section className="sm:hidden rounded-eb-card border border-eb-layout bg-[#fffdf7] p-4">
               <p className="text-[12px] font-medium uppercase tracking-[0.12em] text-eb-muted">Mes restaurants</p>
               <div className="mt-3 space-y-2">
                 {myRestaurants.map((r) => (
-                  <Link key={r.slug} to={`/resto/${r.slug}`} className="flex items-center justify-between rounded-eb border border-eb-layout bg-eb-page px-4 py-3 hover:bg-white transition-colors">
+                  <Link key={r.slug} to={`/resto/${r.slug}`} className="flex items-center justify-between rounded-eb border border-eb-layout bg-eb-page px-4 py-3 hover:bg-[#f0e8d8] transition-colors">
                     <div>
                       <p className="text-[14px] font-medium text-eb-text">{r.name}</p>
                       {r.city && <p className="text-[12px] text-eb-muted">{r.city}</p>}
@@ -411,7 +411,7 @@ export default function FreelancerProfilePage() {
       {/* ── Agenda ── */}
       {activeTab === "agenda" && (
         <div className="eb-content-stagger space-y-6">
-          <section className="rounded-eb-card border border-eb-layout bg-white p-4" style={{ height: "68vh" }}>
+          <section className="rounded-eb-card border border-eb-layout bg-[#fffdf7] p-4" style={{ height: "68vh" }}>
             <Agenda
               key="owner"
               slug={slug}

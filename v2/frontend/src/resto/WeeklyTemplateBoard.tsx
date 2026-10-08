@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { RestaurantMember, RestaurantService, RestaurantShift, ServiceDefinition, ServiceTemplate } from "../types";
 import { saveServiceTemplate } from "../api";
@@ -44,7 +44,7 @@ function BulkTaskModal({ templates, slug, token, onDone, onClose }: {
 
   return createPortal(
     <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Ajouter une tâche en masse">
-      <div className="bg-white rounded-xl p-6 w-full max-w-md space-y-4 shadow-xl">
+      <div className="bg-[#fffdf7] rounded-xl p-6 w-full max-w-md space-y-4 shadow-xl">
         <h2 className="font-semibold text-lg">Ajouter une tâche à plusieurs services</h2>
         <form onSubmit={submit} className="space-y-4">
           <div className="space-y-1">
@@ -168,7 +168,7 @@ export default function WeeklyTemplateBoard({ templates, members, busy, slug, to
           onDragOver={e => { if (!e.dataTransfer.types.includes("application/x-eb-template")) return; e.preventDefault(); setDragDay(weekday); e.dataTransfer.dropEffect = "copy"; }}
           onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragDay(null); }}
           onDrop={e => { setDragDay(null); if (!e.dataTransfer.types.includes("application/x-eb-template")) return; e.preventDefault(); const t = active.find(t => String(t.id) === e.dataTransfer.getData("application/x-eb-template")); if (t && !blocked) void create(weekday, [t.definition]); }}>
-          <button className="w-full bg-white border rounded-lg py-3 text-center text-sm text-eb-secondary" onClick={() => { setFocusedDay(weekday); if (copied.length) void create(weekday, copied); }}>{day}</button>
+          <button className="w-full bg-[#fffdf7] border rounded-lg py-3 text-center text-sm text-eb-secondary" onClick={() => { setFocusedDay(weekday); if (copied.length) void create(weekday, copied); }}>{day}</button>
           {active.filter(t => t.weekday === weekday).sort((a,b) => a.definition.start_time.localeCompare(b.definition.start_time) || a.id-b.id).map(t => <div key={t.id} data-template-card={t.id} draggable={!blocked}
             className={`rounded-xl transition-all ${selection.includes(t.id) ? "ring-2 ring-eb-primary" : ""}`}
             onClick={e => { if ((e.target as HTMLElement).closest("button, input, select, textarea, [role=dialog], [role=button]")) return; setSelection(e.shiftKey ? (selection.includes(t.id) ? selection.filter(id => id !== t.id) : [...selection,t.id]) : [t.id]); }}
@@ -179,7 +179,7 @@ export default function WeeklyTemplateBoard({ templates, members, busy, slug, to
               onDuplicate={definition => void create(weekday,[definition])} />
           </div>)}
           <button disabled={blocked} aria-label={`Ajouter un service le ${day.toLowerCase()}`} className="w-full rounded-lg border border-dashed py-2 text-xs text-eb-secondary hover:border-eb-primary hover:text-eb-primary transition-colors" onClick={() => void create(weekday)}>+ Service</button>
-          {!!copied.length && <button disabled={blocked} className="w-full border rounded-lg py-2 text-xs text-eb-primary bg-white" onClick={() => void create(weekday,copied)}>Coller ici</button>}
+          {!!copied.length && <button disabled={blocked} className="w-full border rounded-lg py-2 text-xs text-eb-primary bg-[#fffdf7]" onClick={() => void create(weekday,copied)}>Coller ici</button>}
         </div>)}
       </div>
     </div>

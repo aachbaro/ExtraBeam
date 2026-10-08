@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 
 import {
   addExperience,
@@ -86,7 +86,7 @@ export default function ExperiencesSection({
   }
 
   const Tag = noCard ? "div" : "section";
-  const cardClass = noCard ? "p-4" : "rounded-eb-card border border-eb-layout bg-white p-4";
+  const cardClass = noCard ? "p-4" : "rounded-eb-card border border-eb-layout bg-[#fffdf7] p-4";
 
   return (
     <Tag className={cardClass}>

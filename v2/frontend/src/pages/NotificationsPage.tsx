@@ -59,10 +59,10 @@ export default function NotificationsPage() {
     try { setList(await recruitmentApi<NotificationList>('notifications/', user.token, 'POST', id ? { id } : {})); }
     catch (e) { setError((e as Error).message); }
   }
-  if (!user?.token) return <main className="mx-auto max-w-3xl p-6"><Topbar /><Link className="eb-btn-primary mt-8" to="/login" onClick={() => rememberHiringReturn('/notifications')}>Se connecter pour voir les notifications</Link></main>;
-  return <main className="mx-auto max-w-3xl space-y-5 p-6"><Topbar /><h1 className="text-2xl font-semibold">Notifications</h1>
+  if (!user?.token) return <main className="min-h-screen bg-eb-page"><div className="mx-auto max-w-3xl p-6"><Topbar warm /><Link className="eb-btn-primary mt-8 inline-block" to="/login" onClick={() => rememberHiringReturn('/notifications')}>Se connecter pour voir les notifications</Link></div></main>;
+  return <main className="min-h-screen bg-eb-page"><div className="mx-auto max-w-3xl space-y-5 p-6"><Topbar warm /><h1 className="text-2xl font-semibold">Notifications</h1>
     {error && <p role="alert" className="text-red-700">{error}</p>}
-    {prefs && <details className="rounded-xl border border-eb-layout bg-white p-5"><summary className="cursor-pointer font-semibold">Mes préférences de notification et de propositions</summary>
+    {prefs && <details className="rounded-xl border border-eb-layout bg-[#fffdf7] p-5"><summary className="cursor-pointer font-semibold">Mes préférences de notification et de propositions</summary>
       <div className="mt-4 space-y-3 text-sm">
         <p>Les notifications dans l’application restent toujours disponibles.</p>
         <label className="flex gap-2"><input type="checkbox" checked={prefs.email} disabled={busy} onChange={e => void save({ email: e.target.checked })} />Recevoir les événements importants par email</label>
@@ -77,7 +77,7 @@ export default function NotificationsPage() {
     </details>}
     {list && <><button className="eb-btn-ghost" onClick={() => void markRead()}>Tout marquer comme lu ({list.unread})</button>
       {!list.items.length && <p>Aucune notification pour le moment.</p>}
-      {list.items.map(item => <Link key={item.id} to={item.url} onClick={() => void markRead(item.id)} className={`block rounded-xl border border-eb-layout p-4 ${item.read_at ? 'bg-white' : 'bg-eb-primary/5'}`}><strong>{item.title}</strong><p className="text-sm">{item.body}</p><p className="mt-2 text-xs text-eb-secondary">{new Date(item.created_at).toLocaleString('fr-FR')} →</p></Link>)}
+      {list.items.map(item => <Link key={item.id} to={item.url} onClick={() => void markRead(item.id)} className={`block rounded-xl border border-eb-layout p-4 ${item.read_at ? 'bg-[#fffdf7]' : 'bg-eb-primary/5'}`}><strong>{item.title}</strong><p className="text-sm">{item.body}</p><p className="mt-2 text-xs text-eb-secondary">{new Date(item.created_at).toLocaleString('fr-FR')} →</p></Link>)}
     </>}
-  </main>;
+  </div></main>;
 }

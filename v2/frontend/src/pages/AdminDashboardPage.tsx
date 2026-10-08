@@ -42,7 +42,7 @@ function StatCard({
   tone: string;
 }) {
   return (
-    <article className="rounded-eb-card border border-eb-layout bg-white p-5">
+    <article className="rounded-eb-card border border-eb-layout bg-[#fffdf7] p-5">
       <p className="text-[12px] font-medium uppercase tracking-[0.12em] text-eb-muted">{label}</p>
       <p className={`mt-4 text-[28px] font-semibold ${tone}`}>{value}</p>
     </article>
@@ -53,7 +53,7 @@ function AccountCard({ account }: { account: AdminAccountSummary }) {
   const avatarLabel = (account.display_name || account.email || "?").trim().charAt(0).toUpperCase() || "?";
 
   return (
-    <article className="rounded-eb-card border border-eb-layout bg-white p-5">
+    <article className="rounded-eb-card border border-eb-layout bg-[#fffdf7] p-5">
       <div className="flex items-start justify-between gap-4">
         <div className="flex min-w-0 items-start gap-4">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-eb-primary/10">
@@ -173,7 +173,7 @@ export default function AdminDashboardPage() {
       onTabChange={() => { /* single tab */ }}
     >
       <div className="space-y-4 max-w-[1200px]">
-        <section className="rounded-eb-card border border-eb-layout bg-white p-6">
+        <section className="rounded-eb-card border border-eb-layout bg-[#fffdf7] p-6">
           <p className="text-[12px] font-medium uppercase tracking-[0.12em] text-eb-muted">
             Espace admin
           </p>
@@ -228,7 +228,7 @@ export default function AdminDashboardPage() {
           </section>
         ) : null}
 
-        <section className="rounded-eb-card border border-eb-layout bg-white p-6">
+        <section className="rounded-eb-card border border-eb-layout bg-[#fffdf7] p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-[12px] font-medium uppercase tracking-[0.12em] text-eb-muted">

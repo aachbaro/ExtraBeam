@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { fetchMyBoard, setMyAvailability, type MemberBoard } from "../api";
 
 const statuses: Record<string, string> = {
@@ -58,7 +58,7 @@ export default function MyAvailabilityBoard({ slug, token }: Props) {
 
   if (error && !board) {
     return (
-      <div className="rounded-eb-card border border-eb-layout bg-white p-6">
+      <div className="rounded-eb-card border border-eb-layout bg-[#fffdf7] p-6">
         <p className="text-[13px] text-eb-google">{error}</p>
         <p className="mt-2 text-[13px] text-eb-secondary">
           Votre compte n&apos;est pas lié à un profil employé de ce restaurant. Connectez-vous par PIN depuis la{" "}
@@ -81,7 +81,7 @@ export default function MyAvailabilityBoard({ slug, token }: Props) {
 
       {board && (
         <>
-          <div className="rounded-eb-card border border-eb-layout bg-white p-4">
+          <div className="rounded-eb-card border border-eb-layout bg-[#fffdf7] p-4">
             <label className="block text-[13px] font-medium text-eb-text">
               Disponibilité habituelle (sans réponse particulière)
               <select
@@ -98,13 +98,13 @@ export default function MyAvailabilityBoard({ slug, token }: Props) {
           </div>
 
           {board.slots.length === 0 ? (
-            <p className="rounded-eb-card border border-eb-layout bg-white p-4 text-[13px] text-eb-secondary">
+            <p className="rounded-eb-card border border-eb-layout bg-[#fffdf7] p-4 text-[13px] text-eb-secondary">
               Aucun poste correspondant à votre profil cette semaine.
             </p>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2">
               {board.slots.map((s) => (
-                <article key={s.id} className="rounded-eb-card border border-eb-layout bg-white p-4 space-y-2">
+                <article key={s.id} className="rounded-eb-card border border-eb-layout bg-[#fffdf7] p-4 space-y-2">
                   <h3 className="text-[14px] font-semibold text-eb-text">
                     {s.title} · {s.date}
                   </h3>

@@ -39,17 +39,17 @@
 }
 
 :root {
-  --eb-page: #fafaf8;
-  --eb-panel: #0f1117;
-  --eb-primary: #2563eb;
-  --eb-success: #16a34a;
-  --eb-google: #ef4444;
-  --eb-text: #0f1117;
-  --eb-secondary: #6b7280;
-  --eb-muted: #9ca3af;
-  --eb-input: #d1d5db;
-  --eb-layout: #e5e7eb;
-  --eb-focus: 0 0 0 3px rgba(37, 99, 235, 0.08);
+  --eb-page: #f5efe4;
+  --eb-panel: #2d1f0e;
+  --eb-primary: #2d7a52;
+  --eb-success: #1a6b3a;
+  --eb-google: #c0392b;
+  --eb-text: #352b1d;
+  --eb-secondary: #6b5540;
+  --eb-muted: #947239;
+  --eb-input: #d4c4a8;
+  --eb-layout: #e0d4bf;
+  --eb-focus: 0 0 0 3px rgba(45, 122, 82, 0.12);
 }
 
 @layer base {
@@ -157,8 +157,8 @@
     width: 100%;
     padding: 0.5rem 0.75rem;
     border: 1px solid var(--eb-input);
-    border-radius: 4px;
-    background: white;
+    border-radius: 8px;
+    background: #fffdf7;
     color: var(--eb-text);
     font-size: 0.9rem;
     outline: none;
@@ -182,7 +182,7 @@
     background: var(--eb-primary);
     color: white;
     border: none;
-    border-radius: 4px;
+    border-radius: 10px;
     font-size: 0.875rem;
     font-weight: 500;
     cursor: pointer;
@@ -210,7 +210,7 @@
     background: transparent;
     color: var(--eb-secondary);
     border: 1px solid var(--eb-layout);
-    border-radius: 4px;
+    border-radius: 10px;
     font-size: 0.875rem;
     font-weight: 500;
     cursor: pointer;
@@ -218,7 +218,7 @@
   }
 
   .eb-btn-ghost:hover {
-    background: var(--eb-layout);
+    background: #f0e8d8;
     color: var(--eb-text);
   }
 
@@ -227,7 +227,7 @@
     align-items: center;
     gap: 0.3rem;
     padding: 0.25rem 0.65rem;
-    background: var(--eb-layout);
+    background: #f0e8d8;
     color: var(--eb-text);
     border-radius: 999px;
     font-size: 0.8rem;

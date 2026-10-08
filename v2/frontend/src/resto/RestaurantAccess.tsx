@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { employeeApi, linkRivebelleAccount } from "../api";
 import { useUserContext } from "../context/UserContext";
@@ -167,7 +167,7 @@ export default function RestaurantAccess() {
         {!token ? (
           <form
             onSubmit={login}
-            className="bg-white border rounded-xl p-6 space-y-4"
+            className="bg-[#fffdf7] border rounded-xl p-6 space-y-4"
           >
             <label className="block">
               Votre nom
@@ -227,7 +227,7 @@ export default function RestaurantAccess() {
               </button>
             </div>
             {user?.token && !linked && (
-              <div className="bg-white border rounded-xl p-4 text-sm space-y-2">
+              <div className="bg-[#fffdf7] border rounded-xl p-4 text-sm space-y-2">
                 <p className="font-medium">Lier avec mon compte Rivebelle</p>
                 <p className="text-eb-secondary">
                   Connecté en tant que <strong>{user.display_name ?? "Rivebelle"}</strong>.
@@ -271,7 +271,7 @@ export default function RestaurantAccess() {
             )}
             {board && (
               <>
-                <label className="block bg-white border rounded-xl p-4 text-sm">
+                <label className="block bg-[#fffdf7] border rounded-xl p-4 text-sm">
                   Disponibilité habituelle, sans réponse particulière
                   <select
                     className="block w-full mt-2 border rounded p-2"
@@ -292,7 +292,7 @@ export default function RestaurantAccess() {
                   </span>
                 </label>
                 {board.slots.length === 0 && (
-                  <p className="bg-white border rounded-xl p-4 text-sm">
+                  <p className="bg-[#fffdf7] border rounded-xl p-4 text-sm">
                     Aucun poste correspondant à vos compétences cette semaine.
                   </p>
                 )}
@@ -300,7 +300,7 @@ export default function RestaurantAccess() {
                   {board.slots.map((s) => (
                     <article
                       key={s.id}
-                      className="bg-white border rounded-xl p-4 space-y-2"
+                      className="bg-[#fffdf7] border rounded-xl p-4 space-y-2"
                     >
                       <h3 className="font-medium">
                         {s.title} · {s.date}

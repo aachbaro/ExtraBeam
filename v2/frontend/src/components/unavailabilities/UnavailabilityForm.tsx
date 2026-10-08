@@ -1,4 +1,4 @@
-/**
+﻿/**
  * src/components/unavailabilities/UnavailabilityForm.tsx
  * Layer  : Frontend — composant UI
  * Role   : Modal de création / édition d'une indisponibilité (ponctuelle ou récurrente).
@@ -115,7 +115,7 @@ export default function UnavailabilityForm({ initial, onSave, onDelete, onClose 
     >
       <form
         onSubmit={handleSubmit}
-        className="relative w-full max-w-md rounded-eb-card border border-eb-layout bg-white p-6 shadow-lg"
+        className="relative w-full max-w-md rounded-eb-card border border-eb-layout bg-[#fffdf7] p-6 shadow-lg"
       >
         {/* Header */}
         <div className="mb-5 flex items-center justify-between">

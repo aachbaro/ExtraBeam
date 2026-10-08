@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 
 import type { MissionTemplatePayload } from "../../api";
 import type { MissionTemplate, MissionTemplateMode } from "../../types";
@@ -118,7 +118,7 @@ export default function ClientTemplateForm({ initial, onSave, onDelete, onClose 
     >
       <form
         onSubmit={handleSubmit}
-        className="relative w-full max-w-3xl rounded-eb-card border border-eb-layout bg-white p-6 shadow-lg"
+        className="relative w-full max-w-3xl rounded-eb-card border border-eb-layout bg-[#fffdf7] p-6 shadow-lg"
       >
         <div className="mb-5 flex items-center justify-between">
           <h2 className="text-[17px] font-semibold text-eb-text">

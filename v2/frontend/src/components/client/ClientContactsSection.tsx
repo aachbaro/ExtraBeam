@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { createClientContact, deleteClientContact } from "../../api";
@@ -61,7 +61,7 @@ export default function ClientContactsSection({ token, initialContacts }: Props)
   }
 
   return (
-    <section className="rounded-eb-card border border-eb-layout bg-white p-4">
+    <section className="rounded-eb-card border border-eb-layout bg-[#fffdf7] p-4">
       <div className="mb-4">
         <p className="text-[12px] font-medium uppercase tracking-[0.12em] text-eb-muted">
           Contacts

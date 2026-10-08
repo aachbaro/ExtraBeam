@@ -296,7 +296,7 @@ export default function ProfileCard({ profile, isOwner, onProfileUpdated, noCard
       || profile.late_penalties
   );
 
-  const cardClass = noCard ? "p-6" : "rounded-eb-card border border-eb-layout bg-white p-6";
+  const cardClass = noCard ? "p-6" : "rounded-eb-card border border-eb-layout bg-[#fffdf7] p-6";
 
   return (
     <div className={cardClass}>
@@ -385,7 +385,7 @@ export default function ProfileCard({ profile, isOwner, onProfileUpdated, noCard
                   </div>
 
                   {avatarDraft && (
-                    <div className="space-y-3 rounded-eb-card border border-eb-layout bg-white p-4">
+                    <div className="space-y-3 rounded-eb-card border border-eb-layout bg-[#fffdf7] p-4">
                       <label className="block space-y-2 text-[13px] text-eb-secondary">
                         <span className="font-medium text-eb-text">Zoom</span>
                         <input

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 
 import {
   createClientTemplate,
@@ -63,7 +63,7 @@ export default function ClientTemplatesSection({ token, initialTemplates }: Prop
   }
 
   return (
-    <section className="rounded-eb-card border border-eb-layout bg-white p-4">
+    <section className="rounded-eb-card border border-eb-layout bg-[#fffdf7] p-4">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
           <p className="text-[12px] font-medium uppercase tracking-[0.12em] text-eb-muted">

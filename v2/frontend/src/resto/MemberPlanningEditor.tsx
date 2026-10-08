@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { updateMember } from "../api";
 import type { RestaurantMember } from "../types";
 
@@ -14,7 +14,7 @@ export default function MemberPlanningEditor({
   onChange: (rows: RestaurantMember[]) => void;
 }) {
   return (
-    <section className="mt-5 rounded-xl border bg-white p-4">
+    <section className="mt-5 rounded-xl border bg-[#fffdf7] p-4">
       <h2>Contrats et préférences de planification</h2>
       <p className="text-xs my-2">
         Les compétences complètent le poste principal. La disponibilité

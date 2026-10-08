@@ -1,4 +1,4 @@
-/**
+﻿/**
  * src/components/factures/FacturesSection.tsx
  * Layer  : Frontend — composant section
  * Role   : Section complète de gestion des factures manuelles (owner uniquement).
@@ -133,7 +133,7 @@ export default function FacturesSection({
   const suggestedNumero = buildSuggestedNumero(factures);
 
   return (
-    <section className="eb-content-stagger rounded-eb-card border border-eb-layout bg-white p-4">
+    <section className="eb-content-stagger rounded-eb-card border border-eb-layout bg-[#fffdf7] p-4">
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <p className="text-[12px] font-medium uppercase tracking-[0.12em] text-eb-muted">

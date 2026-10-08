@@ -1,4 +1,4 @@
-/**
+﻿/**
  * src/components/agenda/SlotModal.tsx
  * Layer  : Frontend — composants / agenda
  * Role   : Modal de création d'un créneau.
@@ -43,7 +43,7 @@ export default function SlotModal({ date, start, end, missions, onConfirm, onCan
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 px-4"
       onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}
     >
-      <div className="w-full max-w-sm rounded-eb-card border border-eb-layout bg-white p-6 shadow-lg">
+      <div className="w-full max-w-sm rounded-eb-card border border-eb-layout bg-[#fffdf7] p-6 shadow-lg">
         <h2 className="text-[16px] font-semibold text-eb-text">Nouveau créneau</h2>
         <p className="mt-0.5 text-[13px] text-eb-secondary capitalize">{label}</p>
 

@@ -203,7 +203,7 @@ export default function RegisterPage() {
               {hasGoogleClientId && !showLocalDebugAuth && (
                 <button
                   type="button"
-                  className="eb-focus-ring inline-flex min-h-[44px] w-full items-center justify-center gap-3 rounded-xl border text-[14px] font-medium transition-colors hover:bg-white/60"
+                  className="eb-focus-ring inline-flex min-h-[44px] w-full items-center justify-center gap-3 rounded-xl border text-[14px] font-medium transition-colors hover:bg-[#f0e8d8]"
                   style={{ borderColor: "#d4c4a8", color: "#352b1d", background: "transparent" }}
                   disabled={loadingTarget !== null}
                   onClick={() => { setLoadingTarget("google"); triggerGoogleSignup(); }}

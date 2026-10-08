@@ -1,4 +1,4 @@
-/**
+﻿/**
  * src/components/unavailabilities/UnavailabilitySection.tsx
  * Layer  : Frontend — composant section
  * Role   : Section de gestion des indisponibilités (owner uniquement).
@@ -87,7 +87,7 @@ export default function UnavailabilitySection({
   const once   = list.filter((u) => u.recurrence_type === "once");
 
   return (
-    <section className="rounded-eb-card border border-eb-layout bg-white p-4">
+    <section className="rounded-eb-card border border-eb-layout bg-[#fffdf7] p-4">
       {/* En-tête */}
       <div className="mb-4 flex flex-col items-center justify-between gap-3 text-center sm:flex-row sm:text-left">
         <div>
@@ -216,7 +216,7 @@ function UnavailabilityRow({
     <button
       type="button"
       onClick={onClick}
-      className="group flex w-full flex-col items-center justify-between gap-2 rounded-eb border border-eb-layout bg-white px-4 py-3 text-center transition-colors hover:border-[#93c5fd] sm:flex-row sm:text-left"
+      className="group flex w-full flex-col items-center justify-between gap-2 rounded-eb border border-eb-layout bg-[#fffdf7] px-4 py-3 text-center transition-colors hover:border-[#93c5fd] sm:flex-row sm:text-left"
     >
       <div className="min-w-0">
         <p className="text-[13px] font-medium text-eb-text">{label}</p>

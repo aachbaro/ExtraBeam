@@ -18,7 +18,7 @@ export default function RequestsSection({ token }: { token: string }) {
     {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
     {!requests && !error && <p role="status">Chargement des demandes…</p>}
     {requests?.length === 0 && <p className="text-sm text-eb-secondary">Aucune demande pour le moment. Les propositions et les missions confirmées apparaîtront ici.</p>}
-    {requests?.map(req => <Link key={req.id} to={`/requests/${req.id}`} className="block rounded-xl border border-eb-layout bg-white p-4 hover:border-eb-primary">
+    {requests?.map(req => <Link key={req.id} to={`/requests/${req.id}`} className="block rounded-xl border border-eb-layout bg-[#fffdf7] p-4 hover:border-eb-primary">
       <div className="flex flex-wrap justify-between gap-2"><strong>{req.establishment}</strong><span className="text-sm text-eb-primary">{STATES[req.status]}</span></div>
       <p className="mt-1 text-sm">{new Date(req.starts_at).toLocaleString('fr-FR')} · {req.quantity} extra{req.quantity > 1 ? 's' : ''}</p>
       <p className="mt-2 text-sm text-eb-secondary">{req.is_client ? `${req.interested_count} candidature(s) · ${req.remaining} place(s) restante(s)` : STATES[req.offers[0]?.state] || 'Voir la proposition'} →</p>

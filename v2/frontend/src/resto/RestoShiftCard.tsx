@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import type {
   RestaurantMember,
   RestaurantShift,
@@ -126,7 +126,7 @@ export default function RestoShiftCard({
 
   return (
     <div
-      className={`rounded-lg border border-eb-layout bg-white overflow-hidden transition-shadow ${busy ? "opacity-60" : ""}`}
+      className={`rounded-lg border border-eb-layout bg-[#fffdf7] overflow-hidden transition-shadow ${busy ? "opacity-60" : ""}`}
     >
       {error && (
         <p role="alert" className="p-2 text-red-600">
@@ -352,7 +352,7 @@ export default function RestoShiftCard({
                   + Assigner
                 </button>
                 {assignMenuOpen && (
-                  <div className="absolute bottom-full left-0 z-20 mb-1 w-40 rounded-lg border border-eb-layout bg-white shadow-lg">
+                  <div className="absolute bottom-full left-0 z-20 mb-1 w-40 rounded-lg border border-eb-layout bg-[#fffdf7] shadow-lg">
                     {unassignedMembers.map((m) => (
                       <button
                         key={m.id}

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * src/components/missions/MissionsSection.tsx
  * Layer  : Frontend — composant section
  * Role   : Section complète de gestion des missions (owner uniquement).
@@ -91,7 +91,7 @@ export default function MissionsSection({ slug, token, onMissionsChange }: Props
   const shown = statusFilter ? missions.filter((m) => m.status === statusFilter) : missions;
 
   return (
-    <section className="eb-content-stagger rounded-eb-card border border-eb-layout bg-white p-4">
+    <section className="eb-content-stagger rounded-eb-card border border-eb-layout bg-[#fffdf7] p-4">
 
       {/* En-tête */}
       <div className="flex items-center justify-between mb-4">

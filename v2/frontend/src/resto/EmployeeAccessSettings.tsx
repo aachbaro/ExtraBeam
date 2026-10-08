@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { Link } from "react-router-dom";
 import { setEmployeePin } from "../api";
 import type { RestaurantMember } from "../types";
@@ -12,7 +12,7 @@ export default function EmployeeAccessSettings({
   members: RestaurantMember[];
 }) {
   return (
-    <section className="bg-white border rounded-xl p-4 mt-5 space-y-3">
+    <section className="bg-[#fffdf7] border rounded-xl p-4 mt-5 space-y-3">
       <h2 className="font-medium">Accès des employés</h2>
       <p className="text-sm">
         Choisissez un PIN de 4 à 8 chiffres par employé. Changer un PIN

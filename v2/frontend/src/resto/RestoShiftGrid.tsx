@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import type { RestaurantMember, RestaurantShift } from "../types";
 import { deleteShift, setAvailability, assignMember } from "../api";
 import RestoShiftCard from "./RestoShiftCard";
@@ -113,7 +113,7 @@ export default function RestoShiftGrid({
 
   if (!hasAny) {
     return (
-      <div className="rounded-eb-card border border-eb-layout bg-white p-8 text-center">
+      <div className="rounded-eb-card border border-eb-layout bg-[#fffdf7] p-8 text-center">
         <p className="text-eb-secondary text-sm">Aucun poste défini.</p>
         {isManager && (
           <p className="mt-1 text-[12px] text-eb-secondary">

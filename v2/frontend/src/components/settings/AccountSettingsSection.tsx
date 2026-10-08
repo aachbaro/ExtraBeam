@@ -106,7 +106,7 @@ export default function AccountSettingsSection({ profile, token, authProvider }:
   }
 
   return (
-    <section className="eb-content-stagger rounded-eb-card border border-eb-layout bg-white p-4">
+    <section className="eb-content-stagger rounded-eb-card border border-eb-layout bg-[#fffdf7] p-4">
       <div className="mb-4">
         <p className="text-[12px] font-medium uppercase tracking-[0.12em] text-eb-muted">
           Paramètres
@@ -154,7 +154,7 @@ export default function AccountSettingsSection({ profile, token, authProvider }:
 
         <div className="mt-4 flex flex-col gap-3 md:flex-row">
           <input
-            className="eb-input flex-1 border-red-200 bg-white"
+            className="eb-input flex-1 border-red-200 bg-[#fffdf7]"
             value={confirmation}
             onChange={(event) => setConfirmation(event.target.value)}
             placeholder="Tape SUPPRIMER pour confirmer"

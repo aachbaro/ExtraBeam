@@ -77,7 +77,7 @@ export default function FactureCard({
 
   return (
     <div
-      className="group relative cursor-pointer rounded-eb border border-eb-layout bg-white p-4 transition-colors hover:border-[#f59e0b]"
+      className="group relative cursor-pointer rounded-eb border border-eb-layout bg-[#fffdf7] p-4 transition-colors hover:border-[#c6a84b]"
       onClick={onClick}
     >
       <div className="flex items-start justify-between gap-3">

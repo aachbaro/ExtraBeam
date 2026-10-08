@@ -1,4 +1,4 @@
-/**
+﻿/**
  * TimePicker
  * - Survol la partie heures ou minutes + molette → ajuste directement
  * - Clic → ouvre un popup scrollable pour sélection précise
@@ -190,7 +190,7 @@ export default function TimePicker({
 
       {/* Popup scrollable (clic) */}
       {open && (
-        <div className="absolute left-0 top-full z-50 mt-1 flex overflow-hidden rounded-lg border border-eb-layout bg-white shadow-lg select-none">
+        <div className="absolute left-0 top-full z-50 mt-1 flex overflow-hidden rounded-lg border border-eb-layout bg-[#fffdf7] shadow-lg select-none">
           {/* Heures */}
           <div
             ref={popupHourRef}

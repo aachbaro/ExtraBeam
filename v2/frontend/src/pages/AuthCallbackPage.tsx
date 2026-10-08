@@ -72,7 +72,7 @@ export default function AuthCallbackPage() {
   if (errorMessage) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-eb-page px-6 py-8 text-eb-text">
-        <div className="w-full max-w-lg rounded-eb-card border border-eb-layout bg-white p-8">
+        <div className="w-full max-w-lg rounded-eb-card border border-eb-layout bg-[#fffdf7] p-8">
           <p className="font-logo text-[28px] text-eb-text">Rivebelle</p>
           <h1 className="mt-6 text-[22px] font-semibold text-eb-text">Connexion impossible</h1>
           <p className="mt-3 text-[14px] leading-6 text-eb-secondary">{errorMessage}</p>
@@ -97,7 +97,7 @@ export default function AuthCallbackPage() {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-eb-page px-6 py-8 text-eb-text">
-      <div className="w-full max-w-lg rounded-eb-card border border-eb-layout bg-white p-8">
+      <div className="w-full max-w-lg rounded-eb-card border border-eb-layout bg-[#fffdf7] p-8">
         <p className="font-logo text-[28px] text-eb-text">Rivebelle</p>
         <h1 className="mt-6 text-[22px] font-semibold text-eb-text">Connexion en cours</h1>
         <p className="mt-3 text-[14px] leading-6 text-eb-secondary">

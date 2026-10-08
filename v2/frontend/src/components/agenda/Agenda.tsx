@@ -1,4 +1,4 @@
-/**
+﻿/**
  * src/components/agenda/Agenda.tsx
  * Layer  : Frontend — composants / agenda
  * Role   : Agenda hebdomadaire (07h–24h, 7 colonnes).
@@ -241,7 +241,7 @@ export default function Agenda({
   const hourLabels = Array.from({ length: TOTAL_HOURS }, (_, i) => `${String(i + 7).padStart(2, "0")}h`);
 
   return (
-    <div className="relative flex h-full flex-col bg-white">
+    <div className="relative flex h-full flex-col bg-[#fffdf7]">
       <AgendaHeader
         weekLabel={weekLabel}
         isCurrentWeek={isCurrentWeek}

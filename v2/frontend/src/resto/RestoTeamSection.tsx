@@ -135,7 +135,7 @@ export default function RestoTeamSection({
       {showAdd && isManager && (
         <form
           onSubmit={(e) => void handleAdd(e)}
-          className="rounded-eb-card border border-eb-layout bg-white p-4 space-y-3"
+          className="rounded-eb-card border border-eb-layout bg-[#fffdf7] p-4 space-y-3"
         >
           <h3 className="text-[13px] font-medium text-eb-primary">Nouveau membre</h3>
           <div className="grid grid-cols-2 gap-3">
@@ -248,7 +248,7 @@ export default function RestoTeamSection({
       )}
 
       {/* Active members */}
-      <div className="rounded-eb-card border border-eb-layout bg-white divide-y divide-eb-layout">
+      <div className="rounded-eb-card border border-eb-layout bg-[#fffdf7] divide-y divide-eb-layout">
         {active.length === 0 ? (
           <p className="px-4 py-6 text-center text-[13px] text-eb-secondary">Aucun membre actif.</p>
         ) : (
@@ -273,7 +273,7 @@ export default function RestoTeamSection({
           <summary className="cursor-pointer text-[12px] text-eb-secondary hover:text-eb-primary py-2">
             {inactive.length} membre{inactive.length !== 1 ? "s" : ""} inactif{inactive.length !== 1 ? "s" : ""}
           </summary>
-          <div className="mt-2 rounded-eb-card border border-eb-layout bg-white divide-y divide-eb-layout opacity-60">
+          <div className="mt-2 rounded-eb-card border border-eb-layout bg-[#fffdf7] divide-y divide-eb-layout opacity-60">
             {inactive.map((member) => (
               <MemberRow
                 key={member.id}

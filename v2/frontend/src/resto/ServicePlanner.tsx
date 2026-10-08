@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 import ContactPickerPanel from "../components/contacts/ContactPickerPanel";
 import type {
   Restaurant,
@@ -250,7 +250,7 @@ export default function ServicePlanner({
           {(["services", "modeles"] as const).map((m) => (
             <button
               key={m}
-              className={`px-4 py-1.5 rounded text-sm font-medium transition-colors ${mode === m ? "bg-white shadow-sm text-eb-text" : "text-eb-secondary hover:text-eb-text"}`}
+              className={`px-4 py-1.5 rounded text-sm font-medium transition-colors ${mode === m ? "bg-[#fffdf7] shadow-sm text-eb-text" : "text-eb-secondary hover:text-eb-text"}`}
               onClick={() => { setMode(m); setSelected(null); setNotice(""); }}
             >
               {m === "services" ? "Planning" : "Semaine type"}
@@ -318,7 +318,7 @@ export default function ServicePlanner({
                   <button
                     key={v}
                     onClick={() => setView(v)}
-                    className={`px-3 py-1.5 text-sm transition-colors ${view === v ? "bg-eb-primary text-white" : "bg-white text-eb-secondary hover:bg-eb-page"}`}
+                    className={`px-3 py-1.5 text-sm transition-colors ${view === v ? "bg-eb-primary text-white" : "bg-[#fffdf7] text-eb-secondary hover:bg-eb-page"}`}
                   >
                     {v === "planning" ? "Planning" : "Agenda"}
                   </button>
@@ -372,7 +372,7 @@ export default function ServicePlanner({
           {/* ── Contenu (avec overlay de chargement) ── */}
           <div className="relative">
             {loading && (
-              <div className="absolute inset-0 z-20 flex items-start justify-center pt-12 bg-white/60 rounded-xl">
+              <div className="absolute inset-0 z-20 flex items-start justify-center pt-12 bg-[#fffdf7]/60 rounded-xl">
                 <svg className="animate-spin h-6 w-6 text-eb-primary" viewBox="0 0 24 24" fill="none">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3"/>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
@@ -404,7 +404,7 @@ export default function ServicePlanner({
 
           {/* Active service detail (agenda view) */}
           {view === "agenda" && active && (
-            <section className="bg-white rounded-xl border p-4 space-y-4">
+            <section className="bg-[#fffdf7] rounded-xl border p-4 space-y-4">
               <div className="flex flex-wrap justify-between gap-3">
                 <div>
                   <h2 className="font-semibold">{active.title} · {active.date}</h2>
@@ -527,7 +527,7 @@ export default function ServicePlanner({
                         ? "bg-eb-primary text-white"
                         : isFocused
                         ? "bg-green-50 border border-green-300 text-green-700"
-                        : "bg-white border text-eb-secondary"
+                        : "bg-[#fffdf7] border text-eb-secondary"
                     }`}
                     onClick={(e) => {
                       e.stopPropagation();
@@ -627,7 +627,7 @@ export default function ServicePlanner({
 
           </div>{/* fin overlay chargement */}
 
-          <section className="bg-white rounded-xl border p-4 space-y-3">
+          <section className="bg-[#fffdf7] rounded-xl border p-4 space-y-3">
             <div className="flex justify-between gap-3">
               <h2 className="font-medium">{period === "weeks" ? "Heures prévues dans le mois" : `Heures prévues du ${from} au ${to}`}</h2>
               {period === "weeks" && <input aria-label="Mois des heures" type="month" value={viewMonth} onChange={(e) => setMonth(e.target.value)} />}
@@ -668,7 +668,7 @@ export default function ServicePlanner({
           aria-modal="true"
           aria-label="Supprimer le service"
         >
-          <div className="bg-white rounded-xl p-6 max-w-md space-y-4">
+          <div className="bg-[#fffdf7] rounded-xl p-6 max-w-md space-y-4">
             <h2 className="font-semibold">
               Supprimer {deleting.title} du {deleting.date} ?
             </h2>
@@ -747,7 +747,7 @@ export default function ServicePlanner({
           style={{ animation: "cardEnter 0.2s ease-out both" }}
         >
           <span className="text-white/60">{selectedIds.size} service{selectedIds.size > 1 ? "s" : ""} sélectionné{selectedIds.size > 1 ? "s" : ""}</span>
-          <div className="w-px h-4 bg-white/20" />
+          <div className="w-px h-4 bg-[#fffdf7]/20" />
           <button
             disabled={busy}
             className="hover:text-white/80 transition-colors disabled:opacity-40"

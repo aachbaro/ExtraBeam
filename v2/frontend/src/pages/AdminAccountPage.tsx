@@ -97,9 +97,9 @@ export default function AdminAccountPage() {
   return (
     <main className="min-h-screen bg-eb-page">
       <div className="mx-auto max-w-[1280px] px-4 py-6 space-y-4">
-        <Topbar currentSlug={account?.slug ?? undefined} />
+        <Topbar currentSlug={account?.slug ?? undefined} warm />
 
-        <section className="rounded-eb-card border border-eb-layout bg-white p-6">
+        <section className="rounded-eb-card border border-eb-layout bg-[#fffdf7] p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <Link to="/admin" className="text-[13px] font-medium text-eb-primary">
@@ -122,17 +122,17 @@ export default function AdminAccountPage() {
         </section>
 
         {loading ? (
-          <section className="rounded-eb-card border border-eb-layout bg-white p-6">
+          <section className="rounded-eb-card border border-eb-layout bg-[#fffdf7] p-6">
             <p className="text-[14px] text-eb-secondary">Chargement du compte…</p>
           </section>
         ) : error ? (
-          <section className="rounded-eb-card border border-eb-layout bg-white p-6">
+          <section className="rounded-eb-card border border-eb-layout bg-[#fffdf7] p-6">
             <p className="text-[14px] text-eb-google">{error}</p>
           </section>
         ) : account && payload && stats ? (
           <>
             <section className="grid gap-4 xl:grid-cols-[1.4fr_1fr]">
-              <article className="rounded-eb-card border border-eb-layout bg-white p-6">
+              <article className="rounded-eb-card border border-eb-layout bg-[#fffdf7] p-6">
                 <div className="flex items-start gap-5">
                   <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-eb-primary/10">
                     {account.avatar_url ? (
@@ -199,7 +199,7 @@ export default function AdminAccountPage() {
                 </div>
               </article>
 
-              <aside className="rounded-eb-card border border-eb-layout bg-white p-6">
+              <aside className="rounded-eb-card border border-eb-layout bg-[#fffdf7] p-6">
                 <p className="text-[12px] font-medium uppercase tracking-[0.12em] text-eb-muted">
                   Volumétrie
                 </p>
@@ -213,7 +213,7 @@ export default function AdminAccountPage() {
             </section>
 
             <section className="grid gap-4 xl:grid-cols-2">
-              <article className="rounded-eb-card border border-eb-layout bg-white p-6">
+              <article className="rounded-eb-card border border-eb-layout bg-[#fffdf7] p-6">
                 <p className="text-[12px] font-medium uppercase tracking-[0.12em] text-eb-muted">
                   Skills
                 </p>
@@ -230,7 +230,7 @@ export default function AdminAccountPage() {
                 )}
               </article>
 
-              <article className="rounded-eb-card border border-eb-layout bg-white p-6">
+              <article className="rounded-eb-card border border-eb-layout bg-[#fffdf7] p-6">
                 <p className="text-[12px] font-medium uppercase tracking-[0.12em] text-eb-muted">
                   Indisponibilités
                 </p>
@@ -256,7 +256,7 @@ export default function AdminAccountPage() {
             </section>
 
             <section className="grid gap-4 xl:grid-cols-2">
-              <article className="rounded-eb-card border border-eb-layout bg-white p-6">
+              <article className="rounded-eb-card border border-eb-layout bg-[#fffdf7] p-6">
                 <p className="text-[12px] font-medium uppercase tracking-[0.12em] text-eb-muted">
                   Missions
                 </p>
@@ -291,7 +291,7 @@ export default function AdminAccountPage() {
                 )}
               </article>
 
-              <article className="rounded-eb-card border border-eb-layout bg-white p-6">
+              <article className="rounded-eb-card border border-eb-layout bg-[#fffdf7] p-6">
                 <p className="text-[12px] font-medium uppercase tracking-[0.12em] text-eb-muted">
                   Slots
                 </p>

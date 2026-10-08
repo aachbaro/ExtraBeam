@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 
 import { updateProfile } from "../api";
 import type { AccountRole, FreelancerProfile } from "../types";
@@ -46,7 +46,7 @@ export default function AccountRoleCard({ slug, role, token, onRoleChanged }: Pr
   }
 
   return (
-    <section className="rounded-eb-card border border-eb-layout bg-white p-4">
+    <section className="rounded-eb-card border border-eb-layout bg-[#fffdf7] p-4">
       <div className="flex flex-col gap-3">
         <div>
           <p className="text-[12px] font-medium uppercase tracking-[0.12em] text-eb-muted">
@@ -71,7 +71,7 @@ export default function AccountRoleCard({ slug, role, token, onRoleChanged }: Pr
                 className={`rounded-eb border p-4 text-left transition-colors ${
                   active
                     ? "border-eb-primary bg-[#EFF6FF]"
-                    : "border-eb-layout bg-white hover:border-[#93c5fd]"
+                    : "border-eb-layout bg-[#fffdf7] hover:border-[#93c5fd]"
                 } ${savingRole ? "disabled:cursor-not-allowed disabled:opacity-70" : ""}`}
               >
                 <p className={`text-[14px] font-semibold ${active ? "text-eb-primary" : "text-eb-text"}`}>
