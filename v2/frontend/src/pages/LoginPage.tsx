@@ -16,7 +16,6 @@ import { EyeIcon, GoogleIcon, Spinner } from "../components/AuthIcons";
 import { useUserContext } from "../context/UserContext";
 
 const WARM_CSS = `
-  body { overflow-x: hidden; }
   @keyframes ebSlideIn {
     from { opacity: 0; transform: translateY(12px); }
     to   { opacity: 1; transform: translateY(0); }

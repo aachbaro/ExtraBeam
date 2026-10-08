@@ -9,7 +9,6 @@ import { useUserContext } from "../context/UserContext";
 import type { AccountRole } from "../types";
 
 const WARM_CSS = `
-  body { overflow-x: hidden; }
   @keyframes ebSlideIn {
     from { opacity: 0; transform: translateY(12px); }
     to   { opacity: 1; transform: translateY(0); }

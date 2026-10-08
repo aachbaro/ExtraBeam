@@ -3,7 +3,6 @@ import { getDefaultAppPath, getOidcLogoutUrl } from "../api";
 import { useUserContext } from "../context/UserContext";
 
 const WARM_CSS = `
-  body { overflow-x: hidden; }
   @keyframes ebFadeUp {
     from { opacity: 0; transform: translateY(10px); }
     to   { opacity: 1; transform: translateY(0); }
@@ -24,23 +23,24 @@ export default function HomePage() {
 
   return (
     <div
-      className="riv-warm relative isolate min-h-screen"
+      className="riv-warm relative isolate min-h-screen overflow-x-hidden"
       style={{ background: "#f5efe4", color: "#352b1d" }}
     >
       <style>{WARM_CSS}</style>
 
-      {/* Keep the fixed background outside transformed/animated ancestors. Hidden on mobile (overflow-x:hidden + fixed compress its width). */}
+      {/* Fixed background — outside animated ancestors so position:fixed works correctly. */}
       <img
         src="/extra-sketch.png"
         alt=""
         aria-hidden="true"
-        className="pointer-events-none select-none hidden sm:block"
+        className="pointer-events-none select-none"
         style={{
           position: "fixed",
           right: "-60px",
           top: "0",
           height: "100vh",
           width: "auto",
+          maxWidth: "none",
           opacity: 0.18,
           zIndex: 0,
         }}
