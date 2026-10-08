@@ -41,7 +41,6 @@ def finalize(invoice):
             sequence = max((int(number[len(prefix):]) for number in numbers if number[len(prefix):].isdigit()), default=0) + 1
             invoice.numero = f'{prefix}{sequence:05d}'
         invoice.issuer_snapshot = issuer_data(invoice.profile)
-        invoice_to_superpdp_payload(invoice)
         invoice.finalized_at = timezone.now()
         invoice.save(update_fields=["numero", "date_emission", "issuer_snapshot", "finalized_at", "updated_at"])
         return invoice

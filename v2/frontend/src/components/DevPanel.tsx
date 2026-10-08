@@ -5,11 +5,26 @@
  */
 
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { devDeleteAccount, devListAccounts, devLogin, type DevAccount } from "../api";
 import { useUserContext } from "../context/UserContext";
 import { getDefaultAppPath } from "../api";
 import type { AccountRole } from "../types";
+
+const NAV_ROUTES = [
+  { path: "/", label: "Accueil" },
+  { path: "/login", label: "Connexion" },
+  { path: "/register", label: "Inscription" },
+  { path: "/client", label: "Dashboard client" },
+  { path: "/resto", label: "Liste restos" },
+  { path: "/admin", label: "Admin" },
+  { path: "/notifications", label: "Notifications" },
+  { path: "/profile", label: "Mon profil" },
+  { path: "/lulu/admin", label: "Lulu Developer" },
+  { path: "/lulu/", label: "Lulu App" },
+  { path: "/extras/demo-extra", label: "Profil extra (demo)" },
+  { path: "/resto/demo-resto", label: "Page resto (demo)" },
+];
 
 const ROLES: { value: AccountRole; label: string }[] = [
   { value: "freelance", label: "Freelance" },
@@ -27,6 +42,7 @@ export default function DevPanel() {
   const { setUser, clearUser } = useUserContext();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
   const [accounts, setAccounts] = useState<DevAccount[]>([]);
   const [loading, setLoading] = useState(false);
   const [newName, setNewName] = useState("");
@@ -86,6 +102,41 @@ export default function DevPanel() {
   }
 
   return (
+    <>
+    {/* Nav panel — bottom right */}
+    <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2">
+      {navOpen && (
+        <div className="w-56 rounded-xl border border-gray-200 bg-white shadow-xl">
+          <div className="border-b border-gray-100 px-4 py-2.5">
+            <span className="text-[12px] font-semibold text-gray-500 uppercase tracking-wide">Pages</span>
+          </div>
+          <ul className="py-1.5">
+            {NAV_ROUTES.map((route) => (
+              <li key={route.path}>
+                <Link
+                  to={route.path}
+                  onClick={() => setNavOpen(false)}
+                  className="block px-4 py-1.5 text-[13px] text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                >
+                  {route.label}
+                  <span className="ml-1.5 text-[10px] text-gray-400">{route.path}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      <button
+        onClick={() => setNavOpen((prev) => !prev)}
+        className="flex items-center gap-1.5 rounded-full bg-gray-800 px-3 py-1.5 text-[12px] font-medium text-white shadow-lg hover:bg-gray-700"
+        title="Navigation dev"
+      >
+        <span>🗺</span>
+        <span>Nav</span>
+      </button>
+    </div>
+
+    {/* Accounts panel — bottom left */}
     <div className="fixed bottom-4 left-4 z-50 flex flex-col items-start gap-2">
       {open && (
         <div className="w-72 rounded-xl border border-gray-200 bg-white shadow-xl">
@@ -177,5 +228,6 @@ export default function DevPanel() {
         <span>Dev</span>
       </button>
     </div>
+    </>
   );
 }
