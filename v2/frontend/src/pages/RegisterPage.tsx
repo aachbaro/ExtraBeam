@@ -124,7 +124,7 @@ export default function RegisterPage() {
               top: "0",
               height: "100%",
               width: "auto",
-              opacity: 0.45,
+              opacity: 0.6,
               zIndex: 0,
             }}
           />
