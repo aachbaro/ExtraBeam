@@ -41,8 +41,7 @@ export default function HomePage() {
           top: "0",
           height: "100vh",
           width: "auto",
-          opacity: 0.22,
-          mixBlendMode: "multiply",
+          opacity: 0.18,
           zIndex: 0,
         }}
       />
