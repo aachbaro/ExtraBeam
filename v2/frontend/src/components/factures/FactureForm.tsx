@@ -474,6 +474,11 @@ export default function FactureForm({
       return;
     }
 
+    if (!lines.length && !form.description.trim()) {
+      setError("La description est obligatoire (ou ajoute au moins une ligne de détail).");
+      return;
+    }
+
     const montantHt = lines.length ? lineSubtotal : parseNumber(form.montant_ht);
     if (montantHt === null || montantHt < 0) {
       setError("Le montant HT doit etre renseigne.");

@@ -6,7 +6,7 @@
 
 import type { Facture, FactureStatus } from "../../types";
 import { useState } from "react";
-import { electronicAccount, finalizeFacture, fetchFacture, invoiceCheckout, submitElectronicFacture, syncElectronicAccount } from "../../api";
+import { electronicAccount, finalizeFacture, fetchFacture, invoiceCheckout, submitElectronicFacture, syncElectronicAccount, updateFacture } from "../../api";
 
 const STATUS_STYLE: Record<
   FactureStatus,
@@ -65,6 +65,16 @@ export default function FactureCard({
         if ((await electronicAccount(token)).connection_status !== "connected") throw new Error("Connecter SUPER PDP dans les paramètres du compte.");
         onElectronicUpdated(await submitElectronicFacture(facture.id, token));
       }
+    } catch (err) { setError((err as Error).message); }
+    finally { setBusy(false); }
+  }
+  async function cancelInvoice() {
+    if (busy) return;
+    if (!window.confirm("Annuler définitivement cette facture ?")) return;
+    setBusy(true); setError("");
+    try {
+      const updated = await updateFacture(facture.profile_slug!, facture.id, { status: "canceled" }, token);
+      onElectronicUpdated(updated);
     } catch (err) { setError((err as Error).message); }
     finally { setBusy(false); }
   }
@@ -148,6 +158,13 @@ export default function FactureCard({
         >
           Télécharger le PDF
         </button>
+        {facture.finalized_at && facture.status !== "canceled" && (!facture.electronic || facture.electronic.status === "failed") && (
+          <button type="button" disabled={busy}
+            className="inline-flex min-h-[32px] items-center justify-center rounded-eb border border-red-200 px-3 text-[12px] font-medium text-red-700 transition-colors hover:bg-red-50 disabled:opacity-50"
+            onClick={(event) => { event.stopPropagation(); void cancelInvoice(); }}>
+            Annuler
+          </button>
+        )}
         {facture.status === "pending_payment" && onMarkPaid && (
           <button
             type="button"

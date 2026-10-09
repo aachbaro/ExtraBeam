@@ -810,8 +810,15 @@ class FactureSerializer(serializers.ModelSerializer):
     def validate(self, attrs: dict) -> dict:
         profile = self.context.get("profile") or getattr(self.instance, "profile", None)
         if self.instance and self.instance.finalized_at:
-            if set(attrs) - {"status"} or attrs.get("status", self.instance.status) != "paid":
-                raise serializers.ValidationError("Facture finalisée : seul l'enregistrement de l'encaissement est autorisé.")
+            if set(attrs) - {"status"}:
+                raise serializers.ValidationError("Facture finalisée : seul le changement de statut est autorisé.")
+            new_status = attrs.get("status", self.instance.status)
+            if new_status == "canceled":
+                from .models import ElectronicInvoiceTransmission
+                if ElectronicInvoiceTransmission.objects.filter(invoice=self.instance).exclude(status="failed").exists():
+                    raise serializers.ValidationError("Cette facture a été transmise électroniquement. Pour l'annuler, émettre un avoir.")
+            elif new_status != "paid":
+                raise serializers.ValidationError("Facture finalisée : seul l'encaissement ou l'annulation est autorisé.")
         mission = attrs.get("mission", getattr(self.instance, "mission", None))
         numero = attrs.get("numero", getattr(self.instance, "numero", ""))
 
