@@ -43,7 +43,8 @@ def party(name, siren, siret, vat, street, extra, postcode, city, country, label
               "electronic_address": {"scheme": "0225", "value": siren},
               "postal_address": {"address_line1": required(street, f"{label} adresse"),
                                  "address_line2": extra, "post_code": required(postcode, f"{label} code postal"),
-                                 "city": required(city, f"{label} ville"), "country_code": country}}
+                                 "city": required(city, f"{label} ville"), "country_code": country},
+              "tax_registration_identifier": siren}
     if siret:
         result["identifiers"] = [{"scheme": "0009", "value": siret}]
     if vat:
@@ -122,14 +123,17 @@ def invoice_to_superpdp_payload(invoice):
         if category == "E":
             row["vat_exemption_reason"] = invoice.mention_tva
         breakdown.append(row)
-    terms = "\n".join(filter(None, [invoice.conditions_paiement, invoice.escompte,
-        required(invoice.penalites_retard, "pénalités de retard"),
-        required(invoice.indemnite_recouvrement, "indemnité de recouvrement")]))
+    penalites = required(invoice.penalites_retard, "pénalités de retard")
+    frais_recouvrement = required(invoice.indemnite_recouvrement, "indemnité de recouvrement")
+    terms = "\n".join(filter(None, [invoice.conditions_paiement, invoice.escompte, penalites, frais_recouvrement]))
     return {"number": invoice.numero, "issue_date": invoice.date_emission.isoformat(),
             "payment_due_date": invoice.date_echeance.isoformat(), "type_code": 380,
-            "currency_code": invoice.currency, "process_control": {"specification_identifier": "urn:cen.eu:en16931:2017"},
+            "currency_code": invoice.currency,
+            "process_control": {"specification_identifier": "urn:cen.eu:en16931:2017", "business_process_type": "B1"},
             "seller": seller, "buyer": buyer, "payment_terms": terms,
-            "notes": [{"subject_code": "AAB", "note": "Prestations de services"}],
+            "notes": [{"subject_code": "AAB", "note": "Prestations de services"},
+                      {"subject_code": "PMD", "note": penalites},
+                      {"subject_code": "PMT", "note": frais_recouvrement}],
             "lines": lines, "vat_break_down": breakdown,
             "totals": {"sum_invoice_lines_amount": str(subtotal), "total_without_vat": str(subtotal),
                        "total_vat_amount": {"value": str(tax), "currency_code": invoice.currency},
