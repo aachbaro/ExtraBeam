@@ -143,7 +143,7 @@ export default function AppShell({
       >
         {/* Logo */}
         <div
-          className="flex items-center justify-between px-4 pt-5 pb-3"
+          className="relative z-10 flex items-center justify-between px-4 pt-5 pb-3"
           style={{ animation: "ebSlideRight 0.3s ease both" }}
         >
           {!showContentHeader && <NotificationBell />}
