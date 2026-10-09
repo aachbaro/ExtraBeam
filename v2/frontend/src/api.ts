@@ -51,7 +51,7 @@ export const showLocalDebugAuth =
 
 export function getDefaultAppPath(user: Pick<AuthUser, "role" | "slug">): string {
   if (user.role === "admin") return "/admin";
-  if (user.role === "client") return "/client";
+  if (user.role === "client") return "/restaurateur";
   return user.slug ? `/extras/${user.slug}` : "/profile";
 }
 

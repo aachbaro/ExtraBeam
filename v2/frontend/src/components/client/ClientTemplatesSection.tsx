@@ -63,7 +63,7 @@ export default function ClientTemplatesSection({ token, initialTemplates }: Prop
   }
 
   return (
-    <section className="rounded-eb-card border border-eb-layout bg-[#fffdf7] p-4">
+    <section className="eb-content-stagger rounded-eb-card border border-eb-layout bg-[#fffdf7] p-4">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
           <p className="text-[12px] font-medium uppercase tracking-[0.12em] text-eb-muted">
@@ -86,7 +86,7 @@ export default function ClientTemplatesSection({ token, initialTemplates }: Prop
       </div>
 
       {sortedTemplates.length > 0 ? (
-        <div className="space-y-3">
+        <div className="eb-content-stagger space-y-3">
           {sortedTemplates.map((template) => {
             const address = buildAddress(template);
             return (

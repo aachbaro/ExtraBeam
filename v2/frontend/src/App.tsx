@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 
 import { UserProvider } from "./context/UserContext";
@@ -27,6 +27,11 @@ const GuestRequestPage = lazy(() => import('./pages/GuestRequestPage'));
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
 
 const Loading = () => <p role="status" className="p-8 text-center text-sm text-eb-secondary">Chargement…</p>;
+
+function LegacyClientRedirect() {
+  const { search, hash } = useLocation();
+  return <Navigate to={`/restaurateur${search}${hash}`} replace />;
+}
 
 export default function App() {
   return (
@@ -72,7 +77,8 @@ export default function App() {
           <Route path="/profile" element={<Suspense fallback={<Loading />}><ProfileRedirect /></Suspense>} />
           <Route path="/admin" element={<Suspense fallback={<Loading />}><AdminDashboardPage /></Suspense>} />
           <Route path="/admin/accounts/:id" element={<Suspense fallback={<Loading />}><AdminAccountPage /></Suspense>} />
-          <Route path="/client" element={<Suspense fallback={<Loading />}><ClientDashboardPage /></Suspense>} />
+          <Route path="/restaurateur" element={<Suspense fallback={<Loading />}><ClientDashboardPage /></Suspense>} />
+          <Route path="/client" element={<LegacyClientRedirect />} />
           <Route
             path="/resto"
             element={<Suspense fallback={<Loading />}><RestoListPage /></Suspense>}

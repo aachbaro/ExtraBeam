@@ -135,7 +135,7 @@ async function getNotification(page, title) {
   await checkText(a, '114,00');
   const invoiceA = await a.locator('p').filter({ hasText: /^RB-\d{4}-00001$/ }).first().innerText();
   await shot(a, '12-facture-finalisee');
-  await r.goto(`${base}/client`); await r.getByRole('button', { name: 'Missions', exact: true }).click();
+  await r.goto(`${base}/restaurateur`); await r.getByRole('button', { name: 'Factures', exact: true }).click();
   await checkText(r, 'RB-'); await shot(r, '13-facture-restaurant');
   await b.goto(url); await b.getByLabel('Heures travaillées', { exact: true }).fill('6');
   await b.getByLabel('Minutes', { exact: true }).fill('20');
@@ -151,7 +151,7 @@ async function getNotification(page, title) {
   const invoiceB = await b.locator('p').filter({ hasText: /^RB-\d{4}-00001$/ }).first().innerText();
   assert.equal(invoiceA, invoiceB, 'Each independent issuer starts its own sequence');
   await shot(b, '14-facture-extra-b');
-  await r.goto(`${base}/client`); await r.getByRole('button', { name: 'Missions', exact: true }).click();
+  await r.goto(`${base}/restaurateur`); await r.getByRole('button', { name: 'Factures', exact: true }).click();
   await r.getByRole('heading', { name: invoiceA, exact: true }).first().waitFor();
   assert.equal(await r.getByRole('heading', { name: invoiceA, exact: true }).count(), 2);
   await shot(r, '15-deux-factures-restaurant');

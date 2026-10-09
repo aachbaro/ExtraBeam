@@ -56,7 +56,7 @@ export default function Topbar({ currentSlug, warm }: Props) {
                 </Link>
               )}
               {user.role === "client" ? (
-                <Link to="/client" className={linkCls} style={linkStyle}>
+                <Link to="/restaurateur" className={linkCls} style={linkStyle}>
                   Mon espace
                 </Link>
               ) : (

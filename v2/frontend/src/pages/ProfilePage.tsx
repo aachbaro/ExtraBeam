@@ -23,7 +23,7 @@ export default function ProfilePage() {
   }
 
   if (user.role === "client") {
-    return <Navigate to="/client" replace />;
+    return <Navigate to="/restaurateur" replace />;
   }
 
   // Cas normal : rediriger vers la page profil canonique

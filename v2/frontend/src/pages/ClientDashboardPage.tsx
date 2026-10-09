@@ -1,5 +1,5 @@
 ﻿import { useEffect, useState } from "react";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 
 import { fetchClientDashboard, getDefaultAppPath } from "../api";
 import AccountRoleCard from "../components/AccountRoleCard";
@@ -11,17 +11,23 @@ import AccountSettingsSection from "../components/settings/AccountSettingsSectio
 import { useUserContext } from "../context/UserContext";
 import type { ClientDashboardResponse, Facture, FreelancerProfile, Mission } from "../types";
 
-type ClientTab = "apercu" | "contacts" | "modeles" | "missions" | "reglages" | "demandes";
+type ClientTab = "apercu" | "contacts" | "modeles" | "missions" | "factures" | "reglages" | "demandes";
 
 const CLIENT_NAV: NavItem[] = [
-  { id: "apercu", label: "Vue d'ensemble" },
+  { id: "apercu", label: "Vue d'ensemble", mobileLabel: "Accueil" },
   { id: 'demandes', label: 'Demandes' },
   { id: "contacts", label: "Contacts" },
   { id: "modeles", label: "Modèles" },
   { id: "missions", label: "Missions" },
+  { id: "factures", label: "Factures" },
   { id: "reglages", label: "Réglages" },
   { id: "restaurants", label: "Mes restaurants", href: "/resto", sectionLabel: "Espace restaurant" },
 ];
+
+function requestedClientTab(search: string): ClientTab {
+  const tab = new URLSearchParams(search).get('tab');
+  return tab && CLIENT_NAV.some(item => item.id === tab && !item.href) ? tab as ClientTab : 'apercu';
+}
 
 function formatDate(value: string | null): string {
   if (!value) return "—";
@@ -38,13 +44,13 @@ function formatAmount(value: string | null): string {
 
 function MissionList({ missions }: { missions: Mission[] }) {
   return (
-    <section className="rounded-eb-card border border-eb-layout bg-[#fffdf7] p-4">
+    <section className="eb-content-stagger rounded-eb-card border border-eb-layout bg-[#fffdf7] p-4">
       <div className="mb-4">
         <p className="text-[12px] font-medium uppercase tracking-[0.12em] text-eb-muted">Missions</p>
         <p className="mt-1 text-[13px] text-eb-secondary">Missions associées à ton email client dans Rivebelle.</p>
       </div>
       {missions.length > 0 ? (
-        <div className="space-y-3">
+        <div className="eb-content-stagger space-y-3">
           {missions.map((mission) => (
             <article key={mission.id} className="rounded-eb border border-eb-layout bg-[#FBFDFF] p-4">
               <div className="flex items-start justify-between gap-4">
@@ -90,13 +96,13 @@ function MissionList({ missions }: { missions: Mission[] }) {
 
 function FactureList({ factures }: { factures: Facture[] }) {
   return (
-    <section className="rounded-eb-card border border-eb-layout bg-[#fffdf7] p-4">
+    <section className="eb-content-stagger rounded-eb-card border border-eb-layout bg-[#fffdf7] p-4">
       <div className="mb-4">
         <p className="text-[12px] font-medium uppercase tracking-[0.12em] text-eb-muted">Factures reçues</p>
         <p className="mt-1 text-[13px] text-eb-secondary">Factures liées à vos missions et à votre compte. Un brouillon doit encore être finalisé par l’extra.</p>
       </div>
       {factures.length > 0 ? (
-        <div className="space-y-3">
+        <div className="eb-content-stagger space-y-3">
           {factures.map((facture) => (
             <article key={facture.id} className="rounded-eb border border-eb-layout bg-[#FBFDFF] p-4">
               <div className="flex items-start justify-between gap-4">
@@ -147,7 +153,7 @@ function ClientIdentityCard({ profile }: { profile: FreelancerProfile }) {
         </div>
         <div className="rounded-eb border border-eb-layout bg-[#FBFDFF] px-4 py-3">
           <p className="text-[12px] uppercase tracking-[0.08em] text-eb-muted">Rôle</p>
-          <p className="mt-1 text-[14px] font-medium capitalize text-eb-text">{profile.role}</p>
+          <p className="mt-1 text-[14px] font-medium text-eb-text">Restaurateur</p>
         </div>
       </div>
     </section>
@@ -156,11 +162,16 @@ function ClientIdentityCard({ profile }: { profile: FreelancerProfile }) {
 
 export default function ClientDashboardPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, setUser } = useUserContext();
   const [dashboard, setDashboard] = useState<ClientDashboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<ClientTab>("apercu");
+  const [activeTab, setActiveTab] = useState<ClientTab>(() => requestedClientTab(location.search));
+
+  useEffect(() => {
+    setActiveTab(requestedClientTab(location.search));
+  }, [location.search]);
 
   useEffect(() => {
     if (!user?.token || user.role !== "client") return;
@@ -187,7 +198,7 @@ export default function ClientDashboardPage() {
 
   if (loading) {
     return (
-      <AppShell title={user.display_name} nav={CLIENT_NAV} activeTab={activeTab} onTabChange={(id) => setActiveTab(id as ClientTab)}>
+      <AppShell title={user.display_name} nav={CLIENT_NAV} activeTab={activeTab} onTabChange={(id) => setActiveTab(id as ClientTab)} animateContent={false} showContentHeader contentClassName="mx-auto w-full max-w-[1100px]">
         <p className="text-[14px] text-eb-secondary">Chargement de l'espace restaurateur…</p>
       </AppShell>
     );
@@ -195,7 +206,7 @@ export default function ClientDashboardPage() {
 
   if (error || !dashboard) {
     return (
-      <AppShell title={user.display_name} nav={CLIENT_NAV} activeTab={activeTab} onTabChange={(id) => setActiveTab(id as ClientTab)}>
+      <AppShell title={user.display_name} nav={CLIENT_NAV} activeTab={activeTab} onTabChange={(id) => setActiveTab(id as ClientTab)} animateContent={false} showContentHeader contentClassName="mx-auto w-full max-w-[1100px]">
         <div className="rounded-eb-card border border-eb-layout bg-[#fffdf7] p-6">
           <h1 className="text-[22px] font-semibold text-eb-text">Bonjour {user.display_name}</h1>
           <p className="mt-3 text-[14px] leading-6 text-eb-google">{error ?? "Impossible de charger le compte restaurateur pour le moment."}</p>
@@ -211,13 +222,17 @@ export default function ClientDashboardPage() {
       nav={CLIENT_NAV}
       activeTab={activeTab}
       onTabChange={(id) => setActiveTab(id as ClientTab)}
+      animateContent={false}
+      showContentHeader
+      contentClassName="mx-auto w-full max-w-[1100px]"
     >
+      <div key={activeTab} className="eb-dashboard-content">
       {/* ── Vue d'ensemble ── */}
       {activeTab === "apercu" && (
-        <div className="space-y-4 max-w-[860px]">
+        <div className="eb-content-stagger space-y-6">
           <section className="rounded-eb-card border border-eb-layout bg-[#fffdf7] p-6">
             <p className="text-[12px] font-medium uppercase tracking-[0.12em] text-eb-muted">Espace restaurateur</p>
-            <h1 className="mt-3 text-[26px] font-semibold text-eb-text">Bonjour {dashboard.profile.display_name}</h1>
+            <h2 className="mt-3 text-[26px] font-semibold text-eb-text">Bonjour {dashboard.profile.display_name}</h2>
             <p className="mt-3 max-w-2xl text-[14px] leading-6 text-eb-secondary">
               Tu retrouves ici tes contacts freelance, tes modèles de mission et le suivi lecture seule des missions et factures déjà rattachées à ton email.
             </p>
@@ -252,25 +267,27 @@ export default function ClientDashboardPage() {
 
       {/* ── Modèles ── */}
       {activeTab === "modeles" && (
-        <div className="max-w-[860px]">
+        <div>
           <ClientTemplatesSection token={token} initialTemplates={dashboard.templates} />
         </div>
       )}
 
       {/* ── Missions ── */}
       {activeTab === "missions" && (
-        <div className="space-y-4 max-w-[860px]">
+        <div>
           <MissionList missions={dashboard.missions} />
-          <FactureList factures={dashboard.factures} />
         </div>
       )}
 
+      {activeTab === "factures" && <FactureList factures={dashboard.factures} />}
+
       {/* ── Réglages ── */}
       {activeTab === "reglages" && (
-        <div className="max-w-[640px]">
+        <div>
           <AccountSettingsSection profile={dashboard.profile} token={token} authProvider={user.auth_provider} />
         </div>
       )}
+      </div>
     </AppShell>
   );
 }

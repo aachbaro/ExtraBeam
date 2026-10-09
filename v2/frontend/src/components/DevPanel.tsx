@@ -15,7 +15,7 @@ const NAV_ROUTES = [
   { path: "/", label: "Accueil" },
   { path: "/login", label: "Connexion" },
   { path: "/register", label: "Inscription" },
-  { path: "/client", label: "Dashboard client" },
+  { path: "/restaurateur", label: "Espace restaurateur" },
   { path: "/resto", label: "Liste restos" },
   { path: "/admin", label: "Admin" },
   { path: "/notifications", label: "Notifications" },

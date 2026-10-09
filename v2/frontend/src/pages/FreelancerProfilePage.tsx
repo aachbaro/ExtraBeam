@@ -375,7 +375,7 @@ export default function FreelancerProfilePage() {
         </button>
       ) : undefined}
     >
-      <div key={activeTab} className="eb-owner-content">
+      <div key={activeTab} className="eb-dashboard-content">
       {/* ── Profil ── */}
       {activeTab === "profil" && (
         <div className="eb-content-stagger space-y-6">

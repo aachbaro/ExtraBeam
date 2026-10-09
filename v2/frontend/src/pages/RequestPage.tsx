@@ -107,7 +107,7 @@ export default function RequestPage({ guestAccess }: { guestAccess?: { id: strin
   }
   if (!token) return <main className="min-h-screen bg-eb-page"><div className="mx-auto max-w-3xl p-6"><Topbar warm /><p className="mt-8">Connectez-vous pour consulter cette demande.</p><Link to="/login" onClick={() => rememberHiringReturn(`/requests/${id}`)} className="eb-btn-primary mt-4 inline-block">Se connecter</Link></div></main>;
   return <main className="min-h-screen bg-eb-page"><div className="mx-auto max-w-4xl space-y-5 px-4 py-6"><Topbar warm />
-    {!guestAccess && user && <Link className="text-sm text-eb-primary" to={user.role === 'client' ? '/client' : `/extras/${user.slug}?tab=missions`}>← Mon espace</Link>}
+    {!guestAccess && user && <Link className="text-sm text-eb-primary" to={user.role === 'client' ? '/restaurateur' : `/extras/${user.slug}?tab=missions`}>← Mon espace</Link>}
     {error && <p role="alert" className="rounded-lg bg-red-50 p-4 text-red-700">{error}</p>}
     {!req && !error && <p role="status">Chargement de la demande…</p>}
     {req && <>
