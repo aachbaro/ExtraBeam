@@ -20,6 +20,11 @@ class ProviderError(APIException):
     default_detail = "SUPER PDP indisponible. Réessayez la synchronisation."
 
 
+class ProviderInvoiceRejected(ProviderError):
+    status_code = 400
+    default_detail = "SUPER PDP a refusé la facture avant sa transmission. Vérifiez l’entreprise émettrice et l’adresse électronique du destinataire."
+
+
 def token_cipher():
     try:
         return Fernet(settings.EINVOICE_TOKEN_KEY.encode())
@@ -72,6 +77,10 @@ class SuperPDPProvider(ElectronicInvoiceProvider):
         try:
             response = requests.request(method, self.base + path, headers=headers, timeout=(5, 30), allow_redirects=False, **kwargs)
             if not 200 <= response.status_code < 300:
+                # The documented 400 on invoice creation is a definitive refusal,
+                # unlike a network timeout or server error that may hide acceptance.
+                if method == "POST" and path == "/v1.beta/invoices" and response.status_code == 400:
+                    raise ProviderInvoiceRejected()
                 # Never expose provider bodies: OAuth errors may contain credentials.
                 raise ProviderError(f"SUPER PDP HTTP {response.status_code}. Consulter le compte ou relancer la synchronisation.")
             return response
@@ -138,6 +147,8 @@ class SuperPDPProvider(ElectronicInvoiceProvider):
         if invoice.issuer_snapshot.get("sandbox_fixture") and account.environment != "sandbox":
             raise ValidationError("Une facture de test ne peut jamais être envoyée en production.")
         payload = invoice_to_superpdp_payload(invoice)
+        if account.environment == "sandbox" and not invoice.issuer_snapshot.get("sandbox_fixture"):
+            raise ValidationError("Le bac à sable SUPER PDP utilise des entreprises fictives et leurs adresses de test. Utilisez une facture fictive générée pour ce compte sandbox ; cette facture conserve ses coordonnées habituelles.")
         if account.environment == "production" and payload["seller"]["legal_registration_identifier"]["value"] != account.company_metadata.get("number"):
             raise ValidationError("Le SIREN figé sur la facture ne correspond pas à l'entreprise SUPER PDP.")
         xml = self.request("POST", "/v1.beta/invoices/convert", account,

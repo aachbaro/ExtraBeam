@@ -7,7 +7,7 @@ from rest_framework.exceptions import ValidationError
 
 from ..models import AccountProfile, Facture, MissionTimesheet, ElectronicInvoiceAccount, ElectronicInvoiceTransmission as Transmission, ElectronicInvoiceEvent
 from .mapper import issuer_data, invoice_to_superpdp_payload
-from .providers import get_provider, ProviderError
+from .providers import get_provider, ProviderError, ProviderInvoiceRejected
 
 logger = logging.getLogger(__name__)
 STATUS_MAP = {
@@ -58,7 +58,7 @@ def submit(invoice):
     if not invoice.finalized_at or invoice.status == Facture.STATUS_CANCELED:
         raise ValidationError("Finaliser une facture non annulée avant l'envoi.")
     # Refresh snapshot if the issuer profile was completed after finalization.
-    if not invoice.issuer_snapshot.get("legal_name"):
+    if not invoice.issuer_snapshot.get("legal_name") and not invoice.issuer_snapshot.get("sandbox_fixture"):
         invoice.issuer_snapshot = issuer_data(invoice.profile)
         Facture.objects.filter(pk=invoice.pk).update(issuer_snapshot=invoice.issuer_snapshot)
     account = connected_account(invoice.profile)
@@ -95,6 +95,10 @@ def submit(invoice):
             last_error="", updated_at=timezone.now())
         transmission.refresh_from_db()
     except Exception as exc:
+        if isinstance(exc, ProviderInvoiceRejected):
+            Transmission.objects.filter(pk=transmission.pk, provider_invoice_id="").update(
+                status="failed", last_error=str(exc.detail), updated_at=timezone.now())
+            raise
         # SUPER PDP does not promise idempotency of external_id. A timeout may hide success.
         Transmission.objects.filter(pk=transmission.pk, provider_invoice_id="").update(status="unknown",
             last_error="Envoi incertain. Synchroniser pour rechercher l'identifiant externe ; aucun renvoi automatique.", updated_at=timezone.now())

@@ -19,7 +19,7 @@ from .models import (AccountProfile, Facture, InvoiceLine, ElectronicInvoiceAcco
     ElectronicInvoiceTransmission as Transmission, ElectronicInvoiceEvent,
     ElectronicInvoiceOAuthState, UserApiToken, Payment)
 from .einvoicing.mapper import invoice_to_superpdp_payload
-from .einvoicing.providers import SuperPDPProvider, ProviderError, store_tokens
+from .einvoicing.providers import SuperPDPProvider, ProviderError, ProviderInvoiceRejected, store_tokens
 from .einvoicing.services import finalize, submit, apply_events, sync_account, report_invoice_payment
 
 
@@ -133,6 +133,31 @@ class ElectronicInvoicingTests(TestCase):
         provider.submit_invoice.assert_called_once()
 
     @patch("api.einvoicing.services.get_provider")
+    def test_definite_provider_refusal_is_failed_not_unknown(self, factory):
+        self.finalized()
+        factory.return_value.submit_invoice.side_effect = ProviderInvoiceRejected()
+        with self.assertRaises(ProviderInvoiceRejected):
+            submit(self.invoice)
+        transmission = Transmission.objects.get(invoice=self.invoice)
+        self.assertEqual(transmission.status, "failed")
+        self.assertIn("refusé", transmission.last_error)
+
+    @patch("api.einvoicing.providers.requests.request")
+    def test_invoice_bad_request_is_safe_refusal_without_exposing_body(self, request):
+        store_tokens(self.account, {"access_token": "access", "expires_in": 1800})
+        request.return_value = Mock(status_code=400, text="private provider data")
+        self.invoice._electronic_xml = b"<Invoice/>"
+        with self.assertRaises(ProviderInvoiceRejected) as error:
+            SuperPDPProvider().submit_invoice(self.account, self.invoice, "test")
+        self.assertNotIn("private", str(error.exception))
+
+    @patch("api.einvoicing.providers.requests.request")
+    def test_normal_invoice_is_not_sent_to_sandbox(self, request):
+        with self.assertRaisesMessage(ValidationError, "entreprises fictives"):
+            SuperPDPProvider().prepare_invoice(self.account, self.invoice)
+        request.assert_not_called()
+
+    @patch("api.einvoicing.services.get_provider")
     def test_validation_error_does_not_reserve_send(self, factory):
         self.finalized()
         factory.return_value.prepare_invoice.side_effect = ValidationError("Schematron")
@@ -201,6 +226,7 @@ class ElectronicInvoicingTests(TestCase):
 
     @patch("api.einvoicing.providers.requests.request")
     def test_transport_uses_convert_validator_then_xml(self, request):
+        self.invoice.issuer_snapshot = {"sandbox_fixture": invoice_to_superpdp_payload(self.invoice)}
         store_tokens(self.account, {"access_token": "access", "refresh_token": "refresh", "expires_in": 1800})
         xml_response = Mock(status_code=200, content=b"<Invoice/>")
         valid_response = Mock(status_code=200)
@@ -221,6 +247,7 @@ class ElectronicInvoicingTests(TestCase):
 
     @patch("api.einvoicing.providers.requests.request")
     def test_validator_rejection_prevents_post(self, request):
+        self.invoice.issuer_snapshot = {"sandbox_fixture": invoice_to_superpdp_payload(self.invoice)}
         store_tokens(self.account, {"access_token": "access", "expires_in": 1800})
         xml_response = Mock(status_code=200, content=b"<Invoice/>")
         invalid = Mock(status_code=200)

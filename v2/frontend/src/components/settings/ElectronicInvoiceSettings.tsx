@@ -34,6 +34,7 @@ export default function ElectronicInvoiceSettings({ token, profile }: { token: s
       </p>
     )}
     <p className="my-2 text-sm">{status === "connected" ? "Connectée" : status === "disconnected" ? "Non connectée" : "Vérification en attente"}{environment && ` · ${environment}`}</p>
+    {environment === "sandbox" && <p className="mb-3 text-sm text-eb-secondary">Le bac à sable utilise des entreprises fictives et des factures de test dédiées. Les factures avec tes coordonnées habituelles seront envoyées après le passage en production.</p>}
     <button type="button" disabled={busy} onClick={connect} className="eb-btn-primary px-3 py-2">{busy ? "Chargement…" : status === "connected" ? "Renouveler la connexion SUPER PDP" : "Connecter SUPER PDP"}</button>
     <button type="button" disabled={busy || status === "disconnected"} onClick={sync} className="ml-2 rounded border px-3 py-2">Synchroniser</button>
     {error && <p role="alert" className="mt-2 text-sm text-red-700">{error}</p>}

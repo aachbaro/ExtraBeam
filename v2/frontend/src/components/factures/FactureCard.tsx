@@ -6,7 +6,7 @@
 
 import type { Facture, FactureStatus } from "../../types";
 import { useState } from "react";
-import { electronicAccount, finalizeFacture, fetchFacture, invoiceCheckout, submitElectronicFacture, syncElectronicAccount, updateFacture } from "../../api";
+import { electronicAccount, finalizeFacture, fetchFacture, submitElectronicFacture, syncElectronicAccount, updateFacture } from "../../api";
 
 const STATUS_STYLE: Record<
   FactureStatus,
@@ -78,12 +78,6 @@ export default function FactureCard({
     } catch (err) { setError((err as Error).message); }
     finally { setBusy(false); }
   }
-  async function paymentLink() {
-    setBusy(true); setError("");
-    try { const { url } = await invoiceCheckout(facture.id, token); await navigator.clipboard.writeText(url); setError("Lien Stripe copié."); }
-    catch (err) { setError((err as Error).message); }
-    finally { setBusy(false); }
-  }
 
   return (
     <div
@@ -129,8 +123,6 @@ export default function FactureCard({
       ) : null}
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        {facture.finalized_at && facture.status === "pending_payment" && <button type="button" disabled={busy}
-          className="rounded border px-3 py-2 text-xs" onClick={(event) => { event.stopPropagation(); void paymentLink(); }}>Copier le lien Stripe</button>}
         {facture.status !== "canceled" && <button type="button" disabled={busy}
           className="rounded border px-3 py-2 text-xs disabled:opacity-50"
           onClick={(event) => { event.stopPropagation(); void electronicAction(); }}>

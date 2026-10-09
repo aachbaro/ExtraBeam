@@ -23,6 +23,7 @@ describe("Facture électronique", () => {
     vi.mocked(submitElectronicFacture).mockReturnValue(new Promise((_, failure) => { reject = failure; }));
     render(<FactureCard {...props} facture={{ ...invoice, finalized_at: "2026-10-01" }} />);
     fireEvent.click(screen.getByText("Envoyer électroniquement"));
+    expect(screen.queryByText("Copier le lien Stripe")).toBeNull();
     await waitFor(() => expect(submitElectronicFacture).toHaveBeenCalledOnce());
     expect((screen.getByText("Chargement…") as HTMLButtonElement).disabled).toBe(true);
     reject(new Error("Client : SIREN requis"));

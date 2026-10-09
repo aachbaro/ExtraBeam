@@ -66,7 +66,7 @@ L'API ne garantit pas l'idempotence de `external_id` : si aucune facture n'est r
 ## Stripe et encaissement
 
 `Facture → Payment (Stripe)` et `Facture → ElectronicInvoiceTransmission (provider)` sont indépendants.
-Le lien Stripe est optionnel : `POST /api/invoices/{id}/checkout/`, bouton Copier le lien Stripe.
+L’ancien endpoint Stripe `POST /api/invoices/{id}/checkout/` reste compatible, mais son bouton n’est plus proposé dans les factures.
 Le checkout conserve le comportement plateforme du legacy (fonds vers le compte Stripe configuré) ; ce travail n'ajoute pas de Stripe Connect par freelance.
 Configurer le webhook Stripe `/api/webhooks/stripe/` pour `checkout.session.completed` et `checkout.session.async_payment_succeeded`.
 Signature officielle, statut paid, mode, session enregistrée, montant et devise sont contrôlés avant paiement local.
@@ -104,6 +104,8 @@ python manage.py sync_einvoices
 La commande demande au générateur officiel une facture fictive et son destinataire sandbox ; elle crée une facture locale identifiable comme test,
 convertit/valide/envoie par les mêmes services, appelle deux fois la soumission et vérifie qu'une seule transmission existe.
 Les identifiants d'adressage sandbox de la fixture sont conservés, au lieu de les remplacer par de vrais SIRENs.
+Les factures habituelles sont bloquées avant transmission dans ce mode : seuls les documents fictifs générés pour le compte sandbox sont utilisés.
+Un refus explicite HTTP 400 du fournisseur reste réessayable et ne devient pas un « envoi incertain ». Les timeouts et erreurs serveur conservent la protection contre les doublons.
 Cette fixture est exclusivement créée côté serveur par la commande, n'est pas éditable via l'API et est rejetée en production.
 Elle vérifie le transport réel ; le mapper de factures françaises est testé séparément avec des fixtures locales.
 Relancer la synchronisation pour les statuts asynchrones et vérifier le `provider_invoice_id` affiché dans le résultat et en base.
