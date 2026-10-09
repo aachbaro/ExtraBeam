@@ -9,7 +9,7 @@ from django.urls import path
 from .guest_recruitment import GuestCreateView, GuestOpenView, GuestBillingView, GuestClaimView
 from .recruitment_views import (RequestListView, RequestDetailView, OfferActionView,
     MessageView, TimesheetView, PrepareInvoiceView, PreferencesView, NotificationsView, PushView)
-from .einvoicing.views import ConnectView, CallbackView, StatusView, SyncView, FinalizeView, SubmitView, WebhookView
+from .einvoicing.views import ConnectView, CallbackView, StatusView, SyncView, FinalizeView, SubmitView, WebhookView, SandboxInvoiceView
 from .payments import InvoiceCheckoutView, StripeWebhookView
 
 from .contact_views import ContactDetailView, ContactsView, ContactStatusView, ProfileSearchView
@@ -63,6 +63,7 @@ urlpatterns = [
     path("einvoicing/callback/", CallbackView.as_view()),
     path("einvoicing/status/", StatusView.as_view()),
     path("einvoicing/sync/", SyncView.as_view()),
+    path("einvoicing/sandbox-invoice/", SandboxInvoiceView.as_view()),
     path("invoices/<int:invoice_id>/finalize/", FinalizeView.as_view()),
     path("invoices/<int:invoice_id>/submit-electronic/", SubmitView.as_view()),
     path("webhooks/superpdp/", WebhookView.as_view()),

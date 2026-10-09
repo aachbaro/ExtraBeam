@@ -94,6 +94,8 @@ python manage.py runserver 127.0.0.1:8002
 ```
 
 3. Se connecter comme freelance Rivebelle et connecter une entreprise **sandbox** dans les paramètres. Vérifier le statut Connectée.
+
+Dans Réglages → Facturation électronique, **Créer une facture de test** génère un document fictif officiel et ouvre l’onglet Factures. Cliquer ensuite sur **Envoyer électroniquement**, puis **Synchroniser le statut** pour suivre la réception. Cette génération est bloquée côté serveur en production et pour les comptes restaurateurs.
 4. Dans un terminal configuré avec le même `.env` :
 
 ```powershell

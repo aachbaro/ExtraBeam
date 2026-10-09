@@ -131,6 +131,9 @@ export async function connectElectronicAccount(token: string): Promise<{ authori
 export async function syncElectronicAccount(token: string): Promise<ElectronicAccount> {
   return postJson<ElectronicAccount>("/einvoicing/sync/", {}, token);
 }
+export async function createSandboxInvoice(token: string): Promise<Facture> {
+  return postJson<Facture>("/einvoicing/sandbox-invoice/", {}, token);
+}
 export async function finalizeFacture(id: number, token: string): Promise<Facture> {
   return postJson<Facture>(`/invoices/${id}/finalize/`, {}, token);
 }

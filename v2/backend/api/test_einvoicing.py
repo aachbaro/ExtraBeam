@@ -408,7 +408,7 @@ class ElectronicInvoicingTests(TestCase):
         self.assertEqual(create.call_args.kwargs["line_items"][0]["price_data"]["unit_amount"], 10000)
 
     @patch("api.einvoicing.services.get_provider")
-    @patch("api.management.commands.superpdp_sandbox.get_provider")
+    @patch("api.einvoicing.sandbox.get_provider")
     @patch("api.management.commands.superpdp_sandbox.sync_account")
     def test_sandbox_command_creates_only_official_fictitious_fixture(self, sync, command_factory, service_factory):
         from django.core.management import call_command
@@ -426,6 +426,35 @@ class ElectronicInvoicingTests(TestCase):
         self.assertEqual(fake.lines.count(), 1)
         provider.submit_invoice.assert_called_once()
         self.assertIn("provider_invoice_id=199", output.getvalue())
+
+    @patch("api.einvoicing.sandbox.get_provider")
+    def test_sandbox_generation_endpoint_creates_for_current_owner(self, create):
+        payload = invoice_to_superpdp_payload(self.invoice)
+        payload['number'] = 'SANDBOX-API-TEST'
+        create.return_value.request.return_value.json.return_value = payload
+        response = self.client.post('/api/einvoicing/sandbox-invoice/', {}, format='json')
+        self.assertEqual(response.status_code, 201)
+        generated = Facture.objects.get(pk=response.data['id'])
+        self.assertEqual(generated.profile, self.owner)
+        self.assertEqual(generated.issuer_snapshot['sandbox_fixture'], payload)
+        self.assertEqual(generated.lines.count(), 1)
+        create.return_value.submit_invoice.assert_not_called()
+        self.assertFalse(Transmission.objects.exists())
+
+    @override_settings(SUPERPDP_ENVIRONMENT="production")
+    @patch("api.einvoicing.sandbox.get_provider")
+    def test_sandbox_generation_endpoint_forbidden_in_production(self, provider):
+        response = self.client.post('/api/einvoicing/sandbox-invoice/', {}, format='json')
+        self.assertEqual(response.status_code, 400)
+        provider.assert_not_called()
+
+    @patch("api.einvoicing.views.create_sandbox_invoice")
+    def test_sandbox_generation_endpoint_requires_freelance_owner(self, create):
+        self.owner.role = 'client'; self.owner.save()
+        self.assertEqual(self.client.post('/api/einvoicing/sandbox-invoice/').status_code, 400)
+        self.client.force_authenticate(user=None); self.client.credentials()
+        self.assertIn(self.client.post('/api/einvoicing/sandbox-invoice/').status_code, [401, 403])
+        create.assert_not_called()
 
     def test_stripe_bad_signature_amount_and_unpaid(self):
         self.finalized()

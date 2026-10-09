@@ -16,6 +16,7 @@ from ..models import Facture, ElectronicInvoiceAccount, ElectronicInvoiceOAuthSt
 from ..serializers import FactureSerializer
 from .providers import get_provider, ProviderError
 from .services import finalize, submit, sync_account
+from .sandbox import create_sandbox_invoice
 
 COOKIE = "einvoice_oauth"
 
@@ -85,6 +86,15 @@ class StatusView(OwnerView):
         response = Response(account_status(account))
         response["Cache-Control"] = "no-store"
         return response
+
+
+class SandboxInvoiceView(OwnerView):
+    def post(self, request):
+        profile = request.user.account_profile
+        if profile.role != "freelance":
+            raise ValidationError("Les factures de test sont réservées aux freelances.")
+        invoice = create_sandbox_invoice(profile)
+        return Response(FactureSerializer(invoice).data, status=201)
 
 
 class SyncView(OwnerView):
