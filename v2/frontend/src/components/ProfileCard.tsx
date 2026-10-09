@@ -534,7 +534,7 @@ export default function ProfileCard({ profile, isOwner, onProfileUpdated, noCard
 
                   <SectionTitle>Informations Legales</SectionTitle>
                   <div className="grid gap-3 md:grid-cols-2">
-                    <input className="eb-input" aria-label="Raison sociale" placeholder="Raison sociale légale"
+                    <input className="eb-input" aria-label="Raison sociale ou nom complet" placeholder="Prénom Nom (auto-entrepreneur) ou raison sociale"
                       value={form.legal_name} onChange={(event) => setForm((current) => ({ ...current, legal_name: event.target.value }))} />
                     <input className="eb-input" aria-label="SIREN" placeholder="SIREN (9 chiffres)"
                       value={form.siren} onChange={(event) => setForm((current) => ({ ...current, siren: event.target.value }))} />

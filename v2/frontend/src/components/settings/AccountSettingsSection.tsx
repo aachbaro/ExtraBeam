@@ -142,7 +142,7 @@ export default function AccountSettingsSection({ profile, token, authProvider }:
           <div className="mt-4">
             <ProfileQrCode slug={profile.slug} />
           </div>
-          <ElectronicInvoiceSettings token={token} />
+          <ElectronicInvoiceSettings token={token} profile={profile} />
         </>
       )}
       <section className="mt-4 rounded-eb border border-red-200 bg-red-50 p-4">

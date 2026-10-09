@@ -57,6 +57,10 @@ def connected_account(profile):
 def submit(invoice):
     if not invoice.finalized_at or invoice.status == Facture.STATUS_CANCELED:
         raise ValidationError("Finaliser une facture non annulée avant l'envoi.")
+    # Refresh snapshot if the issuer profile was completed after finalization.
+    if not invoice.issuer_snapshot.get("legal_name"):
+        invoice.issuer_snapshot = issuer_data(invoice.profile)
+        Facture.objects.filter(pk=invoice.pk).update(issuer_snapshot=invoice.issuer_snapshot)
     account = connected_account(invoice.profile)
     provider = get_provider(account.provider)
     existing = Transmission.objects.filter(invoice=invoice).first()
