@@ -121,7 +121,7 @@ export default function AccountSettingsSection({ profile, token, authProvider }:
           <p className="text-[14px] font-semibold text-eb-text">Compte</p>
           <div className="mt-3 space-y-2 text-[13px] text-eb-secondary">
             <p>Email: {profile.email}</p>
-            <p>Type de compte: {profile.role}</p>
+            <p>Type de compte: {profile.role === "client" ? "Restaurateur" : profile.role}</p>
             <p>Connexion: {formatProvider(authProvider)}</p>
           </div>
         </section>

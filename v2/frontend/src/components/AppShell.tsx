@@ -213,7 +213,7 @@ export default function AppShell({
             }}
           >
             <p className="text-[12px] font-medium truncate" style={{ color: "#352b1d" }}>{user.display_name}</p>
-            <p className="text-[11px] capitalize" style={{ color: "#947239" }}>{user.role}</p>
+            <p className="text-[11px] capitalize" style={{ color: "#947239" }}>{user.role === "client" ? "Restaurateur" : user.role}</p>
             <button
               onClick={handleLogout}
               className="mt-2 text-[11px] transition-colors hover:opacity-70"

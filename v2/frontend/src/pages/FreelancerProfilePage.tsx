@@ -265,7 +265,7 @@ export default function FreelancerProfilePage() {
             style={{ background: "#f9e8ad", borderBottom: "1px solid #e0c46a" }}
           >
             <p className="text-[12px] font-medium" style={{ color: "#6b3d00" }}>
-              Aperçu vue client — voici ce que voient les restaurateurs
+              Aperçu vue restaurateur — voici ce que voient les restaurateurs
             </p>
             <button
               type="button"
@@ -371,7 +371,7 @@ export default function FreelancerProfilePage() {
           className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-[12px] font-medium transition-opacity hover:opacity-80"
           style={{ background: "#f9e8ad", color: "#6b3d00" }}
         >
-          Aperçu vue client →
+          Aperçu vue restaurateur →
         </button>
       ) : undefined}
     >
