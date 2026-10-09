@@ -294,7 +294,7 @@ export default function ServiceDayCard({
     <div
       onContextMenu={(e) => { if (!manager || (e.target as HTMLElement).closest("[role=dialog]")) return; e.preventDefault(); e.stopPropagation(); setMenuPos({ top: Math.min(e.clientY, window.innerHeight - 300), right: Math.max(8, window.innerWidth - e.clientX - 190) }); setMenuOpen(true); }}
       className={`bg-[#fffdf7] border rounded-xl text-sm overflow-hidden ${busy ? "opacity-70 pointer-events-none" : ""}`}
-      style={isNew ? { animation: "cardEnter 0.25s ease-out both" } : undefined}
+      style={isNew ? { animation: "cardEnter 0.25s ease-out backwards" } : undefined}
     >
       {error && <p role="alert" className="px-3 pt-2 text-xs text-red-600">{error}</p>}
 
@@ -664,7 +664,7 @@ export default function ServiceDayCard({
       )}
 
       {/* Mini-panel ajout de shift */}
-      {addShiftOpen && (
+      {addShiftOpen && createPortal(
         <AddShiftPanel
           service={service}
           slug={slug}
@@ -675,7 +675,8 @@ export default function ServiceDayCard({
           onSave={(def) => saveWithUndo(editingSlot ? "Modification shift" : "Ajout shift", def)}
           onSaved={() => { setAddShiftOpen(false); onReload(); }}
           onClose={() => setAddShiftOpen(false)}
-        />
+        />,
+        document.body
       )}
 
       {/* Bouton Notes & tâches */}
@@ -808,7 +809,7 @@ export default function ServiceDayCard({
       )}
 
       {/* Panel édition Notes & tâches */}
-      {notesEditOpen && (
+      {notesEditOpen && createPortal(
         <NotesTasksPanel
           service={service}
           manager={manager}
@@ -817,7 +818,8 @@ export default function ServiceDayCard({
           onToggleTask={(key, done) => void toggleTask(key, done)}
           onSaved={() => { setNotesEditOpen(false); onReload(); }}
           onClose={() => setNotesEditOpen(false)}
-        />
+        />,
+        document.body
       )}
     </div>
   );

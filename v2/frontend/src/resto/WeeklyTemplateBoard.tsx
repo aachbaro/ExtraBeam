@@ -161,7 +161,7 @@ export default function WeeklyTemplateBoard({ templates, members, busy, slug, to
     {bulkTaskOpen && <BulkTaskModal templates={templates} slug={slug} token={token} onDone={() => { setBulkTaskOpen(false); onReload(); }} onClose={() => setBulkTaskOpen(false)} />}
     <label className="flex items-start gap-2 text-xs text-eb-secondary"><input type="checkbox" checked={applyFuture} onChange={e => setApplyFuture(e.target.checked)} />Appliquer aussi mes modifications aux prochains brouillons, en conservant leurs ajustements. Les services publiés restent inchangés.</label>
     {error && <p role="alert" className="text-red-600 text-sm">{error}</p>}
-    <div className="overflow-x-auto pb-3" tabIndex={0} aria-label="Services habituels du lundi au dimanche">
+    <div className="overflow-x-auto p-1 pb-3" tabIndex={0} aria-label="Services habituels du lundi au dimanche">
       <div className="flex gap-3" style={{ minWidth: 1470 }}>
         {weekdays.map((day, weekday) => <div key={day} data-template-day={weekday} className={`flex-1 min-w-[200px] space-y-2 rounded-xl transition-all ${dragDay === weekday || focusedDay === weekday ? "ring-2 ring-eb-primary/40" : ""}`}
           onClick={e => { if (!(e.target as HTMLElement).closest("[data-template-card], button, input, select")) { setFocusedDay(weekday); setSelection([]); } }}
