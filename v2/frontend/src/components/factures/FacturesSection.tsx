@@ -231,6 +231,7 @@ export default function FacturesSection({
 
       {showForm ? (
         <FactureForm
+          token={token}
           initial={editing ?? undefined}
           reuse={reusing}
           previousFactures={factures}

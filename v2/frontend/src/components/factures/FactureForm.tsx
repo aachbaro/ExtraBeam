@@ -8,6 +8,7 @@ import { useState } from "react";
 
 import type { FacturePayload } from "../../api";
 import TimePicker from "../TimePicker";
+import CompanyLookup from "./CompanyLookup";
 import type {
   Facture,
   FactureStatus,
@@ -265,6 +266,7 @@ function buildOptionalHints(form: FormState): string[] {
 }
 
 interface Props {
+  token: string;
   initial?: Facture;
   reuse?: Facture;
   previousFactures?: Facture[];
@@ -276,6 +278,7 @@ interface Props {
 }
 
 export default function FactureForm({
+  token,
   initial,
   reuse,
   previousFactures = [],
@@ -566,6 +569,21 @@ export default function FactureForm({
         </div>
 
         <div className="max-h-[75vh] space-y-5 overflow-y-auto pr-1">
+          <CompanyLookup token={token} initialSiret={form.client_siret} onSelect={(company) => {
+            setForm((previous) => ({ ...previous,
+              client_name: company.legal_name,
+              client_siren: company.siren,
+              client_siret: company.siret,
+              client_address_ligne1: company.address_line1,
+              client_address_ligne2: company.address_line2,
+              client_code_postal: company.postal_code,
+              client_ville: company.city,
+              client_pays: company.country,
+              ...(previous.client_siret.replace(/\s/g, "") === company.siret ? {} : {
+                client_vat_number: "", contact_name: "", contact_phone: "", contact_email: "",
+              }),
+            }));
+          }} />
           {reuse && (
             <p className="rounded border bg-amber-50 p-3 text-sm">
               Nouvelle facture à partir de {reuse.numero}. Client, tarif et

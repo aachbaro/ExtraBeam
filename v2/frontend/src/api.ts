@@ -42,6 +42,23 @@ import type {
 // Re-export AuthUser so pages that already import from "./api" keep working
 export type { AuthUser, AuthResponse };
 
+export interface CompanyIdentity {
+  legal_name: string;
+  siren: string;
+  siret: string;
+  address_line1: string;
+  address_line2: string;
+  postal_code: string;
+  city: string;
+  country: string;
+  status: "active" | "closed" | "unknown";
+  source: string;
+}
+
+export function lookupCompany(siret: string, token: string): Promise<CompanyIdentity> {
+  return getJson(`/company-lookup/?siret=${encodeURIComponent(siret)}`, token);
+}
+
 const API_URL = (import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8002/api").replace(/\/$/, "");
 const AUTH_SERVER_URL = (import.meta.env.VITE_AUTH_SERVER_URL ?? "https://auth.pascuans.dev").replace(/\/$/, "");
 

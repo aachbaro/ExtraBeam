@@ -6,6 +6,7 @@ Role   : Déclare toutes les URLs de l'API Rivebelle v2.
 """
 
 from django.urls import path
+from .company_lookup import CompanyLookupView
 from .guest_recruitment import GuestCreateView, GuestOpenView, GuestBillingView, GuestClaimView
 from .recruitment_views import (RequestListView, RequestDetailView, OfferActionView,
     MessageView, TimesheetView, PrepareInvoiceView, PreferencesView, NotificationsView, PushView)
@@ -44,6 +45,7 @@ from .views import (
 )
 
 urlpatterns = [
+    path('company-lookup/', CompanyLookupView.as_view()),
     path('guest/requests/', GuestCreateView.as_view()),
     path('guest/<uuid:guest_id>/open/', GuestOpenView.as_view()),
     path('requests/<uuid:pk>/guest/billing/', GuestBillingView.as_view()),
