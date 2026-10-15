@@ -7,12 +7,12 @@ const ROLE_CARDS: { value: Extract<AccountRole, "freelance" | "client">; label: 
   {
     value: "freelance",
     label: "Compte freelance",
-    description: "Profil public, agenda owner, missions et factures dans ton espace pro.",
+    description: "Profil public, disponibilités, missions et factures.",
   },
   {
     value: "client",
     label: "Compte restaurateur",
-    description: "Espace prive pour tes templates, tes contacts et le suivi de tes demandes.",
+    description: "Restaurants, modèles de service, équipe et suivi des demandes.",
   },
 ];
 
@@ -53,7 +53,7 @@ export default function AccountRoleCard({ slug, role, token, onRoleChanged }: Pr
             Type de compte
           </p>
           <p className="mt-1 text-[13px] text-eb-secondary">
-            Tu peux passer de freelance a restaurateur a tout moment. La vue et les outils s&apos;adaptent juste apres.
+            Choisissez l’espace adapté à votre activité. Vous pourrez changer ce choix ultérieurement.
           </p>
         </div>
 
@@ -70,8 +70,8 @@ export default function AccountRoleCard({ slug, role, token, onRoleChanged }: Pr
                 onClick={() => void handleRoleChange(card.value)}
                 className={`rounded-eb border p-4 text-left transition-colors ${
                   active
-                    ? "border-eb-primary bg-[#EFF6FF]"
-                    : "border-eb-layout bg-[#fffdf7] hover:border-[#93c5fd]"
+                    ? "border-eb-primary bg-green-50"
+                    : "border-eb-layout bg-[#fffdf7] hover:border-eb-primary"
                 } ${savingRole ? "disabled:cursor-not-allowed disabled:opacity-70" : ""}`}
               >
                 <p className={`text-[14px] font-semibold ${active ? "text-eb-primary" : "text-eb-text"}`}>

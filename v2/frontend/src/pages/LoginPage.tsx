@@ -151,8 +151,9 @@ export default function LoginPage() {
                 style={{ background: "#f0f9f4", borderColor: "#b6ddc7" }}
               >
                 <p className="text-[12px] font-semibold uppercase tracking-wider" style={{ color: "#2d7a52" }}>
-                  Compte Rivebelle
+                  Connexion à Rivebelle
                 </p>
+                <p className="text-sm text-eb-secondary">Connectez-vous à Rivebelle avec votre compte Pascuans. Utilisez votre adresse e-mail ou votre nom d’utilisateur.</p>
                 <a
                   href={oidcLoginUrl}
                   className="eb-focus-ring inline-flex min-h-[44px] w-full items-center justify-center rounded-xl text-[14px] font-medium text-white transition-opacity hover:opacity-90"

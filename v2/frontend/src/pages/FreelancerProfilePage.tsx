@@ -379,7 +379,7 @@ export default function FreelancerProfilePage() {
       {/* ── Profil ── */}
       {activeTab === "profil" && (
         <div className="eb-content-stagger space-y-6">
-          <AccountRoleCard slug={profile.slug} role={profile.role} token={token} onRoleChanged={handleProfileUpdated} />
+
 
           <section className="rounded-eb-card border border-eb-layout bg-[#fffdf7] overflow-hidden">
             <ProfileCard key="owner" profile={profile} isOwner onProfileUpdated={handleProfileUpdated} noCard />
@@ -455,6 +455,7 @@ export default function FreelancerProfilePage() {
       {/* ── Réglages ── */}
       {activeTab === "reglages" && (
         <div>
+          <AccountRoleCard slug={profile.slug} role={profile.role} token={token} onRoleChanged={handleProfileUpdated} />
           <AccountSettingsSection profile={profile} token={token} authProvider={user!.auth_provider} />
         </div>
       )}

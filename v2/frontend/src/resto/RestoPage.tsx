@@ -5,7 +5,6 @@ import { fetchRestaurant, fetchMembers } from "../api";
 import AppShell, { type NavItem } from "../components/AppShell";
 import { useUserContext } from "../context/UserContext";
 import type { Restaurant, RestaurantMember } from "../types";
-import EmployeeAccessSettings from "./EmployeeAccessSettings";
 import MemberPlanningEditor from "./MemberPlanningEditor";
 import MyAvailabilityBoard from "./MyAvailabilityBoard";
 import RestoTeamSection from "./RestoTeamSection";
@@ -110,13 +109,11 @@ export default function RestoPage() {
           <Link className="text-sm underline text-eb-secondary" to={`/resto/${restaurant.slug}/acces`}>
             Connexion des employés par PIN
           </Link>
-          {token && restaurant.is_owner && (
-            <EmployeeAccessSettings slug={restaurant.slug} token={token} members={members} />
-          )}
           <RestoTeamSection
             restaurantSlug={restaurant.slug}
             members={members}
             isManager={manager}
+            isOwner={restaurant.is_owner}
             token={token}
             onMembersChanged={setMembers}
           />

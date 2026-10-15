@@ -266,6 +266,7 @@ function buildOptionalHints(form: FormState): string[] {
 }
 
 interface Props {
+  page?: boolean;
   token: string;
   initial?: Facture;
   reuse?: Facture;
@@ -278,6 +279,7 @@ interface Props {
 }
 
 export default function FactureForm({
+  page = false,
   token,
   initial,
   reuse,
@@ -288,6 +290,7 @@ export default function FactureForm({
   onSave,
   onClose,
 }: Props) {
+  const [clientDetails, setClientDetails] = useState(!initial && !reuse);
   const [form, setForm] = useState<FormState>(() =>
     reuse
       ? {
@@ -350,6 +353,7 @@ export default function FactureForm({
     const client = clients.find((f) => f.id === Number(id));
     if (!client) return;
     const source = buildInitialForm(client, profile);
+    setClientDetails(false);
     setForm((previous) => {
       const next = { ...previous };
       for (const k of Object.keys(next) as (keyof FormState)[]) {
@@ -539,9 +543,9 @@ export default function FactureForm({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4"
+      className={page ? "mx-auto w-full max-w-4xl" : "fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4"}
       onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
+        if (!page && event.target === event.currentTarget) onClose();
       }}
     >
       <form
@@ -551,11 +555,10 @@ export default function FactureForm({
         <div className="mb-5 flex items-center justify-between gap-4">
           <div>
             <h2 className="text-[17px] font-semibold text-eb-text">
-              {initial ? "Modifier la facture" : "Nouvelle facture manuelle"}
+              {initial ? "Modifier la facture" : "Nouvelle facture"}
             </h2>
             <p className="mt-1 text-[12px] text-eb-muted">
-              Rivebelle reprend tes mentions depuis le profil, puis tu ajustes
-              ce qui est propre a cette facture.
+              Choisissez le client, renseignez la prestation, puis vérifiez le récapitulatif.
             </p>
           </div>
           <button
@@ -564,12 +567,15 @@ export default function FactureForm({
             className="text-[20px] leading-none text-eb-muted hover:text-eb-text"
             aria-label="Fermer"
           >
-            ×
+            {page ? "← Retour aux factures" : "×"}
           </button>
         </div>
 
-        <div className="max-h-[75vh] space-y-5 overflow-y-auto pr-1">
+        <div className={page ? "space-y-6" : "max-h-[75vh] space-y-5 overflow-y-auto pr-1"}>
+          {page && <nav aria-label="Étapes de la facture" className="flex flex-wrap gap-3 text-sm border-b pb-4"><a href="#invoice-client" className="underline">1. Client</a><a href="#invoice-prestation" className="underline">2. Prestation</a><a href="#invoice-recap" className="underline">3. Récapitulatif</a></nav>}
+          <div id="invoice-client" />
           <CompanyLookup token={token} initialSiret={form.client_siret} onSelect={(company) => {
+            setClientDetails(false);
             setForm((previous) => ({ ...previous,
               client_name: company.legal_name,
               client_siren: company.siren,
@@ -784,6 +790,8 @@ export default function FactureForm({
             ) : null}
           </div>
 
+          <details open={clientDetails} onToggle={e => setClientDetails(e.currentTarget.open)} className="rounded-xl border border-eb-layout p-4">
+            <summary className="cursor-pointer text-sm font-medium">{form.client_name || "Coordonnées du client"} · Modifier les coordonnées</summary>
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-eb-muted">
               Client
@@ -958,7 +966,8 @@ export default function FactureForm({
             </div>
           </div>
 
-          <div>
+          </details>
+          <div id="invoice-prestation">
             <label className="mb-1 block text-[12px] font-medium text-eb-secondary">
               Description
             </label>
@@ -1155,6 +1164,7 @@ export default function FactureForm({
           {error ? <p className="text-[13px] text-eb-google">{error}</p> : null}
         </div>
 
+        {page && <section id="invoice-recap" className="mt-6 rounded-xl border border-eb-layout bg-eb-page p-4 space-y-2"><h3 className="font-semibold">Récapitulatif</h3><p>{form.client_name || "Client à renseigner"} · {form.numero}</p><p className="text-sm">{form.description || "Prestation à renseigner"}</p><p className="text-lg font-semibold">Total TTC : {lines.length ? toFixedAmount(lineSubtotal + lineTax) : form.montant_ttc || "0,00"} €</p><p className="text-xs text-eb-secondary">Échéance : {formatDateLabel(form.date_echeance) || "À renseigner"}</p></section>}
         <div className="mt-5 flex justify-end gap-2">
           <button type="button" onClick={onClose} className="eb-btn-ghost">
             Annuler

@@ -30,11 +30,6 @@ const STATUS_FILTERS: { value: FactureStatus | null; label: string }[] = [
   { value: "canceled", label: "Annulées" },
 ];
 
-const STATUS_COUNT_COLORS: Record<FactureStatus, string> = {
-  pending_payment: "bg-amber-50 text-amber-700",
-  paid: "bg-green-50 text-green-600",
-  canceled: "bg-red-50 text-red-500",
-};
 
 function buildSuggestedNumero(factures: Facture[]): string {
   const currentYear = new Date().getFullYear();
@@ -132,6 +127,26 @@ export default function FacturesSection({
     : factures;
   const suggestedNumero = buildSuggestedNumero(factures);
 
+  if (showForm) return (
+        <FactureForm page
+          token={token}
+          initial={editing ?? undefined}
+          reuse={reusing}
+          previousFactures={factures}
+          missions={missions}
+          profile={profile}
+          suggestedNumero={editing ? undefined : suggestedNumero}
+          onSave={(data) =>
+            editing ? handleUpdate(editing.id, data) : handleCreate(data)
+          }
+          onClose={() => {
+            setShowForm(false);
+            setEditing(null);
+            setReusing(undefined);
+          }}
+        />
+  );
+
   return (
     <section className="eb-content-stagger rounded-eb-card border border-eb-layout bg-[#fffdf7] p-4">
       <div className="mb-4 flex items-center justify-between">
@@ -139,18 +154,6 @@ export default function FacturesSection({
           <p className="text-[12px] font-medium uppercase tracking-[0.12em] text-eb-muted">
             Factures
           </p>
-          <div className="flex gap-1.5">
-            {(Object.keys(STATUS_COUNT_COLORS) as FactureStatus[])
-              .filter((status) => counts[status])
-              .map((status) => (
-                <span
-                  key={status}
-                  className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${STATUS_COUNT_COLORS[status]}`}
-                >
-                  {counts[status]}
-                </span>
-              ))}
-          </div>
           {pendingTotal > 0 && (
             <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold text-amber-700">
               {pendingTotal.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} € en attente
@@ -229,25 +232,7 @@ export default function FacturesSection({
         </div>
       )}
 
-      {showForm ? (
-        <FactureForm
-          token={token}
-          initial={editing ?? undefined}
-          reuse={reusing}
-          previousFactures={factures}
-          missions={missions}
-          profile={profile}
-          suggestedNumero={editing ? undefined : suggestedNumero}
-          onSave={(data) =>
-            editing ? handleUpdate(editing.id, data) : handleCreate(data)
-          }
-          onClose={() => {
-            setShowForm(false);
-            setEditing(null);
-            setReusing(undefined);
-          }}
-        />
-      ) : null}
+
     </section>
   );
 }

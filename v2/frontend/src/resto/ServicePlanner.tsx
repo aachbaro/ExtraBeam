@@ -262,10 +262,10 @@ export default function ServicePlanner({
       {/* ── MODE SERVICES ── */}
       {mode === "services" && (
         <>
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="rounded-xl border border-eb-layout bg-white/70 p-3 flex flex-wrap items-center justify-between gap-3">
             <div className="flex gap-2 items-center">
               <button className="border rounded p-2" onClick={() => { setOffset((n) => n - 1); setSelected(null); }}>←</button>
-              <span className="text-sm">{from} → {to}</span>
+              <span className="text-sm font-medium">{new Date(from+"T12:00:00").toLocaleDateString("fr-FR", {day:"numeric",month:"short"})} – {new Date(to+"T12:00:00").toLocaleDateString("fr-FR", {day:"numeric",month:"short",year:"numeric"})}</span>
               <button className="border rounded p-2" onClick={() => { setOffset((n) => n + 1); setSelected(null); }}>→</button>
               {offset !== 0 && (
                 <button onClick={() => setOffset(0)} className="text-sm underline">Aujourd’hui</button>
@@ -320,12 +320,12 @@ export default function ServicePlanner({
                     onClick={() => setView(v)}
                     className={`px-3 py-1.5 text-sm transition-colors ${view === v ? "bg-eb-primary text-white" : "bg-[#fffdf7] text-eb-secondary hover:bg-eb-page"}`}
                   >
-                    {v === "planning" ? "Planning" : "Agenda"}
+                    {v === "planning" ? "Services" : "Agenda"}
                   </button>
                 ))}
               </div>
               {manager && (
-                <>
+                <div className="flex flex-wrap items-center gap-2 border-l border-eb-layout pl-3">
                   <button className="border rounded px-3 py-2 text-sm" disabled={busy} onClick={() => void generate()}>
                     Générer les affectations
                   </button>
@@ -361,7 +361,7 @@ export default function ServicePlanner({
                   >
                     + Nouveau service
                   </button>
-                </>
+                </div>
               )}
             </div>
           </div>
@@ -490,7 +490,7 @@ export default function ServicePlanner({
               return (
                 <div
                   key={day}
-                  className={`flex-1 min-w-[200px] space-y-2 rounded-xl transition-all ${isDragTarget ? "ring-2 ring-eb-primary/50 bg-blue-50/50" : ""} ${isFocused ? "ring-2 ring-green-400/50" : ""}`}
+                  className={`flex-1 min-w-[170px] space-y-2 rounded-xl transition-all ${isDragTarget ? "ring-2 ring-eb-primary/50 bg-blue-50/50" : ""} ${isFocused ? "ring-2 ring-green-400/50" : ""}`}
                   onClick={(e) => {
                     if ((e.target as HTMLElement).closest("[data-service-card]")) return;
                     setFocusedDay(day);
@@ -616,8 +616,8 @@ export default function ServicePlanner({
               <div className="overflow-x-auto -mx-1 px-1 pb-2">
                 <div className="space-y-5">
                   {Array.from({ length: calendarDays.length / 7 }, (_, wi) => (
-                    <div key={wi} className="flex gap-3" style={{ minWidth: `${7 * 210}px` }}>
-                      {calendarDays.slice(wi * 7, wi * 7 + 7).map((day, i) => day ? renderCol(day) : <div key={`empty-${i}`} aria-hidden="true" className="flex-1 min-w-[200px]" />)}
+                    <div key={wi} className="flex gap-3" style={{ minWidth: `${7 * 180}px` }}>
+                      {calendarDays.slice(wi * 7, wi * 7 + 7).map((day, i) => day ? renderCol(day) : <div key={`empty-${i}`} aria-hidden="true" className="flex-1 min-w-[170px]" />)}
                     </div>
                   ))}
                 </div>

@@ -1,4 +1,5 @@
-﻿import { useState } from "react";
+﻿import { PinRow } from "./EmployeeAccessSettings";
+import { useState } from "react";
 import type { RestaurantMember } from "../types";
 import { addMember, removeMember, updateMember } from "../api";
 
@@ -21,6 +22,7 @@ const POSITION_VALUES = new Set(POSITIONS.map((p) => p.value));
 interface Props {
   restaurantSlug: string;
   members: RestaurantMember[];
+  isOwner?: boolean;
   isManager: boolean;
   token: string | null;
   onMembersChanged: (members: RestaurantMember[]) => void;
@@ -36,7 +38,7 @@ interface AddForm {
 }
 
 export default function RestoTeamSection({
-  restaurantSlug, members, isManager, token, onMembersChanged,
+  restaurantSlug, members, isManager, isOwner, token, onMembersChanged,
 }: Props) {
   const [showAdd, setShowAdd] = useState(false);
   const [addForm, setAddForm] = useState<AddForm>({
@@ -256,6 +258,7 @@ export default function RestoTeamSection({
             <MemberRow
               key={member.id}
               member={member}
+              pinAccess={isOwner && token ? { slug: restaurantSlug, token } : undefined}
               isManager={isManager}
               positionLabel={POSITION_LABELS[member.position] ?? member.position}
               onToggleActive={() => void handleToggleActive(member)}
@@ -278,6 +281,7 @@ export default function RestoTeamSection({
               <MemberRow
                 key={member.id}
                 member={member}
+              pinAccess={isOwner && token ? { slug: restaurantSlug, token } : undefined}
                 isManager={isManager}
                 positionLabel={POSITION_LABELS[member.position] ?? member.position}
                 onToggleActive={() => void handleToggleActive(member)}
@@ -294,17 +298,19 @@ export default function RestoTeamSection({
 }
 
 function MemberRow({
-  member, isManager, positionLabel,
+  member, isManager, positionLabel, pinAccess,
   onToggleActive, onToggleManager, onRemove, onTogglePosition,
 }: {
   member: RestaurantMember;
   isManager: boolean;
+  pinAccess?: { slug: string; token: string };
   positionLabel: string;
   onToggleActive: () => void;
   onToggleManager: () => void;
   onRemove: () => void;
   onTogglePosition: (position: string) => void;
 }) {
+  const [showPin, setShowPin] = useState(false);
   const [showPositions, setShowPositions] = useState(false);
   const secondaryPositions = member.skills.filter((s) => POSITION_VALUES.has(s));
 
@@ -345,12 +351,13 @@ function MemberRow({
           </a>
         )}
         {isManager && (
-          <div className="flex gap-1">
+          <details className="relative"><summary className="cursor-pointer rounded-lg px-3 py-2 text-sm" aria-label={`Actions pour ${member.name}`}>•••</summary><div className="absolute right-0 z-20 w-56 bg-white shadow-lg border rounded-xl p-2 flex flex-col items-stretch">
+            {pinAccess && <button className="text-left rounded px-2 py-2 text-sm" onClick={() => setShowPin(v => !v)}>Gérer le code PIN</button>}
             <button
               type="button"
               onClick={() => setShowPositions((v) => !v)}
               title="Gérer les postes"
-              className={`rounded px-2 py-1 text-[10px] transition-colors ${
+              className={`rounded px-2 py-1 text-[13px] transition-colors ${
                 showPositions ? "bg-eb-primary/10 text-eb-primary" : "text-eb-secondary hover:bg-eb-layout"
               }`}
             >
@@ -360,29 +367,30 @@ function MemberRow({
               type="button"
               onClick={onToggleActive}
               title={member.is_active ? "Désactiver" : "Réactiver"}
-              className="rounded px-2 py-1 text-[10px] text-eb-secondary hover:bg-eb-layout transition-colors"
+              className="rounded px-2 py-1 text-[13px] text-eb-secondary hover:bg-eb-layout transition-colors"
             >
-              {member.is_active ? "Désact." : "Réact."}
+              {member.is_active ? "Désactiver" : "Réactiver"}
             </button>
             <button
               type="button"
               onClick={onToggleManager}
               title={member.is_manager ? "Retirer le rôle manager" : "Passer manager"}
-              className="rounded px-2 py-1 text-[10px] text-eb-secondary hover:bg-eb-layout transition-colors"
+              className="rounded px-2 py-1 text-[13px] text-eb-secondary hover:bg-eb-layout transition-colors"
             >
-              {member.is_manager ? "Retirer mgr" : "→ Mgr"}
+              {member.is_manager ? "Retirer le rôle responsable" : "Nommer responsable"}
             </button>
             <button
               type="button"
               onClick={onRemove}
-              className="rounded px-2 py-1 text-[10px] text-red-500 hover:bg-red-50 transition-colors"
+              className="rounded px-2 py-1 text-[13px] text-red-500 hover:bg-red-50 transition-colors"
             >
               Retirer
             </button>
-          </div>
+          </div></details>
         )}
       </div>
 
+      {showPin && pinAccess && <div className="px-4 pb-4"><p className="text-xs text-eb-secondary">PIN de 4 à 8 chiffres. Un changement déconnecte les sessions existantes.</p><PinRow member={member} {...pinAccess} /></div>}
       {/* Panel postes supplémentaires */}
       {showPositions && isManager && (
         <div className="px-4 pb-3 border-t border-eb-layout/50 pt-3">

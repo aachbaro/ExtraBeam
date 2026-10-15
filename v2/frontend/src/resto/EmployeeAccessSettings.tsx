@@ -32,7 +32,7 @@ export default function EmployeeAccessSettings({
     </section>
   );
 }
-function PinRow({
+export function PinRow({
   member,
   slug,
   token,

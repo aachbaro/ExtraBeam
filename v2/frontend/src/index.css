@@ -4,7 +4,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Animate content blocks independently, including cards loaded after the tab opens.
+/* Animate content blocks only during the initial dashboard entrance.
    Backwards fill keeps the delay soft without retaining a transformed containing
    block after arrival (important for fixed dialogs and menus). */
 @keyframes ebContentLand {
@@ -28,6 +28,14 @@
   }
 }
 
+/* Tab changes and dashboard route navigation must not replay entrance effects.
+   Keep menu/dialog animations and sidebar width transitions independent. */
+.eb-app-shell:not(.eb-shell-enter) [style*="ebSlideRight"],
+.eb-app-shell:not(.eb-shell-enter) main[style*="ebFadeUp"],
+.eb-app-shell:not(.eb-shell-enter) .eb-dashboard-content .eb-content-stagger > :where(:not(.eb-content-stagger):not(.fixed)) {
+  animation: none !important;
+}
+
 @keyframes cardEnter {
   from { opacity: 0; transform: translateY(-6px) scale(0.98); }
   to   { opacity: 1; transform: translateY(0)   scale(1);    }
@@ -46,7 +54,7 @@
   --eb-google: #c0392b;
   --eb-text: #352b1d;
   --eb-secondary: #6b5540;
-  --eb-muted: #947239;
+  --eb-muted: #766044;
   --eb-input: #d4c4a8;
   --eb-layout: #e0d4bf;
   --eb-focus: 0 0 0 3px rgba(45, 122, 82, 0.12);
@@ -309,3 +317,7 @@
   .eb-soft-reveal, .eb-soft-reveal-content, .eb-disclosure-chevron { transition: none; }
   .eb-soft-reveal-content { transform: none; }
 }
+
+/* Quiet, accessible controls throughout the workspace. */
+button:focus-visible, a:focus-visible, summary:focus-visible { outline: 2px solid var(--eb-primary); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }

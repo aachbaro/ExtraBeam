@@ -285,7 +285,7 @@ export default function ServiceDayCard({
     groups[shift.position].push(shift);
   }
 
-  const exceptions = serviceExceptions(service, templateMode);
+  const exceptions = serviceExceptions(service, templateMode || !service.template_id);
   const noteLines = service.notes.split("\n").filter(Boolean);
   const totalPostes = service.shifts.reduce((n, s) => n + s.positions_needed, 0);
   const assignedPostes = service.shifts.reduce((n, s) => n + s.assigned_count, 0);
@@ -339,6 +339,7 @@ export default function ServiceDayCard({
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0 flex-1" role={manager ? "button" : undefined} tabIndex={manager ? 0 : undefined} onClick={() => manager && editHeader()} onKeyDown={(e) => { if (manager && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); editHeader(); } }} aria-label={`Modifier le nom et les horaires de ${service.title}`}>
               <h3 className="font-semibold text-eb-text truncate">{service.title}</h3>
+              {!templateMode && !service.template_id && <p className="text-xs text-eb-secondary mt-1">Service ponctuel</p>}
               {!templateMode && service.template_id && <p className="text-[10px] text-eb-secondary mt-1">{service.customized ? "Modifié pour cette semaine" : "Semaine type"}</p>}
               <p className="text-xs text-eb-secondary mt-0.5">
                 {fmtTime(service.start_time)} – {fmtTime(service.end_time)}
@@ -498,7 +499,7 @@ export default function ServiceDayCard({
                     <div className="flex items-center gap-1 justify-between">
                       <div className="flex items-center gap-1">
                         {manager && <DragHandle />}
-                        <button type="button" disabled={!manager} className="text-[10px] text-eb-muted hover:text-eb-primary" onClick={() => { const index = service.shifts.findIndex(s => s.id === shift.id); setEditingSlot(service.slots[index]); setAddShiftOpen(true); }}>{timeRange}</button>
+                        <button type="button" disabled={!manager} className="text-[11px] text-eb-secondary hover:text-eb-primary" onClick={() => { const index = service.shifts.findIndex(s => s.id === shift.id); setEditingSlot(service.slots[index]); setAddShiftOpen(true); }}>{timeRange}</button>
                       </div>
                       {manager && (
                         <button
@@ -522,7 +523,7 @@ export default function ServiceDayCard({
                         className={`group/person flex items-center justify-between py-0.5 pl-2 rounded ${a.locked ? "bg-amber-50" : ""}`}
                       >
                         <span
-                          className={`text-[12px] flex items-center gap-1 ${a.locked ? "text-amber-700 font-medium" : a.status === "proposed" ? "text-amber-600" : "text-eb-text"}`}
+                          className={`text-[13px] flex items-center gap-1 ${a.locked ? "text-amber-700 font-medium" : a.status === "proposed" ? "text-amber-600" : "text-eb-text"}`}
                           title={a.locked ? "Poste fixe hebdomadaire" : a.status === "proposed" ? "Affectation proposée — en attente de confirmation" : undefined}
                         >
                           {a.locked && (
@@ -658,7 +659,7 @@ export default function ServiceDayCard({
             className="text-[12px] text-eb-secondary hover:text-eb-primary transition-colors flex items-center gap-1"
           >
             <span className="font-medium text-base leading-none">+</span>
-            <span>Ajouter un shift{!templateMode && <span className="block text-[10px] text-eb-muted">Ce service uniquement</span>}</span>
+            <span>Ajouter un shift{!templateMode && <span className="block text-[11px] text-eb-secondary">Ce service uniquement</span>}</span>
           </button>
         </div>
       )}
@@ -693,7 +694,7 @@ export default function ServiceDayCard({
               </svg>
               <span>Notes & tâches</span>
               {service.tasks.length > 0 && (
-                <span className="text-[10px] text-eb-muted">{service.tasks.filter((t) => t.done).length}/{service.tasks.length}</span>
+                <span className="text-[11px] text-eb-secondary">{service.tasks.filter((t) => t.done).length}/{service.tasks.length}</span>
               )}
             </span>
             <svg
@@ -973,7 +974,7 @@ function MenuItem({
     >
       <span className={`shrink-0 ${danger ? "text-red-400" : "text-eb-muted"}`}>{icon}</span>
       <span className="flex-1">{label}</span>
-      {shortcut && <span className="text-[10px] text-eb-muted font-mono ml-2">{shortcut}</span>}
+      {shortcut && <span className="text-[11px] text-eb-secondary font-mono ml-2">{shortcut}</span>}
     </button>
   );
 }

@@ -80,112 +80,38 @@ export default function FactureCard({
   }
 
   return (
-    <div
-      className="group relative cursor-pointer rounded-eb border border-eb-layout bg-[#fffdf7] p-4 transition-colors hover:border-[#c6a84b]"
-      onClick={onClick}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-[14px] font-semibold leading-snug text-eb-text">
-            {facture.numero}
-          </p>
-          <p className="mt-1.5 truncate text-[13px] text-eb-secondary">
-            {facture.client_name}
-          </p>
+    <article className="rounded-xl border border-eb-layout bg-[#fffdf7] p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="font-semibold text-base text-eb-text">{facture.client_name}</h3>
+          <p className="text-xs text-eb-secondary mt-1">{facture.numero} · {formatDate(facture.date_emission)}{facture.date_echeance ? ` · Échéance ${formatDate(facture.date_echeance)}` : ""}</p>
         </div>
-        <span
-          className="shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-medium"
-          style={{ background: style.bg, color: style.color }}
-        >
-          {style.label}
-        </span>
+        <div className="text-right">
+          <p className="text-lg font-semibold text-eb-text">{formatAmount(facture.montant_ttc)}</p>
+          <span className="inline-block rounded-full px-2 py-0.5 text-xs" style={{ background: style.bg, color: style.color }}>{facture.finalized_at ? style.label : "Brouillon"}</span>
+        </div>
       </div>
-
-      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-eb-muted">
-        <span>{formatDate(facture.date_emission)}</span>
-        {facture.date_echeance ? (
-          <span>Échéance : {formatDate(facture.date_echeance)}</span>
-        ) : null}
-        <span className="font-medium text-eb-text">
-          {formatAmount(facture.montant_ttc)}
-        </span>
-        {facture.mission_title ? (
-          <span>Mission : {facture.mission_title}</span>
-        ) : (
-          <span>Facture manuelle</span>
-        )}
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs text-eb-secondary">{facture.electronic?.label ?? (facture.finalized_at ? "Finalisée · non envoyée électroniquement" : "À compléter et finaliser")}</p>
+        <div className="flex items-center gap-2">
+          {!facture.finalized_at ? <button className="eb-btn-ghost text-xs" onClick={onClick}>Modifier</button>
+            : facture.status === "pending_payment" && onMarkPaid ? <button className="eb-btn-ghost text-xs" disabled={busy} onClick={async () => { setBusy(true); setError(""); try { await onMarkPaid(); } catch(e) { setError(String(e)); } finally { setBusy(false); } }}>Marquer réglée</button>
+            : <button className="eb-btn-ghost text-xs" onClick={onDownload}>Télécharger le PDF</button>}
+          <details className="relative">
+            <summary aria-label={`Actions de la facture ${facture.numero}`} className="cursor-pointer list-none rounded-lg border border-eb-layout px-3 py-2">•••</summary>
+            <div className="absolute right-0 z-20 mt-2 w-60 rounded-xl border border-eb-layout bg-white p-2 shadow-lg flex flex-col items-stretch gap-1 text-sm">
+              {facture.status !== "canceled" && <button disabled={busy} className="text-left rounded p-2 hover:bg-eb-page" onClick={() => void electronicAction()}>{busy ? "Chargement…" : facture.electronic ? "Synchroniser le statut" : facture.finalized_at ? "Envoyer électroniquement" : "Finaliser la facture"}</button>}
+              {onReuse && <button className="text-left rounded p-2 hover:bg-eb-page" onClick={onReuse}>Réutiliser</button>}
+              <button className="text-left rounded p-2 hover:bg-eb-page" onClick={onDownload}>Télécharger le PDF</button>
+              {facture.finalized_at && facture.status !== "canceled" && (!facture.electronic || facture.electronic.status === "failed") && <button disabled={busy} className="text-left rounded p-2 text-red-700 hover:bg-red-50" onClick={() => void cancelInvoice()}>Annuler</button>}
+              {!facture.finalized_at && <button className="text-left rounded p-2 text-red-700 hover:bg-red-50" onClick={onDelete}>Supprimer la facture</button>}
+            </div>
+          </details>
+        </div>
       </div>
-
-      {facture.description ? (
-        <p className="mt-2 line-clamp-2 text-[12px] leading-5 text-eb-secondary">
-          {facture.description}
-        </p>
-      ) : null}
-
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        {facture.status !== "canceled" && <button type="button" disabled={busy}
-          className="rounded border px-3 py-2 text-xs disabled:opacity-50"
-          onClick={(event) => { event.stopPropagation(); void electronicAction(); }}>
-          {busy ? "Chargement…" : facture.electronic ? "Synchroniser le statut" : facture.finalized_at ? "Envoyer électroniquement" : "Finaliser la facture"}
-        </button>}
-        {onReuse && (
-          <button
-            type="button"
-            className="border rounded px-3 py-2 text-xs hover:bg-eb-page"
-            onClick={(e) => {
-              e.stopPropagation();
-              onReuse();
-            }}
-          >
-            Réutiliser
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={(event) => {
-            event.stopPropagation();
-            onDownload();
-          }}
-          className="inline-flex min-h-[32px] items-center justify-center rounded-eb border border-eb-layout px-3 text-[12px] font-medium text-eb-text transition-colors hover:bg-eb-page"
-        >
-          Télécharger le PDF
-        </button>
-        {facture.finalized_at && facture.status !== "canceled" && (!facture.electronic || facture.electronic.status === "failed") && (
-          <button type="button" disabled={busy}
-            className="inline-flex min-h-[32px] items-center justify-center rounded-eb border border-red-200 px-3 text-[12px] font-medium text-red-700 transition-colors hover:bg-red-50 disabled:opacity-50"
-            onClick={(event) => { event.stopPropagation(); void cancelInvoice(); }}>
-            Annuler
-          </button>
-        )}
-        {facture.status === "pending_payment" && onMarkPaid && (
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              onMarkPaid();
-            }}
-            className="inline-flex min-h-[32px] items-center justify-center rounded-eb border border-green-200 bg-green-50 px-3 text-[12px] font-medium text-green-700 transition-colors hover:bg-green-100"
-          >
-            ✓ Marquer réglée
-          </button>
-        )}
-      </div>
-      <p className="mt-2 text-xs">{facture.finalized_at ? "Finalisée" : "Brouillon"} · Électronique : {facture.electronic?.label ?? "Non envoyée"}</p>
-      {facture.electronic?.payment_report_status && <p className="mt-1 text-xs">Déclaration d'encaissement : {facture.electronic.payment_report_status}</p>}
+      {facture.description && <details className="mt-2 text-xs text-eb-secondary"><summary className="cursor-pointer">Détail de la prestation</summary><p className="mt-2 whitespace-pre-wrap">{facture.description}</p></details>}
+      {facture.electronic?.payment_report_status && <p className="mt-1 text-xs">Déclaration d’encaissement : {facture.electronic.payment_report_status}</p>}
       {(error || facture.electronic?.last_error) && <p role="alert" className="mt-2 text-xs text-red-700">{error || facture.electronic?.last_error}</p>}
-
-      <button
-        type="button"
-        disabled={Boolean(facture.finalized_at)}
-        onClick={(event) => {
-          event.stopPropagation();
-          onDelete();
-        }}
-        className="absolute right-3 top-3 hidden h-6 w-6 items-center justify-center rounded text-[16px] text-eb-muted transition-colors hover:bg-red-50 hover:text-eb-google group-hover:flex"
-        aria-label="Supprimer la facture"
-      >
-        ×
-      </button>
-    </div>
+    </article>
   );
 }

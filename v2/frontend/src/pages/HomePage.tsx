@@ -3,10 +3,6 @@ import { getDefaultAppPath, getOidcLogoutUrl } from "../api";
 import { useUserContext } from "../context/UserContext";
 
 const WARM_CSS = `
-  @keyframes ebFadeUp {
-    from { opacity: 0; transform: translateY(10px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
   .riv-warm h1, .riv-warm h2 {
     font-family: Georgia, 'Times New Roman', serif;
     font-weight: 400;
@@ -23,7 +19,7 @@ export default function HomePage() {
 
   return (
     <div
-      className="riv-warm relative isolate min-h-screen overflow-x-hidden"
+      className="riv-warm relative isolate min-h-screen overflow-x-clip"
       style={{ background: "#f5efe4", color: "#352b1d" }}
     >
       <style>{WARM_CSS}</style>
@@ -46,7 +42,7 @@ export default function HomePage() {
         }}
       />
 
-      <div className="relative z-10" style={{ animation: "ebFadeUp 0.4s ease both" }}>
+      <div className="relative z-10">
 
       {/* Nav */}
       <nav
