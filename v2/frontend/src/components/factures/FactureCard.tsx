@@ -33,7 +33,7 @@ interface Props {
   onClick: () => void;
   onDelete: () => void;
   onDownload: () => void;
-  onMarkPaid?: () => void;
+  onMarkPaid?: () => void | Promise<void>;
   onReuse?: () => void;
   token: string;
   onElectronicUpdated: (invoice: Facture) => void;
@@ -52,6 +52,13 @@ export default function FactureCard({
   const style = STATUS_STYLE[facture.status];
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  async function markPaid() {
+    if (busy || !onMarkPaid) return;
+    setBusy(true); setError("");
+    try { await onMarkPaid(); }
+    catch (err) { setError(err instanceof Error ? err.message : String(err)); }
+    finally { setBusy(false); }
+  }
   async function electronicAction() {
     if (busy) return;
     setBusy(true); setError("");
@@ -95,11 +102,11 @@ export default function FactureCard({
         <p className="text-xs text-eb-secondary">{facture.electronic?.label ?? (facture.finalized_at ? "Finalisée · non envoyée électroniquement" : "À compléter et finaliser")}</p>
         <div className="flex items-center gap-2">
           {!facture.finalized_at ? <button className="eb-btn-ghost text-xs" onClick={onClick}>Modifier</button>
-            : facture.status === "pending_payment" && onMarkPaid ? <button className="eb-btn-ghost text-xs" disabled={busy} onClick={async () => { setBusy(true); setError(""); try { await onMarkPaid(); } catch(e) { setError(String(e)); } finally { setBusy(false); } }}>Marquer réglée</button>
             : <button className="eb-btn-ghost text-xs" onClick={onDownload}>Télécharger le PDF</button>}
           <details className="relative">
             <summary aria-label={`Actions de la facture ${facture.numero}`} className="cursor-pointer list-none rounded-lg border border-eb-layout px-3 py-2">•••</summary>
             <div className="absolute right-0 z-20 mt-2 w-60 rounded-xl border border-eb-layout bg-white p-2 shadow-lg flex flex-col items-stretch gap-1 text-sm">
+              {facture.status === "pending_payment" && onMarkPaid && <button disabled={busy} className="text-left rounded p-2 hover:bg-eb-page" onClick={() => void markPaid()}>Marquer réglée</button>}
               {facture.status !== "canceled" && <button disabled={busy} className="text-left rounded p-2 hover:bg-eb-page" onClick={() => void electronicAction()}>{busy ? "Chargement…" : facture.electronic ? "Synchroniser le statut" : facture.finalized_at ? "Envoyer électroniquement" : "Finaliser la facture"}</button>}
               {onReuse && <button className="text-left rounded p-2 hover:bg-eb-page" onClick={onReuse}>Réutiliser</button>}
               <button className="text-left rounded p-2 hover:bg-eb-page" onClick={onDownload}>Télécharger le PDF</button>

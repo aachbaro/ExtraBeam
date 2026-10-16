@@ -10,6 +10,18 @@ const invoice = { id: 1, numero: "2026-0001", date_emission: "2026-10-01", statu
 const props = { token: "token", onElectronicUpdated: vi.fn(), onClick: vi.fn(), onDelete: vi.fn(), onDownload: vi.fn() };
 
 describe("Facture électronique", () => {
+  it("permet de marquer une facture en attente comme réglée depuis le menu", async () => {
+    const onMarkPaid = vi.fn().mockResolvedValue(undefined);
+    render(<FactureCard {...props} facture={invoice} onMarkPaid={onMarkPaid} />);
+    fireEvent.click(screen.getByLabelText("Actions de la facture 2026-0001"));
+    fireEvent.click(screen.getByRole("button", { name: "Marquer réglée" }));
+    await waitFor(() => expect(onMarkPaid).toHaveBeenCalledOnce());
+  });
+  it.each(["paid", "canceled"] as const)("ne propose pas de régler une facture %s", status => {
+    render(<FactureCard {...props} facture={{ ...invoice, status }} onMarkPaid={vi.fn()} />);
+    fireEvent.click(screen.getByLabelText("Actions de la facture 2026-0001"));
+    expect(screen.queryByText("Marquer réglée")).toBeNull();
+  });
   it("affiche le brouillon et finalise", async () => {
     vi.mocked(finalizeFacture).mockResolvedValue({ ...invoice, finalized_at: "2026-10-01" });
     render(<FactureCard {...props} facture={invoice} />);

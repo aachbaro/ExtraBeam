@@ -4,7 +4,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Animate content blocks only during the initial dashboard entrance.
+/* Animate content blocks each time a dashboard section opens.
    Backwards fill keeps the delay soft without retaining a transformed containing
    block after arrival (important for fixed dialogs and menus). */
 @keyframes ebContentLand {
@@ -28,11 +28,9 @@
   }
 }
 
-/* Tab changes and dashboard route navigation must not replay entrance effects.
-   Keep menu/dialog animations and sidebar width transitions independent. */
-.eb-app-shell:not(.eb-shell-enter) [style*="ebSlideRight"],
-.eb-app-shell:not(.eb-shell-enter) main[style*="ebFadeUp"],
-.eb-app-shell:not(.eb-shell-enter) .eb-dashboard-content .eb-content-stagger > :where(:not(.eb-content-stagger):not(.fixed)) {
+/* Only the sidebar entrance plays once; section, menu and dialog animations
+   remain independent, as does the sidebar width transition. */
+.eb-app-shell:not(.eb-shell-enter) aside [style*="ebSlideRight"] {
   animation: none !important;
 }
 
